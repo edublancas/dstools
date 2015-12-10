@@ -1,3 +1,5 @@
+pip install git+git://github.com/edublancas/python-ds-tools.git
+
 
 #Set your environmental variables
 
