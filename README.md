@@ -1,5 +1,4 @@
-pip install git+git://github.com/edublancas/python-ds-tools.git
-
+Just a bunch of utility functions I use for my Data Science projects.
 
 #Set your environmental variables
 

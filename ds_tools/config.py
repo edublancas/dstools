@@ -7,8 +7,7 @@ name = 'config.yaml'
 path = "%s/%s" % (folder, name)
 f = open(path, 'r')
 text = f.read()
-dic = yaml.load(text)
-main = dic
+main = yaml.load(text)
 
 def load(name):
     folder = os.environ['ROOT_FOLDER']
