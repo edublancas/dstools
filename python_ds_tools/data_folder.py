@@ -1,5 +1,6 @@
 import os
 
+#Retrieve the corresponding local data folder given a file
 def for_file(path):
     #Root folder for the project is
     root_folder = os.environ['ROOT_FOLDER']
