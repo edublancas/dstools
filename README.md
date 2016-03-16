@@ -4,7 +4,8 @@
 
 1. I don't like typing the same code twice
 2. Write cleaner code in my Data Science projects
-3. Why not?
+3. Use well-tested code for common tasks
+4. Why not?
 
 ##Philosophy
 
