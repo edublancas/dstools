@@ -13,5 +13,6 @@ setup(name = 'dstools',
       classifiers = [],
       install_requires=[
           'pyaml',
+          'pymongo'
       ]
 )
