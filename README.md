@@ -21,3 +21,5 @@
 1. Script to clone template from [here](https://github.com/edublancas/ds-template)
 2. Logging model results to a database
 3. Code for dynamic SQL generation (R/W)
+4. Geocoder
+5. Data updater
