@@ -23,3 +23,4 @@
 3. Code for dynamic SQL generation (R/W)
 4. Geocoder
 5. Data updater
+6. Code for exploring pg schema
