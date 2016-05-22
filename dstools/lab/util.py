@@ -1,4 +1,5 @@
 from collections import defaultdict
+import copy
 
 
 def top_k(elements, key, k, descending=True):
@@ -30,3 +31,17 @@ def group_by(data, criteria):
         key = criteria(element)
         res[key].append(element)
     return res
+
+
+def group_map(groups, fn):
+    groups = copy.copy(groups)
+    for key in groups:
+        groups[key] = [fn(value) for value in groups[key]]
+    return groups
+
+
+def group_reduce(groups, fn):
+    groups = copy.copy(groups)
+    for key in groups:
+        groups[key] = reduce(fn, groups[key])
+    return groups
