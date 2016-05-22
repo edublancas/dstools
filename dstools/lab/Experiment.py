@@ -1,11 +1,5 @@
-import functools
-import inspect
 from dstools import FrozenJSON
-
-#not sure if this is a good idea
-#http://stackoverflow.com/questions/4214936/how-can-i-get-the-values-of-the-locals-of-a-function-after-it-has-been-executed/4249347#4249347
-#http://stackoverflow.com/questions/9186395/python-is-there-a-way-to-get-a-local-function-variable-from-within-a-decorator
-#http://code.activestate.com/recipes/577283-decorator-to-expose-local-variables-of-a-function-/
+from dstools.utils import _can_iterate
 
 
 class Experiment:
@@ -18,9 +12,14 @@ class Experiment:
         self.records = []
 
     def get(self, id_):
-        # maybe change this to fetch and instead of returning them
-        # putting them in records
-        return self.backend.get(id_)
+        res = self.backend.get(id_)
+        if _can_iterate(res):
+            for r in res:
+                r._is_on_db = True
+            self.records.extend(res)
+        else:
+            res._is_on_db = True
+            self.records.append(res)
 
     def save(self):
         '''
@@ -28,11 +27,11 @@ class Experiment:
             to determine which records are not on the database or have been
             modified and only sends those to the backend.
         '''
+        not_in_db = filter(lambda r: not r._is_on_db, self.records)
         # convert records to dictionaries
-        dicts = [dict(r) for r in self.records]
+        dicts = [dict(r) for r in not_in_db]
         # first - save records that are new
-        new_recs = filter(lambda r: not self.backend.is_on_db(r), dicts)
-        return self.backend.save(new_recs)
+        return self.backend.save(dicts)
 
     def record(self):
         # create and empty record
@@ -40,21 +39,18 @@ class Experiment:
         self.records.append(record)
         return record
 
-    def record_with_suffix(self, func, suffix='save'):
-        @functools.wraps(func)
-        def dec_func(*args, **kwargs):
-            func(*args, **kwargs)
-            vars_ = locals()
-            vars_ = {k: v for k, v in vars_.iteritems() if k.startswith(suffix)}
-            print vars_
-        return dec_func
-
 
 class Record(FrozenJSON.FrozenJSON):
+    def __init__(self, mapping):
+        super(Record, self).__init__(mapping)
+        self._is_on_db = False
+        self._is_dirty = False
+
     def save(self):
         pass
 
     def __setitem__(self, key, value):
+        self._is_dirty = True
         self._data[key] = value
 
 
@@ -73,6 +69,7 @@ class LoggerBackend:
     def store(record):
         # store record or records if it's a list
         pass
+
 
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -97,6 +94,3 @@ class MongoBackend:
 
     def save(self, dicts):
         self.con.insert_many(dicts)
-
-    def is_on_db(self, dict):
-        return '_id' in dict
