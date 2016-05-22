@@ -1,6 +1,8 @@
-import re
+def _can_iterate(obj):
+    import types
+    import collections
 
-def get_model_name(model):
-    s = str(type(model))
-    model_name = re.search(".*'(.+?)'.*", s).group(1).split(".")[-1]
-    return model_name
+    is_string = isinstance(obj, types.StringTypes)
+    is_iterable = isinstance(obj, collections.Iterable)
+
+    return is_iterable and not is_string

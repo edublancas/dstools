@@ -1,5 +1,31 @@
 #Code for exploring PostgresSQL schema
 
+#Utility function to see which tables already exist in schema
+def tables_in_schema(con, schema):
+    q = '''
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema=%s;
+    '''
+    cur = con.cursor()
+    cur.execute(q, [schema])
+    tuples = cur.fetchall()
+    names = [t[0] for t in tuples]
+    return names
+
+def columns_for_table_in_schema(con, table, schema):
+    q = '''
+        SELECT column_name, data_type
+        FROM information_schema.columns
+        WHERE table_schema = %s
+        AND table_name   = %s;
+    '''
+    cur = con.cursor()
+    cur.execute(q, [schema, table])
+    tuples = cur.fetchall()
+    #names = [t[0] for t in tuples]
+    return tuples
+
 
 def parse_feature_pattern(pattern):
     '''
