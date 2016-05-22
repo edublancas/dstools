@@ -1,5 +1,5 @@
-usage/*.csv
-usage/*.yaml
+usage/**/*.csv
+usage/**/*.yaml
 
 
 
