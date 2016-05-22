@@ -1,1 +1,1 @@
-Code that I need to mode to the package.
+Code that I need to add to the package.
