@@ -1,6 +1,7 @@
 from dstools import FrozenJSON
 from dstools.utils import _can_iterate
 
+from itertools import chain
 
 class Experiment:
     def __init__(self, conf, backend='mongo'):
@@ -27,11 +28,21 @@ class Experiment:
             to determine which records are not on the database or have been
             modified and only sends those to the backend.
         '''
+        # step 1 - save everything that is not in the db
         not_in_db = filter(lambda r: not r._is_on_db, self.records)
-        # convert records to dictionaries
         dicts = [dict(r) for r in not_in_db]
-        # first - save records that are new
-        return self.backend.save(dicts)
+        if dicts:
+            self.backend.save(dicts)
+        # step 2 - update records that have been modified
+        need_update = filter(lambda r:  r._is_on_db and r._is_dirty,
+                             self.records)
+        dicts = [dict(r) for r in need_update]
+        if dicts:
+            self.backend.update(dicts)
+        # update their db status
+        for r in chain(not_in_db and need_update):
+            r._is_on_db = True
+            r._is_dirty = False
 
     def record(self):
         # create and empty record
@@ -94,3 +105,7 @@ class MongoBackend:
 
     def save(self, dicts):
         self.con.insert_many(dicts)
+
+    def update(self, dicts):
+        for d in dicts:
+            self.con.replace_one({'_id': ObjectId(d['_id'])}, d)

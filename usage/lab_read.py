@@ -3,10 +3,14 @@ from dstools.lab import Experiment
 from dstools.lab.util import group_by
 
 ex = Experiment(main['logger'])
-ex.get(['57410b666fdf1e2369805f79', '574111b16fdf1e28c7620981'])
+ex.get(['574107f46fdf1e21cea90844'])
 model = ex.records[0]
-model
 
-#ex.save()
+model['key'] = 'new value'
+
+new_model = ex.record()
+new_model['key'] = 'im super cool'
+
+ex.save()
 
 group_by(ex.records, 'model')
