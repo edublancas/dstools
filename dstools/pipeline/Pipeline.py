@@ -2,13 +2,15 @@ from dstools.lab import Experiment
 
 
 class Pipeline:
-    def __init__(self, config):
+    def __init__(self, config, exp_config):
         self.config = config
+        # create experiment instance
+        self.ex = Experiment(exp_config)
         self.models = []
 
     def _load(self):
         config = getattr(self.config, 'load', None)
-        self.load(config, self.models)
+        self.data = self.load(config)
 
     def _impute(self):
         pass
@@ -18,21 +20,21 @@ class Pipeline:
 
     def _feature_selection(self, record):
         config = getattr(self.config, 'feature_selection', None)
-        self.feature_selection(config, self.models, record)
+        self.feature_selection(config, self.models, self.data, record)
 
     def _model_gen(self):
-        return []
+        config = getattr(self.config, 'model_gen', None)
+        return self.model_gen(config, self.models)
 
     def _train(self, model, record):
-        pass
+        config = getattr(self.config, 'train', None)
+        return self.train(config, model, self.data, record)
 
     def _finalize(self, experiment):
-        pass
+        config = getattr(self.config, 'finalize', None)
+        return self.finalize(config, self.models, experiment)
 
     def __call__(self):
-        # create experiment instance
-        ex = Experiment(self.conf['experiment'])
-
         self._load()
 
         if self._impute:
@@ -45,17 +47,20 @@ class Pipeline:
         # but if we are doing hyperparameter optimization
         # is not going to be trivial
         for model in self._model_gen():
-            record = ex.record()
-            record['conf'] = self.conf
+            record = self.ex.record()
+            record['config'] = self.config
 
             if self.feature_selection:
                 # pass record instance so the user is able
                 # to record whatever he wants
                 self._feature_selection(record)
 
-            self._train(model, record)
+            # run training functiona and save fitted
+            # model in self.models
+            res = self._train(model, record)
+            self.models.append(res)
 
         # last step - send experiment for post-processing
-        self._finalize(self.models, ex)
+        self._finalize(self.ex)
         # save results from this experiment
-        ex.save()
+        self.ex.save()

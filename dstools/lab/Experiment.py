@@ -1,6 +1,6 @@
 from dstools import FrozenJSON
 from itertools import chain
-from dstools.Backend import MongoBackend
+from dstools.lab.Backend import MongoBackend
 
 
 class Experiment:
