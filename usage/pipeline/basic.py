@@ -13,8 +13,8 @@ from sklearn.cross_validation import train_test_split
 
 
 # this function should return the all the data used to train models
-#  must return a dictionary. In subsequentent functions the data will
-#  be available in the 'data' parameter
+# must return a dictionary. In subsequentent functions the data will
+# be available in the 'data' parameter
 def load(config):
     print config
     iris = load_iris()
