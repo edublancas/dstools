@@ -1,4 +1,4 @@
-from dstools import FrozenJSON
+from dstools.lab import FrozenJSON
 from itertools import chain
 from dstools.lab.Backend import MongoBackend
 
@@ -21,6 +21,13 @@ class Experiment:
         for r in results:
             r._is_on_db = True
         self.records.extend(results)
+
+    def __setitem__(self, key, value):
+        '''
+            Set item to the experiment instance affects all records
+        '''
+        for r in self.records:
+            r[key] = value
 
     def save(self):
         '''

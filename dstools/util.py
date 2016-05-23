@@ -38,5 +38,5 @@ def load_yaml(name):
 
 config = load_yaml('config.yaml')
 
-pg_uri = ('{dialect}://{user}:{password}@{host}:5432/{database}'
-          .format(**config['db']))
+# pg_uri = ('{dialect}://{user}:{password}@{host}:5432/{database}'
+#           .format(**config['db']))
