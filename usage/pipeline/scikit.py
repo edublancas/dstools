@@ -40,17 +40,11 @@ def load(config):
     return data
 
 
-# maybe this should be able to modify the data send to train
-# for the next iteration - to avoid redundant transformations
 def model_iterator(config):
-    classes = ['sklearn.ensemble.RandomForestClassifier',
-               'sklearn.ensemble.AdaBoostClassifier',
-               'sklearn.linear_model.LogisticRegression',
-               'sklearn.ensemble.ExtraTreesClassifier',
-               'sklearn.ensemble.GradientBoostingClassifier']
-    classes = ['sklearn.ensemble.ExtraTreesClassifier']
-    sklearn_models = grid_generator.grid_from_classes(classes, size='small')
-    percentiles = [50, 60, 70, 80, 90, 100]
+    sklearn_models = config['sklearn_models']
+    sklearn_models = grid_generator.grid_from_classes(sklearn_models,
+                                                      size=config['grid_size'])
+    percentiles = config['feature_percentiles']
     all_models = list(product(sklearn_models, percentiles))
     return all_models
 
@@ -59,7 +53,7 @@ def train(config, model, data, record):
     model, percentile = model
 
     try:
-        model.n_jobs = -1
+        model.n_jobs = config['n_jobs']
     except:
         log.info('Cannot set n_jobs for this model...')
 
@@ -97,7 +91,7 @@ def train(config, model, data, record):
 
 def finalize(config, experiment):
     experiment.records = top_k(experiment.records, 'mean_acc', 10)
-    experiment['exp_name'] = 'fixed-transform-2'
+    experiment['exp_name'] = config['exp_name']
 
 pip = Pipeline(config, load_yaml('exp.yaml'), workers=10, save=True)
 
