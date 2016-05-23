@@ -1,5 +1,6 @@
 usage/**/*.csv
 usage/**/*.yaml
+usage/**/*.json
 
 
 
