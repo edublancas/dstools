@@ -42,7 +42,7 @@ def load(config):
 
 # maybe this should be able to modify the data send to train
 # for the next iteration - to avoid redundant transformations
-def model_gen(config, models):
+def model_iterator(config):
     classes = ['sklearn.ensemble.RandomForestClassifier',
                'sklearn.ensemble.AdaBoostClassifier',
                'sklearn.linear_model.LogisticRegression',
@@ -95,11 +95,7 @@ def train(config, model, data, record):
     record['test_preds'] = [(id_, pred) for id_, pred in zip(ids, preds)]
 
 
-def post_train(config, models, data, record):
-    pass
-
-
-def finalize(config, models, experiment):
+def finalize(config, experiment):
     experiment.records = top_k(experiment.records, 'mean_acc', 10)
     experiment['exp_name'] = 'fixed-transform-2'
     experiment.save()
@@ -107,9 +103,8 @@ def finalize(config, models, experiment):
 pip = Pipeline(config, load_yaml('exp.yaml'))
 
 pip.load = load
-pip.model_gen = model_gen
+pip.model_iterator = model_iterator
 pip.train = train
-# pip.post_train = post_train
 pip.finalize = finalize
 
 pip()
