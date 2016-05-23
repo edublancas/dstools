@@ -12,13 +12,13 @@ from sklearn.pipeline import make_pipeline
 from itertools import product
 import logging
 
-logger = logging.getLogger()
+log = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter(
         '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+log.addHandler(handler)
+log.setLevel(logging.DEBUG)
 
 '''
     Pipeline example using scikit-learn
@@ -57,6 +57,11 @@ def model_gen(config, models):
 
 def train(config, model, data, record):
     model, percentile = model
+
+    try:
+        model.n_jobs = -1
+    except:
+        log.info('Cannot set n_jobs for this model...')
 
     record['model'] = model_name(model)
     record['parameters'] = model.get_params()
