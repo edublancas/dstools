@@ -1,6 +1,4 @@
 from dstools.lab import FrozenJSON
-from dstools.lab.Backend import MongoBackend, TinyDBBackend
-
 from itertools import chain
 import logging
 
@@ -10,8 +8,12 @@ log = logging.getLogger(__name__)
 class Experiment:
     def __init__(self, conf, backend='mongo', read_only=False):
         if backend == 'mongo':
+            from dstools.lab.backends import MongoBackend
+
             self.backend = MongoBackend(conf)
         elif backend == 'tiny':
+            from dstools.lab.backends import TinyDBBackend
+
             self.backend = TinyDBBackend(conf)
         else:
             raise Exception('Backend not supported')

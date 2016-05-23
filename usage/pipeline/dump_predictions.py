@@ -2,8 +2,8 @@ from dstools.util import load_yaml
 from dstools.lab import Experiment
 import pandas as pd
 
-ex = Experiment(load_yaml('exp.yaml'))
-ex.get(_id=['5742aad9e0f48c140c2836de'])
+ex = Experiment(load_yaml('exp.yaml')['conf'])
+ex.get(_id=['57435574e0f48c88752991ba'])
 best = ex.records[0]
 
 df = pd.DataFrame(best.test_preds, columns=['PassengerId', 'Survived'])
