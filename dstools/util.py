@@ -2,6 +2,11 @@ import os
 import yaml
 
 
+def instantiate_from_class_string(class_str, **kwargs):
+    from pydoc import locate
+    return locate(class_str)(**kwargs)
+
+
 def _can_iterate(obj):
     import types
     import collections
