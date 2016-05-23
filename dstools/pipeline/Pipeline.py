@@ -60,7 +60,7 @@ class Pipeline:
         else:
             log.info('Models to train: {}'.format(total))
 
-        if self._paralllel:
+        if self._workers > 1:
             self._concurrent_run(model_iterator, total)
         else:
             self._serial_run(model_iterator, total)
