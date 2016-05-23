@@ -7,6 +7,15 @@ from dstools.lab.util import top_k
 import pandas as pd
 from sklearn import cross_validation
 from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectPercentile, f_classif
+from itertools import product
+
+'''
+    Pipeline example using scikit-learn
+    - Scaling features
+    - Training different models and hyperparameter sets
+    - Feature selection using SelectPercentile
+'''
 
 
 def load(config):
@@ -25,29 +34,43 @@ def load(config):
     return data
 
 
+# maybe this should be able to modify the data send to train
+# for the next iteration - to avoid redundant transformations
 def model_gen(config, models):
     classes = ['sklearn.ensemble.RandomForestClassifier',
                'sklearn.ensemble.AdaBoostClassifier',
                'sklearn.linear_model.LogisticRegression',
                'sklearn.ensemble.ExtraTreesClassifier',
                'sklearn.ensemble.GradientBoostingClassifier']
-    classes = ['sklearn.ensemble.ExtraTreesClassifier']
-    models = grid_generator.grid_from_classes(classes, size='small')
-    for m in models:
+    sklearn_models = grid_generator.grid_from_classes(classes, size='medium')
+    percentiles = [50, 60, 70, 80, 90, 100]
+    all_models = product(sklearn_models, percentiles)
+    for m in all_models:
         yield m
 
 
 def train(config, model, data, record):
-    scores = cross_validation.cross_val_score(model, data['train_x'],
-                                              data['train_y'], cv=3,
+    model, percentile = model
+
+    train_x = data['train_x']
+    train_y = data['train_y']
+    test_x = data['test_x']
+
+    fn = SelectPercentile(f_classif, percentile).fit(train_x, train_y)
+    train_x = fn.transform(train_x)
+    test_x = fn.transform(test_x)
+
+    scores = cross_validation.cross_val_score(model, train_x,
+                                              train_y, cv=3,
                                               scoring='accuracy')
-    model.fit(data['train_x'], data['train_y'])
+    model.fit(train_x, train_y)
     record['parameters'] = model.get_params()
     record['model'] = model_name(model)
     record['mean_acc'] = scores.mean()
+    record['feats_percentile'] = percentile
 
     ids = data['test_ids']
-    preds = model.predict(data['test_x'])
+    preds = model.predict(test_x)
     record['test_preds'] = [(id_, pred) for id_, pred in zip(ids, preds)]
 
 
