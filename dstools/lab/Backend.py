@@ -2,6 +2,8 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from dstools.util import _can_iterate
 
+from tinydb import TinyDB
+
 
 class ExperimentBackend:
     def __init__(self, conf):
@@ -54,3 +56,18 @@ class MongoBackend:
 
         results = list(self.con.find(kwargs))
         return results
+
+
+class TinyDBBackend:
+    def __init__(self, conf):
+        self.con = TinyDB(conf['path'])
+
+    def save(self, dicts):
+        self.con.insert_multiple(dicts)
+
+    def update(self, dicts):
+        for d in dicts:
+            self.con.update(d, eid=[d.eid])
+
+    def get(self, **kwargs):
+        raise Exception('Not implemented')

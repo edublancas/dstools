@@ -1,4 +1,7 @@
 from dstools.lab import Experiment
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class Pipeline:
@@ -11,7 +14,7 @@ class Pipeline:
         self.post_train = None
         self.finalize = None
         # create experiment instance
-        self.ex = Experiment(exp_config)
+        self.ex = Experiment(**exp_config)
         self.models = []
 
     def _load(self):
@@ -35,9 +38,26 @@ class Pipeline:
         return self.finalize(config, self.models, experiment)
 
     def __call__(self):
+        log.info('Pipeline started. Loading data.')
         self._load()
+        log.info('Data loaded. Starting models loop.')
 
-        for model in self._model_gen():
+        model_gen = self._model_gen()
+        # see if self._model_gen has len
+        try:
+            total = len(self._model_gen())
+        except:
+            log.info('Number of models to train is unknown')
+            total = None
+        else:
+            log.info('Models to train: {}'.format(total))
+
+        for i, model in enumerate(model_gen, 1):
+            if total:
+                log.info('{}/{} - Running with: {}'.format(i, total, model))
+            else:
+                log.info('{} - Running with: {}'.format(i, model))
+
             record = self.ex.record()
             record['config'] = self.config
 
@@ -47,6 +67,8 @@ class Pipeline:
             self.models.append(res)
 
             if self.post_train:
+                log.info('Post train.')
                 self._post_train(record)
 
+        log.info('Running finalize step.')
         self._finalize(self.ex)

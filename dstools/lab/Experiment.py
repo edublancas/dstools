@@ -1,14 +1,22 @@
 from dstools.lab import FrozenJSON
+from dstools.lab.Backend import MongoBackend, TinyDBBackend
+
 from itertools import chain
-from dstools.lab.Backend import MongoBackend
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class Experiment:
     def __init__(self, conf, backend='mongo', read_only=False):
         if backend == 'mongo':
             self.backend = MongoBackend(conf)
+        elif backend == 'tiny':
+            self.backend = TinyDBBackend(conf)
         else:
             raise Exception('Backend not supported')
+
+        log.info('Backend selected: {}'.format(self.backend))
 
         self.records = []
         self.read_only = read_only

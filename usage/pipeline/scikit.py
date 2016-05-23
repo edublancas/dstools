@@ -9,6 +9,15 @@ from sklearn import cross_validation
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectPercentile, f_classif
 from itertools import product
+import logging
+
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+formatter = logging.Formatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 '''
     Pipeline example using scikit-learn
@@ -42,11 +51,11 @@ def model_gen(config, models):
                'sklearn.linear_model.LogisticRegression',
                'sklearn.ensemble.ExtraTreesClassifier',
                'sklearn.ensemble.GradientBoostingClassifier']
-    sklearn_models = grid_generator.grid_from_classes(classes, size='medium')
+    classes = ['sklearn.ensemble.ExtraTreesClassifier']
+    sklearn_models = grid_generator.grid_from_classes(classes, size='small')
     percentiles = [50, 60, 70, 80, 90, 100]
-    all_models = product(sklearn_models, percentiles)
-    for m in all_models:
-        yield m
+    all_models = list(product(sklearn_models, percentiles))
+    return all_models
 
 
 def train(config, model, data, record):
@@ -81,7 +90,7 @@ def post_train(config, models, data, record):
 def finalize(config, models, experiment):
     experiment.records = top_k(experiment.records, 'mean_acc', 10)
     experiment['exp_name'] = 'testing'
-    experiment.save()
+    # experiment.save()
 
 pip = Pipeline(config, load_yaml('exp.yaml'))
 
