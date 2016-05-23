@@ -98,9 +98,8 @@ def train(config, model, data, record):
 def finalize(config, experiment):
     experiment.records = top_k(experiment.records, 'mean_acc', 10)
     experiment['exp_name'] = 'fixed-transform-2'
-    experiment.save()
 
-pip = Pipeline(config, load_yaml('exp.yaml'))
+pip = Pipeline(config, load_yaml('exp.yaml'), workers=10, save=True)
 
 pip.load = load
 pip.model_iterator = model_iterator

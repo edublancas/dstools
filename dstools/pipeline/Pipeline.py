@@ -6,12 +6,14 @@ MAX_WORKERS = 20
 
 
 class Pipeline:
-    def __init__(self, config, exp_config, workers=1):
+    def __init__(self, config, exp_config, workers=1, save=True):
         if workers > MAX_WORKERS:
             self._workers = MAX_WORKERS
             log.info('Max workers is {}.'.format(MAX_WORKERS))
         else:
             self._workers = workers
+
+        self._save = save
 
         self.config = config
         # initialize functions as None
@@ -32,11 +34,16 @@ class Pipeline:
 
     def _train(self, model, record):
         config = getattr(self.config, 'train', None)
-        return self.train(config, model, self.data, record)
+        self.train(config, model, self.data, record)
 
     def _finalize(self, experiment):
-        config = getattr(self.config, 'finalize', None)
-        return self.finalize(config, experiment)
+        # save config used for this experiment on all records
+        self.ex['config'] = self.config
+
+        # run function if the user provided one
+        if self.finalize:
+            config = getattr(self.config, 'finalize', None)
+            self.finalize(config, experiment)
 
     def __call__(self):
         log.info('Pipeline started. Loading data.')
@@ -61,6 +68,9 @@ class Pipeline:
         log.info('Running finalize step.')
         self._finalize(self.ex)
 
+        if self._save:
+            self.ex.save()
+
     def _serial_run(self, model_iterator, total):
         for i, model in enumerate(model_iterator, 1):
             self._one_step(model, i, total)
@@ -78,9 +88,4 @@ class Pipeline:
             log.info('{} - Running with: {}'.format(i, model))
 
         record = self.ex.record()
-        record['config'] = self.config
-
-        # run training functiona and save fitted
-        # model in self.models
-        res = self._train(model, record)
-        self.models.append(res)
+        self._train(model, record)
