@@ -81,6 +81,7 @@ class Pipeline:
 
     def _concurrent_run(self, model_iterator, total):
         from concurrent import futures
+        # maybe multiprocessing would be better for this
         with futures.ThreadPoolExecutor(self._workers) as executor:
             executor.map(self._one_step, model_iterator, range(1, total),
                          [total]*total)
