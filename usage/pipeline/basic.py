@@ -1,6 +1,6 @@
 from dstools.pipeline import Pipeline
-from dstools.config import main
-from dstools.config import load as load_config
+from dstools.params import config
+from dstools.params import load_yaml as load_config
 from dstools.lab.util import top_k
 from dstools.sklearn import grid_generator
 from dstools.sklearn.util import model_name
@@ -8,8 +8,15 @@ from dstools.sklearn.util import model_name
 from sklearn.datasets import load_iris
 from sklearn.metrics import precision_score
 from sklearn.cross_validation import train_test_split
+import logging
 
-# define your custom functions
+log = logging.getLogger()
+handler = logging.StreamHandler()
+formatter = logging.Formatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+handler.setFormatter(formatter)
+log.addHandler(handler)
+log.setLevel(logging.INFO)
 
 
 # this function should return the all the data used to train models
@@ -37,11 +44,10 @@ def feature_selection(config, models, data, record):
 
 # this function is called on every iteration, it must return an unfitted
 # model
-def model_gen(config, models):
+def model_iterator(config):
     classes = ['sklearn.ensemble.RandomForestClassifier']
     models = grid_generator.grid_from_classes(classes)
-    for m in models:
-        yield m
+    return models
 
 
 # function used to train models, should return
@@ -59,16 +65,16 @@ def train(config, model, data, record):
 
 
 # optional function used when every model has been trained
-def finalize(config, models, experiment):
+def finalize(config, experiment):
     experiment.records = top_k(experiment.records, 'precision', 2)
 
 # create pipeline object
-pip = Pipeline(main, load_config('exp.yaml'))
+pip = Pipeline(config, load_config('exp.yaml'))
 
 # assign your functions
 pip.load = load
 pip.feature_selection = feature_selection
-pip.model_gen = model_gen
+pip.model_iterator = model_iterator
 pip.train = train
 pip.finalize = finalize
 

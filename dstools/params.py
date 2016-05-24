@@ -1,6 +1,12 @@
 from dstools.util import load_yaml
 
-config = load_yaml('config.yaml')
+try:
+    config = load_yaml('config.yaml')
+except Exception, e:
+    pass
 
-db_uri = ('{dialect}://{user}:{password}@{host}:{port}}/{database}'
-          .format(**config['db']))
+try:
+    db_uri = ('{dialect}://{user}:{password}@{host}:{port}}/{database}'
+              .format(**config['db']))
+except Exception, e:
+    pass
