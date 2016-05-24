@@ -7,6 +7,8 @@ MAX_WORKERS = 20
 
 class Pipeline:
     def __init__(self, config, exp_config, workers=1, save=True):
+        log.debug('Init with config: {}'.format(config))
+
         if workers > MAX_WORKERS:
             self._workers = MAX_WORKERS
             log.info('Max workers is {}.'.format(MAX_WORKERS))
@@ -25,15 +27,17 @@ class Pipeline:
         self.ex = Experiment(**exp_config)
 
     def _load(self):
-        config = getattr(self.config, 'load', None)
+        config = self.config.get('load')
         self.data = self.load(config)
 
     def _model_iterator(self):
-        config = getattr(self.config, 'model_iterator', None)
+        config = self.config.get('model_iterator')
+        log.debug('Model iterator config: {}'.format(config))
+
         return self.model_iterator(config)
 
     def _train(self, model, record):
-        config = getattr(self.config, 'train', None)
+        config = self.config.get('train')
         self.train(config, model, self.data, record)
 
     def _finalize(self, experiment):
@@ -42,7 +46,7 @@ class Pipeline:
 
         # run function if the user provided one
         if self.finalize:
-            config = getattr(self.config, 'finalize', None)
+            config = self.config.get('finalize')
             self.finalize(config, experiment)
 
     def __call__(self):
@@ -78,7 +82,7 @@ class Pipeline:
     def _concurrent_run(self, model_iterator, total):
         from concurrent import futures
         with futures.ThreadPoolExecutor(self._workers) as executor:
-            executor.map(self._one_step, model_iterator, range(total),
+            executor.map(self._one_step, model_iterator, range(1, total),
                          [total]*total)
 
     def _one_step(self, model, i, total):

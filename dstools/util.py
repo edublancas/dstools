@@ -2,7 +2,7 @@ import os
 import yaml
 
 
-def instantiate_from_class_string(class_str, **kwargs):
+def instantiate_from_class_string(class_str, kwargs):
     from pydoc import locate
     return locate(class_str)(**kwargs)
 
