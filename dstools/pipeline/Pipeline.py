@@ -1,5 +1,5 @@
 from dstools.lab import Experiment
-from dstools.util import hash_numpy_array
+from dstools.util import hash_numpy_array, class_name
 import logging
 import collections
 
@@ -64,6 +64,7 @@ class Pipeline:
         return self.model_iterator(config)
 
     def _train(self, model, record):
+        record['model_class'] = class_name(model)
         config = self.config.get('train')
         self.train(config, model, self.data, record)
 

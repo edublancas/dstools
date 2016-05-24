@@ -1,10 +1,17 @@
 import os
 import yaml
 import hashlib
+from pydoc import locate
+import re
+
+
+def class_name(obj):
+    class_name = str(type(obj))
+    class_name = re.search(".*'(.+?)'.*", class_name).group(1)
+    return class_name
 
 
 def instantiate_from_class_string(class_str, kwargs):
-    from pydoc import locate
     return locate(class_str)(**kwargs)
 
 

@@ -1,6 +1,6 @@
 from dstools.pipeline import Pipeline
 from dstools.util import config
-from dstools.util import load_yaml as load_config
+from dstools.util import load_yaml
 from dstools.lab.util import top_k
 from dstools.sklearn import grid_generator
 from dstools.sklearn.util import model_name
@@ -69,7 +69,7 @@ def finalize(config, experiment):
     experiment.records = top_k(experiment.records, 'precision', 2)
 
 # create pipeline object
-pip = Pipeline(config, load_config('exp.yaml'))
+pip = Pipeline(config, load_yaml('exp.yaml'))
 
 # assign your functions
 pip.load = load
