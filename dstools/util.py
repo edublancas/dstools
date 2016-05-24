@@ -33,15 +33,19 @@ def format_column_names(columns, prefix=None):
     return names
 
 
-def load_yaml(name):
-    folder = os.environ['ROOT_FOLDER']
-    path = "%s/%s" % (folder, name)
+def load_yaml(path):
+    '''
+        Load yaml file and return the contents of it. If ROOT_FOLDER
+        environment variable is defined, the function will load the file
+        from ROOT_FOLDER/path else from path
+    '''
+    try:
+        base_path = '{}/'.format(os.environ['ROOT_FOLDER'])
+    except:
+        base_path = ''
+
+    path = "%s%s" % (base_path, path)
     with open(path, 'r') as f:
         text = f.read()
-    dic = yaml.load(text)
-    return dic
 
-config = load_yaml('config.yaml')
-
-# pg_uri = ('{dialect}://{user}:{password}@{host}:5432/{database}'
-#           .format(**config['db']))
+    return yaml.load(text)
