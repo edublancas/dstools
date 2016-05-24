@@ -67,3 +67,15 @@ def hash_numpy_array(a):
     # for arrays with same data but different shapes
     a = a.view(np.uint8)
     return hashlib.sha1(a).hexdigest()
+
+
+try:
+    config = load_yaml('config.yaml')
+except Exception, e:
+    pass
+
+try:
+    db_uri = ('{dialect}://{user}:{password}@{host}:{port}}/{database}'
+              .format(**config['db']))
+except Exception, e:
+    pass

@@ -1,6 +1,6 @@
 from dstools.pipeline import Pipeline
-from dstools.params import config
-from dstools.params import load_yaml as load_config
+from dstools.util import config
+from dstools.util import load_yaml as load_config
 from dstools.lab.util import top_k
 from dstools.sklearn import grid_generator
 from dstools.sklearn.util import model_name
