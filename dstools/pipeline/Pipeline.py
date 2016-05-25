@@ -148,3 +148,8 @@ class SKPipeline(Pipeline):
         # save scikit-learn model info
         record['_params'] = model.get_params()
         record['_model_name'] = model_name(model)
+        # try to get feature importances
+        try:
+            record['_feature_importances'] = list(model.feature_importances_)
+        except:
+            pass
