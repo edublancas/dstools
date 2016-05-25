@@ -63,7 +63,7 @@ def finalize(config, experiment):
     # experiment.records = top_k(experiment.records, 'precision', 4)
 
 # create pipeline object
-pip = SKPipeline(config, load_yaml('exp.yaml'))
+pip = SKPipeline(config, load_yaml('exp.yaml'), workers=1)
 
 # assign your functions
 pip.load = load

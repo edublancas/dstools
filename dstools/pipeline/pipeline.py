@@ -15,6 +15,14 @@ class Pipeline(object):
 
     def __init__(self, config, exp_config, workers=1, save=True,
                  hash_data=True):
+        # if backend selected is TinyDB and workers>1, raise an exception
+        # since TinyDB has no support for concurrent connections
+        if exp_config['backend'] == 'tiny' and workers > 1:
+            raise Exception(('You cannot run a pipeline with workers>1'
+                             ' using TinyDB, since it does not have'
+                             ' for concurrent connections. Use another'
+                             ' backend.'))
+
         log.debug('Init with config: {}'.format(config))
 
         if workers > MAX_WORKERS:
@@ -167,6 +175,7 @@ class SKPipeline(Pipeline):
         super(SKPipeline, self)._load()
         # check that the user added data with the appropiate keys
         # to later retrieve the hashes in the MetaEstimator,
+        # if not, log a message
         if ('X_train' not in self.data) or ('y_train' not in self.data):
             log.info(("Both 'X_train' and 'y_train' must be present"
                       " in data to be able to retrieve models form the db."))
