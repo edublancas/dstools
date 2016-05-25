@@ -39,7 +39,8 @@ def load(config):
 # this function is called on every iteration, it must return an unfitted
 # model
 def model_iterator(config):
-    classes = ['sklearn.ensemble.RandomForestClassifier']
+    classes = ['sklearn.ensemble.RandomForestClassifier',
+               'sklearn.linear_model.LogisticRegression']
     models = grid_generator.grid_from_classes(classes)
     return models
 
@@ -58,7 +59,8 @@ def train(config, model, data, record):
 
 # optional function used when every model has been trained
 def finalize(config, experiment):
-    experiment.records = top_k(experiment.records, 'precision', 2)
+    pass
+    # experiment.records = top_k(experiment.records, 'precision', 4)
 
 # create pipeline object
 pip = SKPipeline(config, load_yaml('exp.yaml'))

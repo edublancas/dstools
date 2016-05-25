@@ -156,6 +156,12 @@ class SKPipeline(Pipeline):
         record['_model_name'] = model_name(model)
         # try to get feature importances
         try:
-            record['_feature_importances'] = list(model.feature_importances_)
+            record['_feature_importances'] = (model.feature_importances_.
+                                              tolist())
+        except:
+            pass
+        # try to get coefficients
+        try:
+            record['_coef'] = model.coef_.tolist()
         except:
             pass
