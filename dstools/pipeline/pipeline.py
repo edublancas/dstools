@@ -1,9 +1,10 @@
 from dstools.lab import Experiment, SKExperiment
 from dstools.util import hash_sha1_numpy_array, class_name
+from dstools.sklearn.util import model_name
+
 import logging
 import collections
-
-from dstools.sklearn.util import model_name
+from datetime import datetime
 
 log = logging.getLogger(__name__)
 MAX_WORKERS = 20
@@ -85,7 +86,15 @@ class Pipeline(object):
             config = self.config.get('finalize')
             self.finalize(config, experiment)
 
+        # get time now
+        pipeline_ended = datetime.utcnow()
+        # store start and end dates on all records
+        self.ex['_experiment_start'] = self._pipeline_started
+        self.ex['_experiment_end'] = pipeline_ended
+
     def __call__(self):
+        # store the time when the execution started
+        self._pipeline_started = datetime.utcnow()
         # first - check if all the functions needed exist
         if not all([self.load, self.model_iterator, self.train]):
             raise Exception(('You need to provide functions for load,'
@@ -135,7 +144,12 @@ class Pipeline(object):
             log.info('{} - Running with: {}'.format(i, model))
 
         record = self.ex.record()
+
+        start = datetime.utcnow()
         self._train(model, record)
+        end = datetime.utcnow()
+        # save training time in minutes
+        record['_training_time_sec'] = (end - start).total_seconds()
 
 
 class SKPipeline(Pipeline):
