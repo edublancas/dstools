@@ -1,9 +1,9 @@
-from dstools.config import main
+from dstools.util import config
 from dstools.lab import Experiment
 from dstools.lab.util import group_by
 
-ex = Experiment(main['logger'])
-ex.get(_id=['574107f46fdf1e21cea90844'])
+ex = Experiment(config['logger'])
+ex.get(_id=['5744d47f6fdf1e2f69f0716a'])
 ex.get(key='im super cool')
 ex.records
 

@@ -79,3 +79,17 @@ class Record(FrozenJSON.FrozenJSON):
     def __setitem__(self, key, value):
         self._is_dirty = True
         self._data[key] = value
+
+
+class SKRecord(Record):
+    '''
+        Record subclass to provide enhanced capabilities when
+        saving scikit-learn models.
+    '''
+    def __init__(self, mapping):
+        super(SKRecord, self).__init__(mapping)
+
+    @property
+    def model(self):
+        from dstools.sklearn import MetaEstimator
+        return MetaEstimator(self)

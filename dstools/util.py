@@ -62,7 +62,7 @@ def load_yaml(path):
 # based on:
 #   http://stackoverflow.com/questions/5386694/fast-way-to-hash-numpy-objects-for-caching
 #   http://stackoverflow.com/questions/806151/how-to-hash-a-large-object-dataset-in-python
-def hash_numpy_array(a):
+def hash_sha1_numpy_array(a):
     '''
         Hash a numpy array using sha1.
     '''

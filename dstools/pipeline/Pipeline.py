@@ -1,5 +1,5 @@
 from dstools.lab import Experiment
-from dstools.util import hash_numpy_array, class_name
+from dstools.util import hash_sha1_numpy_array, class_name
 import logging
 import collections
 
@@ -50,7 +50,7 @@ class Pipeline:
             for k, v in self.data.items():
                 log.info('Hashing {}'.format(k))
                 try:
-                    h = hash_numpy_array(v)
+                    h = hash_sha1_numpy_array(v)
                 except Exception, e:
                     raise e
                 else:
@@ -74,7 +74,7 @@ class Pipeline:
 
         # save data hashes if needed
         if self._hash_data:
-            self.ex['data_hashes'] = self._data_hashes
+            self.ex['data_sha1_hashes'] = self._data_hashes
 
         # run function if the user provided one
         if self.finalize:
@@ -126,3 +126,16 @@ class Pipeline:
 
         record = self.ex.record()
         self._train(model, record)
+
+
+class SKPipeline(Pipeline):
+    '''
+        Pipeline subclass. Provides enhanced functionality
+        when using scikit-learn.
+            - Automatically saves model name e.g. RandomForestClassifier
+            - Saves model parameters via model.get_params()
+            - Uses Record subclass SKRecord which provides a method
+                for instantiating models based on db records
+    '''
+    def __init__(self, *args, **kwargs):
+        super(SKPipeline, self).__init__(*args, **kwargs)
