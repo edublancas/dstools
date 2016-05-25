@@ -163,6 +163,14 @@ class SKPipeline(Pipeline):
     '''
     _ExperimentClass = SKExperiment
 
+    def _load(self):
+        super(SKPipeline, self)._load()
+        # check that the user added data with the appropiate keys
+        # to later retrieve the hashes in the MetaEstimator,
+        if ('X_train' not in self.data) or ('y_train' not in self.data):
+            log.info(("Both 'X_train' and 'y_train' must be present"
+                      " in data to be able to retrieve models form the db."))
+
     def _train(self, model, record):
         super(SKPipeline, self)._train(model, record)
         # save scikit-learn model info

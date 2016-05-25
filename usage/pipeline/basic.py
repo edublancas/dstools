@@ -28,7 +28,7 @@ def load(config):
                                                         test_size=0.30,
                                                         random_state=0)
     data = {
-        'X_train': X_train,
+        'x_train': X_train,
         'X_test': X_test,
         'y_train': y_train,
         'y_test': y_test
@@ -50,7 +50,7 @@ def model_iterator(config):
 def train(config, model, data, record):
     print record
 
-    model.fit(data['X_train'], data['y_train'])
+    model.fit(data['x_train'], data['y_train'])
     preds = model.predict(data['X_test'])
 
     record['precision'] = precision_score(data['y_test'], preds)
