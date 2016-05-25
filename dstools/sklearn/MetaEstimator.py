@@ -4,9 +4,9 @@ from dstools.util import hash_sha1_numpy_array
 
 class MetaEstimator:
     def __init__(self, record):
-        self._data_sha1_hashes = record.data_sha1_hashes
-        model_class = locate(record.model_class)
-        params = record.parameters
+        self._data_sha1_hashes = record._data_sha1_hashes
+        model_class = locate(record._model_class)
+        params = record._params
         self._skmodel = model_class(**params)
 
     @property
@@ -24,7 +24,8 @@ class MetaEstimator:
         y_is_equal = (y_hash == self._data_sha1_hashes.y_train_hash)
 
         if x_is_equal and y_is_equal:
-            return self.skmodel.fit(X, y, *args, **kwargs)
+            self.skmodel.fit(X, y, *args, **kwargs)
+            return self
         else:
             raise ValueError('Hashes are not equal. Cannot train.')
 

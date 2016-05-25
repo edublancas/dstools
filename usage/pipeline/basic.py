@@ -1,9 +1,8 @@
-from dstools.pipeline import Pipeline
+from dstools.pipeline import SKPipeline
 from dstools.util import config
 from dstools.util import load_yaml
 from dstools.lab.util import top_k
 from dstools.sklearn import grid_generator
-from dstools.sklearn.util import model_name
 
 from sklearn.datasets import load_iris
 from sklearn.metrics import precision_score
@@ -60,8 +59,6 @@ def train(config, model, data, record):
     preds = model.predict(data['X_test'])
 
     record['precision'] = precision_score(data['y_test'], preds)
-    record['parameters'] = model.get_params()
-    record['model'] = model_name(model)
     return model
 
 
@@ -70,7 +67,7 @@ def finalize(config, experiment):
     experiment.records = top_k(experiment.records, 'precision', 2)
 
 # create pipeline object
-pip = Pipeline(config, load_yaml('exp.yaml'))
+pip = SKPipeline(config, load_yaml('exp.yaml'))
 
 # assign your functions
 pip.load = load

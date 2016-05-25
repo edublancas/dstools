@@ -3,11 +3,13 @@ from dstools.util import hash_sha1_numpy_array, class_name
 import logging
 import collections
 
+from dstools.sklearn.util import model_name
+
 log = logging.getLogger(__name__)
 MAX_WORKERS = 20
 
 
-class Pipeline:
+class Pipeline(object):
     _ExperimentClass = Experiment
 
     def __init__(self, config, exp_config, workers=1, save=True,
@@ -66,17 +68,17 @@ class Pipeline:
         return self.model_iterator(config)
 
     def _train(self, model, record):
-        record['model_class'] = class_name(model)
+        record['_model_class'] = class_name(model)
         config = self.config.get('train')
         self.train(config, model, self.data, record)
 
     def _finalize(self, experiment):
         # save config used for this experiment on all records
-        self.ex['config'] = self.config
+        self.ex['_config'] = self.config
 
         # save data hashes if needed
         if self._hash_data:
-            self.ex['data_sha1_hashes'] = self._data_hashes
+            self.ex['_data_sha1_hashes'] = self._data_hashes
 
         # run function if the user provided one
         if self.finalize:
@@ -141,5 +143,8 @@ class SKPipeline(Pipeline):
     '''
     _ExperimentClass = SKExperiment
 
-    def __init__(self, *args, **kwargs):
-        super(SKPipeline, self).__init__(*args, **kwargs)
+    def _train(self, model, record):
+        super(SKPipeline, self)._train(model, record)
+        # save scikit-learn model info
+        record['_params'] = model.get_params()
+        record['_model_name'] = model_name(model)
