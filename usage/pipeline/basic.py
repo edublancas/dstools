@@ -36,12 +36,6 @@ def load(config):
     return data
 
 
-# optional - once the data is loaded, this will ve called on each iteration
-# to subselect features
-def feature_selection(config, models, data, record):
-    pass
-
-
 # this function is called on every iteration, it must return an unfitted
 # model
 def model_iterator(config):
@@ -71,7 +65,6 @@ pip = SKPipeline(config, load_yaml('exp.yaml'))
 
 # assign your functions
 pip.load = load
-pip.feature_selection = feature_selection
 pip.model_iterator = model_iterator
 pip.train = train
 pip.finalize = finalize

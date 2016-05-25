@@ -58,7 +58,7 @@ class Pipeline(object):
                 except Exception, e:
                     raise e
                 else:
-                    key = '{}_hash'.format(k)
+                    key = '{}'.format(k)
                     self._data_hashes[key] = h
 
     def _model_iterator(self):
@@ -86,6 +86,12 @@ class Pipeline(object):
             self.finalize(config, experiment)
 
     def __call__(self):
+        # first - check if all the functions needed exist
+        if not all([self.load, self.model_iterator, self.train]):
+            raise Exception(('You need to provide functions for load,'
+                             ' model_iterator and train functions.'
+                             ' One or more missing.'))
+
         log.info('Pipeline started. Loading data.')
         self._load()
         log.info('Data loaded. Starting models loop.')

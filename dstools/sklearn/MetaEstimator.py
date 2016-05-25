@@ -20,8 +20,8 @@ class MetaEstimator:
         x_hash = hash_sha1_numpy_array(X)
         y_hash = hash_sha1_numpy_array(y)
 
-        x_is_equal = (x_hash == self._data_sha1_hashes.X_train_hash)
-        y_is_equal = (y_hash == self._data_sha1_hashes.y_train_hash)
+        x_is_equal = (x_hash == self._data_sha1_hashes.X_train)
+        y_is_equal = (y_hash == self._data_sha1_hashes.y_train)
 
         if x_is_equal and y_is_equal:
             self.skmodel.fit(X, y, *args, **kwargs)
