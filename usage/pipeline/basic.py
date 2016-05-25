@@ -26,7 +26,8 @@ def load(config):
     print config
     iris = load_iris()
     X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target,
-                                                        test_size=0.30)
+                                                        test_size=0.30,
+                                                        random_state=0)
     data = {
         'X_train': X_train,
         'X_test': X_test,

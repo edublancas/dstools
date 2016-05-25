@@ -1,12 +1,15 @@
-from dstools.lab import FrozenJSON
 from itertools import chain
 import logging
+from dstools.lab import Record, SKRecord
 
 log = logging.getLogger(__name__)
 
 
 class Experiment:
+    _RecordClass = Record
+
     def __init__(self, conf, backend='mongo', read_only=False):
+        # Experiment uses generic Record class
         if backend == 'mongo':
             from dstools.lab.backends import MongoBackend
 
@@ -27,7 +30,7 @@ class Experiment:
         # backend returns dictionaries
         results = self.backend.get(**kwargs)
         # convert them to records
-        results = [Record(r) for r in results]
+        results = [self.__class__._RecordClass(r) for r in results]
         for r in results:
             r._is_on_db = True
         self.records.extend(results)
@@ -65,31 +68,10 @@ class Experiment:
 
     def record(self):
         # create and empty record
-        record = Record(dict())
+        record = self.__class__._RecordClass(dict())
         self.records.append(record)
         return record
 
 
-class Record(FrozenJSON.FrozenJSON):
-    def __init__(self, mapping):
-        super(Record, self).__init__(mapping)
-        self._is_on_db = False
-        self._is_dirty = False
-
-    def __setitem__(self, key, value):
-        self._is_dirty = True
-        self._data[key] = value
-
-
-class SKRecord(Record):
-    '''
-        Record subclass to provide enhanced capabilities when
-        saving scikit-learn models.
-    '''
-    def __init__(self, mapping):
-        super(SKRecord, self).__init__(mapping)
-
-    @property
-    def model(self):
-        from dstools.sklearn import MetaEstimator
-        return MetaEstimator(self)
+class SKExperiment(Experiment):
+    _RecordClass = SKRecord
