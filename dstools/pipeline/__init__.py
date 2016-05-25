@@ -1,1 +1,1 @@
-from Pipeline import Pipeline
+from pipeline import Pipeline, SKPipeline

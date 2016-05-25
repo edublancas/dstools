@@ -1,4 +1,4 @@
-from dstools.lab import Experiment
+from dstools.lab import Experiment, SKExperiment
 from dstools.util import hash_sha1_numpy_array, class_name
 import logging
 import collections
@@ -8,6 +8,8 @@ MAX_WORKERS = 20
 
 
 class Pipeline:
+    _ExperimentClass = Experiment
+
     def __init__(self, config, exp_config, workers=1, save=True,
                  hash_data=True):
         log.debug('Init with config: {}'.format(config))
@@ -31,7 +33,7 @@ class Pipeline:
         self.train = None
         self.finalize = None
         # create experiment instance
-        self.ex = Experiment(**exp_config)
+        self.ex = self.__class__._ExperimentClass(**exp_config)
 
     def _load(self):
         config = self.config.get('load')
@@ -137,5 +139,7 @@ class SKPipeline(Pipeline):
             - Uses Record subclass SKRecord which provides a method
                 for instantiating models based on db records
     '''
+    _ExperimentClass = SKExperiment
+
     def __init__(self, *args, **kwargs):
         super(SKPipeline, self).__init__(*args, **kwargs)
