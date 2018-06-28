@@ -25,3 +25,9 @@ plt.show()
 # plot specific elements
 plot.grid_from_array(x, axis=0, elements=[2, 4, 6, 8, 10])
 plt.show()
+
+
+# you can pass other parameters, which are passed to the to the
+# matplotlib.pyplot.subplots
+plot.grid_from_array(x, axis=0, elements=3, sharex=False, figsize=(3, 3))
+plt.show()

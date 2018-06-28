@@ -64,7 +64,7 @@ def grid_size(n_elements, max_cols=None):
 
 
 def grid(function, data, element_getter, all_elements, labels, label_getter,
-         elements=None, sharex=True, sharey=True, max_cols=None):
+         elements=None, max_cols=None, **subplots_kwargs):
     """
     Utility function for building grid graphs with arbitrary plotting functions
     and data
@@ -95,6 +95,9 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
 
     labels: dictionary, optional
         A dictionary mapping keys with labels
+
+    subplots_kwargs: kwargs
+        Other kwargs passed to the matplotlib.pyplot.subplots function
     """
 
     total_n_elements = len(all_elements)
@@ -125,7 +128,7 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
 
     rows, cols = grid_size(n_elements, max_cols)
 
-    fig, axs = plt.subplots(rows, cols, sharex=sharex, sharey=sharey)
+    fig, axs = plt.subplots(rows, cols, **subplots_kwargs)
 
     axs = axs if isinstance(axs, collections.Iterable) else [axs]
 
