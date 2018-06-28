@@ -1,12 +1,30 @@
 """
 Tools for matplotlib plotting
 """
+import numbers
 import collections
+import random
 from math import floor, ceil, sqrt
+
 import matplotlib.pyplot as plt
 
 
-def grid(data, axis, elements=None, **kwargs):
+def grid_from_array(data, axis, **kwargs):
+    """Plot a grid from a numpy ndarray
+
+    Parameters
+    ----------
+    data: numpy.ndarray
+        The data to plot
+
+    axis: int
+        Axis that holds a single observation. e.g. if axis is 1 in a 3D array,
+        then getting the ith element is done by: array[:, i, :]
+
+    **kwargs
+        kwargs passed to the generic grid function
+    """
+
     def plotting_fn(data, label, ax):
         ax.plot(data)
         ax.set_title(label)
@@ -19,47 +37,97 @@ def grid(data, axis, elements=None, **kwargs):
     def label_getter(labels, i):
         return labels[i]
 
-    if elements is None:
-        elements = range(data.shape[axis])
-
-    labels = range(data.shape[axis])
-
-    make_grid_plot(plotting_fn, data, elements, element_getter, labels,
-                   label_getter, **kwargs)
+    grid(function=plotting_fn,
+         data=data,
+         element_getter=element_getter,
+         all_elements=range(data.shape[axis]),
+         labels=range(data.shape[axis]),
+         label_getter=label_getter,
+         **kwargs)
 
     plt.tight_layout()
-
-
-def is_iter(obj):
-    return isinstance(obj, collections.Iterable)
 
 
 def grid_size(n_elements, max_cols=None):
     """Compute grid size for n_elements
     """
-    total = len(n_elements)
-    sq_value = sqrt(total)
+    sq_value = sqrt(n_elements)
     cols = int(floor(sq_value))
     rows = int(ceil(sq_value))
-    rows = rows + 1 if rows * cols < len(n_elements) else rows
+    rows = rows + 1 if rows * cols < n_elements else rows
 
     if max_cols and cols > max_cols:
-        rows = ceil(total/max_cols)
+        rows = ceil(n_elements/max_cols)
         cols = max_cols
 
     return rows, cols
 
 
-def make_grid_plot(function, data, elements, element_getter,
-                   labels=None, label_getter=None, sharex=True, sharey=True,
-                   max_cols=None):
-    """Make a grid plot
+def grid(function, data, element_getter, all_elements, labels, label_getter,
+         elements=None, sharex=True, sharey=True, max_cols=None):
     """
-    rows, cols = grid_size(elements, max_cols)
+    Utility function for building grid graphs with arbitrary plotting functions
+    and data
+
+    Parameters
+    ----------
+    function: callable
+        Plotting finction, must accept a data (data for that plot), optional
+        label (label for that plot) and ax (matplotlib Axes object for that
+        plot) parameters
+
+    data: anything
+        Data to plot
+
+    elements: list, float, int or None
+        Which elements to plot, if a list plots the elements identified with
+        every element on the list, if float it samples that percent of
+        elements and plots it, if int samples that number of elements, if None
+        plots all elements
+
+    element_getter: callable
+        A function that accepts a data (all the data) and an element (key for
+        the current element) parameter and returns the data to be passed to
+        the plotting function
+
+    all_elements: list
+        A list with the keys identifying every element in elements
+
+    labels: dictionary, optional
+        A dictionary mapping keys with labels
+    """
+
+    total_n_elements = len(all_elements)
+
+    if elements is None:
+        elements = all_elements
+
+    elif isinstance(elements, numbers.Integral):
+        if total_n_elements < elements:
+            elements = total_n_elements
+
+        elements = random.sample(all_elements, elements)
+
+    elif isinstance(elements, numbers.Real):
+        if not 0 < elements < 1:
+            raise ValueError('If float, elements must be in (0, 1)')
+
+        elements = random.sample(all_elements,
+                                 int(total_n_elements * elements))
+
+    elif isinstance(elements, collections.Iterable):
+        pass
+
+    else:
+        raise ValueError(f'Invalid elements type ({type(elements)})')
+
+    n_elements = len(elements)
+
+    rows, cols = grid_size(n_elements, max_cols)
 
     fig, axs = plt.subplots(rows, cols, sharex=sharex, sharey=sharey)
 
-    axs = axs if is_iter(axs) else [axs]
+    axs = axs if isinstance(axs, collections.Iterable) else [axs]
 
     if cols > 1:
         axs = [item for sublist in axs for item in sublist]
