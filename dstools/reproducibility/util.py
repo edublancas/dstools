@@ -3,8 +3,8 @@ import hashlib
 from pathlib import Path
 
 
-def make_path(path, extension=None):
-    return Path(path, make_filename(extension))
+def make_path(*args, extension=None):
+    return Path(*args, make_filename(extension))
 
 
 def make_filename(extension=None):
