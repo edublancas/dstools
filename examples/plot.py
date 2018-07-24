@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 
 x = np.random.rand(15, 10, 10)
+y = x + 1
 
 plt.plot(x[0])
 plt.show()
@@ -30,4 +31,8 @@ plt.show()
 # you can pass other parameters, which are passed to the to the
 # matplotlib.pyplot.subplots
 plot.grid_from_array(x, axis=0, elements=3, sharex=False, figsize=(3, 3))
+plt.show()
+
+# plot x, y pairs
+plot.grid_from_array([x, y], axis=0, elements=[0, 2, 4], sharey=True)
 plt.show()

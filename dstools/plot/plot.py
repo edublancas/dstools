@@ -1,13 +1,19 @@
 """
 Tools for matplotlib plotting
 """
+import logging
 import numbers
 import collections
 import random
+import itertools
 
 import matplotlib.pyplot as plt
 
 from dstools.plot import util
+
+
+def flatten(l):
+    return [item for sublist in l for item in sublist]
 
 
 def grid_from_array(data, axis, **kwargs):
@@ -25,32 +31,50 @@ def grid_from_array(data, axis, **kwargs):
     **kwargs
         kwargs passed to the generic grid function
     """
+    # if list check dimensions
+    if isinstance(data, list):
+        if len(set([d.shape for d in data])) != 1:
+            raise ValueError('shape for elements in data must be equal')
+        # if dimensions match, get the number of elements
+        else:
+            n = data[0].shape[axis]
+    else:
+        n = data.shape[axis]
 
     def plotting_fn(data, label, ax):
         ax.plot(data)
         ax.set_title(label)
 
-    def element_getter(data, i):
+    def element_getter(data, i, coords):
+        """Get ith element from numpy.ndarray
+        """
+        row, col = coords
+
+        if isinstance(data, list):
+            data = data[col]
+
         slicer = [slice(None) for _ in range(data.ndim)]
         slicer[axis] = i
         return data[slicer]
 
-    def label_getter(labels, i):
+    def label_getter(labels, i, coords):
         return labels[i]
 
     grid(function=plotting_fn,
          data=data,
          element_getter=element_getter,
-         all_elements=range(data.shape[axis]),
-         labels=range(data.shape[axis]),
+         all_elements=range(n),
+         labels=range(n),
          label_getter=label_getter,
+         ax_per_element=(1 if not isinstance(data, list)
+                         else len(data)),
          **kwargs)
 
     plt.tight_layout()
 
 
 def grid(function, data, element_getter, all_elements, labels, label_getter,
-         elements=None, max_cols=None, **subplots_kwargs):
+         elements=None, max_cols=None, ax_per_element=1, **subplots_kwargs):
     """
     Utility function for building grid graphs with arbitrary plotting functions
     and data
@@ -82,9 +106,13 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
     labels: dictionary, optional
         A dictionary mapping keys with labels
 
+    ax_per_element: int, optional
+        How many axes creater per element, defaults to 1
+
     subplots_kwargs: kwargs
         Other kwargs passed to the matplotlib.pyplot.subplots function
     """
+    logger = logging.getLogger(__name__)
 
     total_n_elements = len(all_elements)
 
@@ -112,20 +140,34 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
 
     n_elements = len(elements)
 
-    rows, cols = util.grid_size(n_elements, max_cols)
+    # if more than one ax per sample, create repeating pattern
+    if ax_per_element > 1:
+        elements = flatten([[e] * ax_per_element for e in elements])
+
+    rows, cols = util.grid_size(int(n_elements * ax_per_element), max_cols)
+
+    logger.debug('Rows: {}, Cols: {}'.format(rows, cols))
 
     fig, axs = plt.subplots(rows, cols, **subplots_kwargs)
 
     axs = axs if isinstance(axs, collections.Iterable) else [axs]
 
     if cols > 1:
-        axs = [item for sublist in axs for item in sublist]
+        axs = flatten(axs)
 
-    for element, ax in zip(elements, axs):
+    # generate coordinates for evert ax
+    coords_all = itertools.product(range(rows), range(cols))
+
+    for element, ax, coords in zip(elements, axs, coords_all):
+
+        logger.debug('Plotting in {}, {}'.format(*coords))
+
         if label_getter is not None and labels is not None:
-            function(data=element_getter(data, element),
-                     label=label_getter(labels, element), ax=ax)
+            function(data=element_getter(data, element, coords),
+                     label=label_getter(labels, element, coords),
+                     ax=ax)
         else:
-            function(data=element_getter(data, element), ax=ax)
+            function(data=element_getter(data, element, coords),
+                     ax=ax)
 
     return fig
