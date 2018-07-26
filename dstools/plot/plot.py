@@ -81,7 +81,8 @@ def grid_from_array(data, axis, group_names=None, **kwargs):
 
 
 def grid(function, data, element_getter, all_elements, labels, label_getter,
-         elements=None, max_cols=None, ax_per_element=1, **subplots_kwargs):
+         elements=None, max_cols=None, ax_per_element=1, auto_figsize=None,
+         **subplots_kwargs):
     """
     Utility function for building grid graphs with arbitrary plotting functions
     and data
@@ -157,6 +158,10 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
         max_cols = ax_per_element
 
     rows, cols = util.grid_size(int(n_elements * ax_per_element), max_cols)
+
+    if auto_figsize:
+        subplots_kwargs['figsize'] = (rows * auto_figsize,
+                                      cols * auto_figsize)
 
     logger.debug('Rows: {}, Cols: {}'.format(rows, cols))
 
