@@ -111,6 +111,9 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
 
     subplots_kwargs: kwargs
         Other kwargs passed to the matplotlib.pyplot.subplots function
+
+    max_cols: int, optional
+        Maximum number of columns, ignored if ax_per_element > 1
     """
     logger = logging.getLogger(__name__)
 
@@ -140,9 +143,11 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
 
     n_elements = len(elements)
 
-    # if more than one ax per sample, create repeating pattern
+    # if more than one ax per sample, create repeating pattern, and ignore
+    # max_cols
     if ax_per_element > 1:
         elements = flatten([[e] * ax_per_element for e in elements])
+        max_cols = ax_per_element
 
     rows, cols = util.grid_size(int(n_elements * ax_per_element), max_cols)
 
