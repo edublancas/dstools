@@ -16,17 +16,20 @@ def flatten(l):
     return [item for sublist in l for item in sublist]
 
 
-def grid_from_array(data, axis, **kwargs):
+def grid_from_array(data, axis, group_names=None, **kwargs):
     """Plot a grid from a numpy ndarray
 
     Parameters
     ----------
-    data: numpy.ndarray
+    data: numpy.ndarray or list
         The data to plot
 
     axis: int
         Axis that holds a single observation. e.g. if axis is 1 in a 3D array,
         then getting the ith element is done by: array[:, i, :]
+
+    group_names: str, optional
+        Names for every group in data (only valid when data is a list)
 
     **kwargs
         kwargs passed to the generic grid function
@@ -58,7 +61,11 @@ def grid_from_array(data, axis, **kwargs):
         return data[slicer]
 
     def label_getter(labels, i, coords):
-        return labels[i]
+        if isinstance(data, list) and group_names:
+            row, col = coords
+            return '{} ({})'.format(labels[i], group_names[col])
+        else:
+            return labels[i]
 
     grid(function=plotting_fn,
          data=data,

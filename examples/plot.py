@@ -34,5 +34,6 @@ plot.grid_from_array(x, axis=0, elements=3, sharex=False, figsize=(3, 3))
 plt.show()
 
 # plot x, y pairs
-plot.grid_from_array([x, y], axis=0, elements=[0, 2, 4], sharey=True)
+plot.grid_from_array([x, y], axis=0, group_names=('x', 'x+1'),
+                     elements=[0, 2, 4], sharey=True)
 plt.show()
