@@ -160,11 +160,11 @@ def grid(function, data, element_getter, all_elements, labels, label_getter,
     rows, cols = util.grid_size(int(n_elements * ax_per_element), max_cols)
 
     if isinstance(auto_figsize, numbers.Integral):
-        subplots_kwargs['figsize'] = (rows * auto_figsize,
-                                      cols * auto_figsize)
-    else:
-        subplots_kwargs['figsize'] = (rows * auto_figsize[0],
-                                      cols * auto_figsize[1])
+        subplots_kwargs['figsize'] = (cols * auto_figsize,
+                                      rows * auto_figsize)
+    elif isinstance(auto_figsize, tuple):
+        subplots_kwargs['figsize'] = (cols * auto_figsize[0],
+                                      rows * auto_figsize[1])
 
     logger.debug('Rows: {}, Cols: {}'.format(rows, cols))
 

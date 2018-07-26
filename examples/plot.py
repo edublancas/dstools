@@ -45,5 +45,5 @@ plot.grid_from_array([x, y], axis=0, group_names=('x', 'x+1'),
 plt.show()
 
 plot.grid_from_array([x, y], axis=0, group_names=('x', 'x+1'),
-                     elements=[0, 2, 4], sharey=True, auto_figsize=(3, 2))
+                     elements=[0, 2, 4], sharey=True, auto_figsize=(4, 2))
 plt.show()
