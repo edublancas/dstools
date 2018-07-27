@@ -36,8 +36,9 @@ def grid_from_array(data, axis, group_names=None, **kwargs):
     """
     # if list check dimensions
     if isinstance(data, list):
-        if len(set([d.shape for d in data])) != 1:
-            raise ValueError('shape for elements in data must be equal')
+        if len(set([d.shape[axis] for d in data])) != 1:
+            raise ValueError('axis dimension for elements in data must be '
+                             'equal')
         # if dimensions match, get the number of elements
         else:
             n = data[0].shape[axis]
