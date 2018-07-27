@@ -72,7 +72,7 @@ def grid_from_array(data, axis, group_names=None, labels=None, **kwargs):
          data=data,
          element_getter=element_getter,
          all_elements=range(n),
-         labels=labels if not None else range(n),
+         labels=labels if labels is not None else range(n),
          label_getter=label_getter,
          ax_per_element=(1 if not isinstance(data, list)
                          else len(data)),
