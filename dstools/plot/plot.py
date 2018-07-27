@@ -16,7 +16,7 @@ def flatten(l):
     return [item for sublist in l for item in sublist]
 
 
-def grid_from_array(data, axis, group_names=None, **kwargs):
+def grid_from_array(data, axis, group_names=None, labels=None, **kwargs):
     """Plot a grid from a numpy ndarray
 
     Parameters
@@ -72,7 +72,7 @@ def grid_from_array(data, axis, group_names=None, **kwargs):
          data=data,
          element_getter=element_getter,
          all_elements=range(n),
-         labels=range(n),
+         labels=labels if not None else range(n),
          label_getter=label_getter,
          ax_per_element=(1 if not isinstance(data, list)
                          else len(data)),
