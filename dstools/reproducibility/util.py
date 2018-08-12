@@ -1,6 +1,10 @@
+import logging
+import logging.config
 import datetime
 import hashlib
 from pathlib import Path
+
+import yaml
 
 
 def make_path(*args, extension=None):
@@ -38,3 +42,60 @@ def hash_array(a):
     a = a.view(np.uint8)
 
     return hashlib.sha1(a).hexdigest()
+
+
+def make_logger_file(file):
+    """
+
+    Parameters
+    ----------
+    file:
+        Path to file (as returned by __file__)
+    """
+    path_to_file = Path(file).absolute()
+    project_dir = infer_project_dir_from_path_to_file(path_to_file)
+
+    path_to_src = Path(project_dir, 'src')
+
+    path_relative = Path(path_to_file).relative_to(path_to_src)
+    path_to_logs = Path(project_dir, 'log')
+    path_to_current = Path(path_to_logs, path_relative)
+
+    # remove suffix if exists
+    path_to_current = (path_to_current
+                       .with_name(path_to_current.name
+                                  .replace(path_to_current.suffix, '')))
+
+    if not path_to_current.exists():
+        path_to_current.mkdir(parents=True)
+
+    filename = make_filename(extension='log')
+    path_to_current_log = Path(path_to_current, filename)
+
+    return str(path_to_current_log)
+
+
+def infer_project_dir_from_path_to_file(path_to_file):
+    idxs = [i for i, p in enumerate(path_to_file.parts) if p == 'src']
+
+    if not len(idxs):
+        raise ValueError("Couldn't infer project directory, no src directory "
+                         "was found")
+
+    idx = max(idxs)
+
+    return Path(*path_to_file.parts[:idx])
+
+
+def setup_logger(path_to_logging_config, file,
+                 level=logging.INFO):
+    """Configure logging module
+    """
+    with open(path_to_logging_config) as f:
+        logging_config = yaml.load(f)
+
+    logging_file = make_logger_file(file)
+
+    logging_config['handlers']['file']['filename'] = logging_file
+    logging_config['root']['level'] = logging.INFO
+    logging.config.dictConfig(logging_config)
