@@ -82,13 +82,13 @@ def infer_project_dir_from_path_to_file(path_to_file):
         raise ValueError("Couldn't infer project directory, no src directory "
                          "was found")
 
-    idx = max(idxs)
+    idx = min(idxs)
 
     return Path(*path_to_file.parts[:idx])
 
 
 def setup_logger(path_to_logging_config, file,
-                 level=logging.INFO):
+                 level=None):
     """Configure logging module
     """
     with open(path_to_logging_config) as f:
@@ -97,5 +97,8 @@ def setup_logger(path_to_logging_config, file,
     logging_file = make_logger_file(file)
 
     logging_config['handlers']['file']['filename'] = logging_file
-    logging_config['root']['level'] = logging.INFO
+
+    if level is not None:
+        logging_config['root']['level'] = level
+
     logging.config.dictConfig(logging_config)
