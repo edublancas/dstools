@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from dstools.path import infer_project_dir_from_file
+
 
 def make_path(*args, extension=None):
     return Path(*args, make_filename(extension))
@@ -53,7 +55,7 @@ def make_logger_file(file):
         Path to file (as returned by __file__)
     """
     path_to_file = Path(file).absolute()
-    project_dir = infer_project_dir_from_path_to_file(path_to_file)
+    project_dir = infer_project_dir_from_file(file)
 
     path_to_src = Path(project_dir, 'src')
 
@@ -75,21 +77,14 @@ def make_logger_file(file):
     return str(path_to_current_log)
 
 
-def infer_project_dir_from_path_to_file(path_to_file):
-    idxs = [i for i, p in enumerate(path_to_file.parts) if p == 'src']
-
-    if not len(idxs):
-        raise ValueError("Couldn't infer project directory, no src directory "
-                         "was found")
-
-    idx = min(idxs)
-
-    return Path(*path_to_file.parts[:idx])
-
-
 def setup_logger(file, level=None):
     """Configure logging module, assumes logging config is
     in config/logger.yaml
+
+    Parameters
+    ----------
+    file: str
+        As returned from __file__
     """
     path_to_file = Path(file).absolute()
     project_dir = infer_project_dir_from_path_to_file(path_to_file)
