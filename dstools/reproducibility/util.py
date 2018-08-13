@@ -86,8 +86,7 @@ def setup_logger(file, level=None):
     file: str
         As returned from __file__
     """
-    path_to_file = Path(file).absolute()
-    project_dir = infer_project_dir_from_path_to_file(path_to_file)
+    project_dir = infer_project_dir_from_file(file)
     path_to_logger_cfg = Path(project_dir, 'config', 'logger.yaml')
 
     with open(path_to_logger_cfg) as f:

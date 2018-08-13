@@ -22,7 +22,7 @@ class PathManager:
         if PathManager.__instance is not None:
             raise Exception("Already instantiated")
         else:
-            self.project_dir = infer_project_dir_from_path_to_file(file)
+            self.project_dir = infer_project_dir_from_file(file)
 
             PathManager.__instance = self
 
@@ -39,7 +39,7 @@ def load_config(config_file):
     return Path(project_dir, 'config', config_file).absolute()
 
 
-def infer_project_dir_from_path_to_file(file):
+def infer_project_dir_from_file(file):
     path_to_file = Path(file).absolute()
 
     idxs = [i for i, p in enumerate(path_to_file.parts) if p == 'src']
