@@ -87,11 +87,15 @@ def infer_project_dir_from_path_to_file(path_to_file):
     return Path(*path_to_file.parts[:idx])
 
 
-def setup_logger(path_to_logging_config, file,
-                 level=None):
-    """Configure logging module
+def setup_logger(file, level=None):
+    """Configure logging module, assumes logging config is
+    in config/logger.yaml
     """
-    with open(path_to_logging_config) as f:
+    path_to_file = Path(file).absolute()
+    project_dir = infer_project_dir_from_path_to_file(path_to_file)
+    path_to_logger_cfg = Path(project_dir, 'config', 'logger.yaml')
+
+    with open(path_to_logger_cfg) as f:
         logging_config = yaml.load(f)
 
     logging_file = make_logger_file(file)
