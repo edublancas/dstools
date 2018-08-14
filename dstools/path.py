@@ -1,10 +1,14 @@
 """
 Path related methods
 """
+from itertools import chain
 from pathlib import Path
+from glob import iglob
+
+from dstools.FrozenJSON import FrozenJSON
 
 
-class PathManager:
+class Env:
     """
     Based on: https://gist.github.com/pazdera/1098129
     """
@@ -13,18 +17,44 @@ class PathManager:
     @staticmethod
     def get_instance():
 
-        if PathManager.__instance is None:
+        if Env.__instance is None:
             raise Exception("Not instantiated")
 
-        return PathManager.__instance
+        return Env.__instance
 
-    def __init__(self, file):
-        if PathManager.__instance is not None:
+    def __init__(self, path_to_env=None):
+        if Env.__instance is not None:
             raise Exception("Already instantiated")
         else:
-            self.project_dir = infer_project_dir_from_file(file)
+            if path_to_env is None:
+                path_to_env = find_env()
 
-            PathManager.__instance = self
+            if path_to_env is None:
+                raise ValueError("Couldn't find env.yaml")
+
+            self._env = FrozenJSON.from_yaml(path_to_env)
+
+            Env.__instance = self
+
+    def __getattr__(self, key):
+        return getattr(self._env, key)
+
+
+def find_env(max_levels_up=3):
+    def levels_up(n):
+        return chain.from_iterable(iglob('../' * i + '**', recursive=False)
+                                   for i in range(1, n + 1))
+
+    path_to_env = None
+
+    for filename in levels_up(max_levels_up):
+        p = Path(filename)
+
+        if p.name == 'env.yaml':
+            path_to_env = filename
+            break
+
+    return path_to_env
 
 
 def load_config(config_file):
@@ -35,7 +65,7 @@ def load_config(config_file):
     file: str
         As returned from __file__
     """
-    project_dir = PathManager.get_instance().project_dir
+    project_dir = Env.get_instance().project_dir
     return Path(project_dir, 'config', config_file).absolute()
 
 
