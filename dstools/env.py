@@ -33,8 +33,13 @@ class Env:
                 raise ValueError("Couldn't find env.yaml")
 
             self._env = FrozenJSON.from_yaml(path_to_env)
+            self._project_home = str(Path(path_to_env).resolve().parent)
 
             Env.__instance = self
+
+    @property
+    def project_home(self):
+        return self._project_home
 
     def __getattr__(self, key):
         return getattr(self._env, key)
@@ -67,17 +72,3 @@ def load_config(config_file):
     """
     project_dir = Env.get_instance().project_dir
     return Path(project_dir, 'config', config_file).absolute()
-
-
-def infer_project_dir_from_file(file):
-    path_to_file = Path(file).absolute()
-
-    idxs = [i for i, p in enumerate(path_to_file.parts) if p == 'src']
-
-    if not len(idxs):
-        raise ValueError("Couldn't infer project directory, no src directory "
-                         "was found")
-
-    idx = min(idxs)
-
-    return Path(*path_to_file.parts[:idx])

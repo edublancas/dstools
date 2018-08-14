@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from dstools.path import infer_project_dir_from_file
+from dstools.env import Env
 
 
 def make_path(*args, extension=None):
@@ -55,11 +55,9 @@ def make_logger_file(file):
         Path to file (as returned by __file__)
     """
     path_to_file = Path(file).absolute()
-    project_dir = infer_project_dir_from_file(file)
+    project_dir = Env.get_instance().project_home
 
-    path_to_src = Path(project_dir, 'src')
-
-    path_relative = Path(path_to_file).relative_to(path_to_src)
+    path_relative = Path(path_to_file).relative_to(project_dir)
     path_to_logs = Path(project_dir, 'log')
     path_to_current = Path(path_to_logs, path_relative)
 
@@ -86,7 +84,7 @@ def setup_logger(file, level=None):
     file: str
         As returned from __file__
     """
-    project_dir = infer_project_dir_from_file(file)
+    project_dir = Env.get_instance().project_home
     path_to_logger_cfg = Path(project_dir, 'config', 'logger.yaml')
 
     with open(path_to_logger_cfg) as f:

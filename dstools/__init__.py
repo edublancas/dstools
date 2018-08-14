@@ -1,3 +1,5 @@
+from dstools.env import Env
+
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
 try:  # Python 2.7+
@@ -8,3 +10,6 @@ except ImportError:
             pass
 
 logging.getLogger(__name__).addHandler(NullHandler())
+
+
+__all__ = ['Env']
