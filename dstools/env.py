@@ -43,7 +43,7 @@ class Env:
 def find_env(max_levels_up=3):
     def levels_up(n):
         return chain.from_iterable(iglob('../' * i + '**', recursive=False)
-                                   for i in range(1, n + 1))
+                                   for i in range(n + 1))
 
     path_to_env = None
 
