@@ -1,3 +1,5 @@
+import itertools
+import collections
 import logging
 import logging.config
 import datetime
@@ -7,22 +9,31 @@ from pathlib import Path
 import yaml
 
 from dstools.env import Env
+from dstools.util import ensure_iterator, _unwrap_if_single_element
 
 
 def make_path(*args, extension=None):
     return Path(*args, make_filename(extension))
 
 
-def make_filename(extension=None):
+@ensure_iterator(param=('prefix', 'extension'))
+def make_filename(prefix=None, extension=None):
     """Generate a filename with the current datetime
     """
     now = datetime.datetime.now()
-    name = now.strftime('%d-%b-%Y@%H-%M-%S')
+    filename = now.strftime('%d-%b-%Y@%H-%M-%S')
 
-    if extension is not None:
-        name += '.'+extension
+    if prefix is None:
+        names = [filename]
+    else:
+        names = [pref+filename for pref in prefix]
 
-    return name
+    if extension is None:
+        res = names
+    else:
+        res = [n+'.'+e for n, e in itertools.product(names, extension)]
+
+    return _unwrap_if_single_element(res)
 
 
 def hash_array(a):
