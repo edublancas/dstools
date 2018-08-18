@@ -1,2 +1,6 @@
 # plot module
 matplotlib
+
+pytest
+pytest-cov
+pytest-flake8

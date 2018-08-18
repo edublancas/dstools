@@ -15,17 +15,17 @@ def make_path(*args, extension=None):
     return Path(*args, make_filename(extension))
 
 
-@ensure_iterator(param=('prefix', 'extension'))
-def make_filename(prefix=None, extension=None):
-    """Generate a filename with the current datetime
+@ensure_iterator(param=('sufix', 'extension'))
+def make_filename(sufix=None, extension=None, timestamp_separator=':'):
+    """Generate filename(s) with the current datetime in ISO 8601 format
     """
     now = datetime.datetime.now()
-    filename = now.strftime('%d-%b-%Y@%H-%M-%S')
+    filename = now.strftime('%Y-%M-%dT%H-%M-%S')
 
-    if prefix is None:
+    if sufix is None:
         names = [filename]
     else:
-        names = [pref+filename for pref in prefix]
+        names = [filename+timestamp_separator+suf for suf in sufix]
 
     if extension is None:
         res = names
