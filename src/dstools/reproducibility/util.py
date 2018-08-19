@@ -15,10 +15,6 @@ from dstools.env import Env
 from dstools.util import ensure_iterator, _unwrap_if_single_element
 
 
-def make_path(*args, extension=None):
-    return Path(*args, make_filename(extension))
-
-
 @ensure_iterator(param=('sufix', 'extension'))
 def make_filename(sufix=None, extension=None, timestamp_separator=':'):
     """Generate filename(s) with the current datetime in ISO 8601 format
