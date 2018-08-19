@@ -1,3 +1,7 @@
+from pydoc import locate
+from shlex import quote
+import sys
+import subprocess
 import itertools
 import logging
 import logging.config
@@ -108,3 +112,41 @@ def setup_logger(file, level=None):
         logging_config['root']['level'] = level
 
     logging.config.dictConfig(logging_config)
+
+
+def _run_command(path, command):
+    """Safely run command in certain path
+    """
+    if not Path(path).is_dir():
+        raise ValueError('{} is not a directory'.format(path))
+
+    command_ = 'cd {path} && {cmd}'.format(path=quote(path), cmd=command)
+
+    out = subprocess.check_output(command_, shell=True)
+    return out.decode('utf-8') .replace('\n', '')
+
+
+def one_line_git_summary(path):
+    """Get one line git summary"""
+    return _run_command(path, 'git show --oneline -s')
+
+
+def git_hash(path):
+    """Get git hash"""
+    return _run_command(path, 'git rev-parse HEAD')
+
+
+def get_version(package_name):
+    """Get package version
+    """
+    installation_path = sys.modules[package_name].__file__
+
+    NON_EDITABLE = True if 'site-packages/' in installation_path else False
+
+    if NON_EDITABLE:
+        return locate('{package}.__version__'
+                      .format(package_name=package_name))
+    else:
+        parent = str(Path(installation_path).parent)
+
+        return one_line_git_summary(parent)
