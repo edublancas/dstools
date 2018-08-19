@@ -95,7 +95,7 @@ def setup_logger(file, level=None):
         As returned from __file__
     """
     project_dir = Env.get_instance().project_home
-    path_to_logger_cfg = Path(project_dir, 'config', 'logger.yaml')
+    path_to_logger_cfg = str(Path(project_dir, 'config', 'logger.yaml'))
 
     with open(path_to_logger_cfg) as f:
         logging_config = yaml.load(f)
