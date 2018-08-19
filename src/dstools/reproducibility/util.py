@@ -20,7 +20,7 @@ def make_filename(sufix=None, extension=None, timestamp_separator=':'):
     """Generate filename(s) with the current datetime in ISO 8601 format
     """
     now = datetime.datetime.now()
-    filename = now.strftime('%Y-%M-%dT%H-%M-%S')
+    filename = now.strftime('%Y-%m-%dT%H-%M-%S')
 
     if sufix is None:
         names = [filename]
