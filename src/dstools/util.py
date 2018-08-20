@@ -1,3 +1,5 @@
+import pickle
+from pathlib import Path
 import os
 import yaml
 from pydoc import locate
@@ -165,6 +167,26 @@ def format_column_names(columns, prefix=None):
         names = pd.Series(names).map(lambda s: '{}_{}'.format(prefix, s))
 
     return names
+
+
+def save(obj, path):
+    path = Path(path)
+
+    if path.suffix == '.npy':
+        import numpy as np
+        np.save(str(path), obj)
+
+    elif path.suffix == '.yaml':
+
+        with open(str(path), 'w') as f:
+            yaml.dump(obj, f)
+
+    elif path.suffix == '.pickle':
+        with open(str(path), 'wb') as file:
+            pickle.dump(obj, file, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        raise ValueError('Do not know how to save file with extension '
+                         '{}'.format(path.suffix))
 
 
 # def load_yaml(path):
