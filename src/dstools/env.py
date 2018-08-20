@@ -32,6 +32,7 @@ class Env:
             if path_to_env is None:
                 raise ValueError("Couldn't find env.yaml")
 
+            self._path_to_env = path_to_env
             self._env = FrozenJSON.from_yaml(path_to_env)
             self._project_home = str(Path(path_to_env).resolve().parent)
 
@@ -40,6 +41,10 @@ class Env:
     @property
     def project_home(self):
         return self._project_home
+
+    @property
+    def path_to_env(self):
+        return self._path_to_env
 
     def __getattr__(self, key):
         return getattr(self._env, key)
