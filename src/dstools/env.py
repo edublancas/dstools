@@ -46,6 +46,9 @@ class Env:
     def path_to_env(self):
         return self._path_to_env
 
+    def __dir__(self):
+        return dir(self._env)
+
     def __getattr__(self, key):
         return getattr(self._env, key)
 
