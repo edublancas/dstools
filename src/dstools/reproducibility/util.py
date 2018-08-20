@@ -146,3 +146,7 @@ def get_version(package_name):
         parent = str(Path(installation_path).parent)
 
         return one_line_git_summary(parent)
+
+
+def git_hash_in_path(path):
+    return one_line_git_summary(path)
