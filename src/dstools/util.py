@@ -189,6 +189,26 @@ def save(obj, path):
                          '{}'.format(path.suffix))
 
 
+def load(path):
+    path = Path(path)
+
+    if path.suffix == '.npy':
+        import numpy as np
+        return np.load(str(path))
+
+    elif path.suffix == '.yaml':
+
+        with open(str(path), 'w') as f:
+            return yaml.load(f)
+
+    elif path.suffix == '.pickle':
+        with open(str(path), 'wb') as file:
+            return pickle.load(file, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        raise ValueError('Do not know how to save file with extension '
+                         '{}'.format(path.suffix))
+
+
 # def load_yaml(path):
 #     '''
 #         Load yaml file and return the contents of it. If ROOT_FOLDER
