@@ -198,11 +198,11 @@ def load(path):
 
     elif path.suffix == '.yaml':
 
-        with open(str(path), 'w') as f:
+        with open(str(path), 'r') as f:
             return yaml.load(f)
 
     elif path.suffix == '.pickle':
-        with open(str(path), 'wb') as file:
+        with open(str(path), 'rb') as file:
             return pickle.load(file, protocol=pickle.HIGHEST_PROTOCOL)
     else:
         raise ValueError('Do not know how to save file with extension '
