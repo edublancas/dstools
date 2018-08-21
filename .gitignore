@@ -2,7 +2,7 @@ usage/**/*.csv
 usage/**/*.yaml
 usage/**/*.json
 
-
+.pytest_cache/
 
 #### joe made this: https://goel.io/joe
 

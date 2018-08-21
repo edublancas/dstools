@@ -1,11 +1,12 @@
 """
-Path related methods
+Environment
 """
 from itertools import chain
 from pathlib import Path
 from glob import iglob
 
 from dstools.FrozenJSON import FrozenJSON
+from dstools.path import PathManager
 
 
 class Env:
@@ -32,25 +33,28 @@ class Env:
             if path_to_env is None:
                 raise ValueError("Couldn't find env.yaml")
 
-            self._path_to_env = path_to_env
-            self._env = FrozenJSON.from_yaml(path_to_env)
+            self._env_content = FrozenJSON.from_yaml(path_to_env)
+
+            # remove
             self._project_home = str(Path(path_to_env).resolve().parent)
 
+            self._path = PathManager(path_to_env, self)
+
             Env.__instance = self
+
+    def __dir__(self):
+        return dir(self._env_content)
+
+    @property
+    def path(self):
+        return self._path
 
     @property
     def project_home(self):
         return self._project_home
 
-    @property
-    def path_to_env(self):
-        return self._path_to_env
-
-    def __dir__(self):
-        return dir(self._env)
-
     def __getattr__(self, key):
-        return getattr(self._env, key)
+        return getattr(self._env_content, key)
 
 
 def find_env(max_levels_up=3):
@@ -80,3 +84,27 @@ def load_config(config_file):
     """
     project_dir = Env.get_instance().project_dir
     return Path(project_dir, 'config', config_file).absolute()
+
+
+def _get_name(path_to_env):
+    filename = str(Path(path_to_env).name)
+
+    err = ValueError('Wrong filename, must be either env.{name}.yaml '
+                     'or env.yaml')
+
+    elements = filename.split('.')
+
+    if len(elements) == 2:
+        # no name case
+        env, _ = elements
+        name = 'default'
+    elif len(elements) == 3:
+        # name
+        env, name, _ = elements
+    else:
+        raise err
+
+    if env != 'env':
+        raise err
+
+    return name
