@@ -38,12 +38,17 @@ class Env:
             # remove
             self._project_home = str(Path(path_to_env).resolve().parent)
 
+            self._name = _get_name(path_to_env)
             self._path = PathManager(path_to_env, self)
 
             Env.__instance = self
 
     def __dir__(self):
         return dir(self._env_content)
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def path(self):

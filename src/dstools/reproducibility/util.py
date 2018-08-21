@@ -64,25 +64,27 @@ def make_logger_file(file):
     file:
         Path to file (as returned by __file__)
     """
+    # FIXME; is this is in site-directories, I can still use the path
+    # there to create a log directory relative to the home folder
+    env = Env.get_instance()
+
     path_to_file = Path(file).absolute()
-    project_dir = Env.get_instance().project_home
+    filename = path_to_file.name
+    filename_no_ext = filename.replace(path_to_file.suffix, '')
 
-    path_relative = Path(path_to_file).relative_to(project_dir)
-    path_to_logs = Path(project_dir, 'log')
-    path_to_current = Path(path_to_logs, path_relative)
+    dirname = path_to_file.with_name(filename_no_ext)
+    path_relative = Path(dirname).relative_to(env.path.env_dir)
 
-    # remove suffix if exists
-    path_to_current = (path_to_current
-                       .with_name(path_to_current.name
-                                  .replace(path_to_current.suffix, '')))
+    path_to_log_dir = Path(env.path.home, 'log')
+    path_to_log_local_dir = Path(path_to_log_dir, path_relative)
 
-    if not path_to_current.exists():
-        path_to_current.mkdir(parents=True)
+    if not path_to_log_local_dir.exists():
+        path_to_log_local_dir.mkdir(parents=True)
 
     filename = make_filename(extension='log')
-    path_to_current_log = Path(path_to_current, filename)
+    path_to_log_local = Path(path_to_log_local_dir, filename)
 
-    return str(path_to_current_log)
+    return str(path_to_log_local)
 
 
 def setup_logger(file, level=None):
