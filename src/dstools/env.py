@@ -35,9 +35,6 @@ class Env:
 
             self._env_content = FrozenJSON.from_yaml(path_to_env)
 
-            # remove
-            self._project_home = str(Path(path_to_env).resolve().parent)
-
             self._name = _get_name(path_to_env)
             self._path = PathManager(path_to_env, self)
 
@@ -53,10 +50,6 @@ class Env:
     @property
     def path(self):
         return self._path
-
-    @property
-    def project_home(self):
-        return self._project_home
 
     def __getattr__(self, key):
         return getattr(self._env_content, key)
