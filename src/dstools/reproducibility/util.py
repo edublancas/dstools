@@ -84,7 +84,7 @@ def make_logger_file(file):
     filename = make_filename(extension='log')
     path_to_log_local = Path(path_to_log_local_dir, filename)
 
-    return str(path_to_log_local)
+    return path_to_log_local
 
 
 def setup_logger(file, level=None):

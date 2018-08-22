@@ -54,6 +54,10 @@ class Env:
     def __getattr__(self, key):
         return getattr(self._env_content, key)
 
+    @classmethod
+    def _destroy(cls):
+        cls.__instance = None
+
 
 def find_env(max_levels_up=3):
     def levels_up(n):
