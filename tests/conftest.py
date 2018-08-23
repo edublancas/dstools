@@ -31,7 +31,7 @@ def move_to_module():
 
 
 @pytest.fixture(scope='session')
-def path_to_source_code():
+def path_to_source_code_file():
     return (path_to_tests() / 'assets' / 'sample' /
             'src' / 'pkg' / 'module' / 'functions.py')
 

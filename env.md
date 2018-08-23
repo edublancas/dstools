@@ -16,7 +16,7 @@ some of these ideas are:
 
 Defaults:
 
-* project_home is where the env.yaml file is located
-* data in project_home/{env_name}/{data}/
-* log in project_home/{env_name}/{log}/
+* env_dir is where the env.yaml file is located
+* data in env_dir/{env_name}/{data}/
+* log in env_dir/{env_name}/{log}/
 
