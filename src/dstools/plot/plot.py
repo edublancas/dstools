@@ -16,7 +16,8 @@ def flatten(l):
     return [item for sublist in l for item in sublist]
 
 
-def grid_from_array(data, axis, group_names=None, labels=None, **kwargs):
+def grid_from_array(data, axis, group_names=None, labels=None,
+                    auto_tight_layout=True, **kwargs):
     """Plot a grid from a numpy ndarray
 
     Parameters
@@ -78,7 +79,8 @@ def grid_from_array(data, axis, group_names=None, labels=None, **kwargs):
                          else len(data)),
          **kwargs)
 
-    plt.tight_layout()
+    if auto_tight_layout:
+        plt.tight_layout()
 
 
 def grid(function, data, element_getter, all_elements, labels, label_getter,
