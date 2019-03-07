@@ -3,7 +3,7 @@ from dstools.env import _get_name, Env
 
 
 def test_assigns_default_name():
-    assert _get_name('path/to/env.yaml') == 'default'
+    assert _get_name('path/to/env.yaml') == 'root'
 
 
 def test_can_extract_name():

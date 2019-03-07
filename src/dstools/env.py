@@ -1,5 +1,5 @@
 """
-Environment
+Environment management
 """
 from itertools import chain
 from pathlib import Path
@@ -11,8 +11,31 @@ from dstools.path import PathManager
 
 class Env:
     """
-    Based on: https://gist.github.com/pazdera/1098129
+    Env provides a clean and consistent way of managing environment and
+    configuration settings. Its simplest usage provides access to settings
+    specified via an `env.yaml`.
+
+    Settings managed by Env are intended to be runtime constant (they are NOT
+    intended to be used as global variables). For example you might want
+    to store database URIs. Storing sensitive information is discouraged as
+    yaml files are plain text. Use `keyring` for that instead.
+
+    Examples
+    --------
+
+    Basic usage
+
+    >>> from dstools import Env
+    >>> env = Env()
+    >>> env.db.uri # traverse the yaml tree structure using dot notation
+    >>> env.name # returns the environment name
+    >>> env.path.home # returns an absolute path to the env file location
+    >>> env.path.output # returns an ansolute path to the output folder
+
     """
+
+    # singleton implementation based on:
+    # https://gist.github.com/pazdera/1098129
     __instance = None
 
     @staticmethod
@@ -99,7 +122,7 @@ def _get_name(path_to_env):
     if len(elements) == 2:
         # no name case
         env, _ = elements
-        name = 'default'
+        name = 'root'
     elif len(elements) == 3:
         # name
         env, name, _ = elements

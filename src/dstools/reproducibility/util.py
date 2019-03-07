@@ -73,7 +73,7 @@ def make_logger_file(file):
     filename_no_ext = filename.replace(path_to_file.suffix, '')
 
     dirname = path_to_file.with_name(filename_no_ext)
-    path_relative = Path(dirname).relative_to(env.path.env_dir)
+    path_relative = Path(dirname).relative_to(env.path.home)
 
     path_to_log_dir = Path(env.path.home, 'log')
     path_to_log_local_dir = Path(path_to_log_dir, path_relative)
@@ -96,7 +96,7 @@ def setup_logger(file, level=None):
     file: str
         As returned from __file__
     """
-    project_dir = Env.get_instance().path.env_dir
+    project_dir = Env.get_instance().path.home
     path_to_logger_cfg = str(Path(project_dir, 'config', 'logger.yaml'))
 
     with open(path_to_logger_cfg) as f:
