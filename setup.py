@@ -79,8 +79,8 @@ setup(
         #   ':python_version=="2.6"': ['argparse'],
     },
     entry_points={
-        # 'console_scripts': [
-        #     'command=okg.submodule:object',
-        # ]
+        'console_scripts': [
+            'dstools=dstools.cli:cli',
+        ]
     },
 )
