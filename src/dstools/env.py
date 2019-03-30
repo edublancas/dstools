@@ -31,6 +31,8 @@ class Env:
     >>> env.name # returns the environment name
     >>> env.path.home # returns an absolute path to the env file location
     >>> env.path.output # returns an ansolute path to the output folder
+    >>> env.path.input # returns an ansolute path to the input folder
+    >>> env.path.log # returns an ansolute path to the log folder
 
     """
 

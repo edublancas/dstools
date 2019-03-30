@@ -4,40 +4,55 @@ from pathlib import Path
 class PathManager:
 
     def __init__(self, path_to_env, env):
-        self.home = Path(path_to_env).resolve().parent
+        self._home = Path(path_to_env).resolve().parent
 
         subdirectory = env.name if env.name != 'root' else ''
 
-        path_to_output = env._env_content.get('_path_to_output')
+        self._home = self._build_absolute_path(env, 'home', subdirectory)
+        self._input = self._build_absolute_path(env, 'input', subdirectory)
+        self._output = self._build_absolute_path(env, 'output', subdirectory)
+        self._log = self._build_absolute_path(env, 'log', subdirectory)
 
-        # if there is no path_to_output key, use default location
-        if path_to_output is None:
-            self.output = self.home / 'output' / subdirectory
+    def _build_absolute_path(self, env, key, subdirectory):
+        _key = f'_path_to_{key}'
+        path_to_key = env._env_content.get(f'{_key}')
 
+        # if there is no path_to_{key} key, use default location
+        if path_to_key is None:
+            path_to_key_absolute = self._home / key / subdirectory
         else:
-            path_to_output = Path(path_to_output).expanduser()
+            path_to_key = Path(path_to_key).expanduser()
 
-            if not path_to_output.is_absolute():
-                raise ValueError('output.path must be an absolute path')
+            if not path_to_key.is_absolute():
+                raise ValueError(f'{_key} must be an absolute path')
 
-            self.output = path_to_output
+            path_to_key_absolute = path_to_key
 
-        if not self.output.is_dir():
-            self.output.mkdir()
+        if not path_to_key_absolute.is_dir():
+            path_to_key_absolute.mkdir()
 
-        path_to_origin = env._env_content.get('_path_to_origin')
+        return path_to_key_absolute
 
-        # if there is no path_to_origin key, use default location
-        if path_to_origin is None:
-            self.origin = self.home / 'origin' / subdirectory
+    @property
+    def home(self):
+        """Project's home folder
+        """
+        return self._home
 
-        else:
-            path_to_origin = Path(path_to_origin).expanduser()
+    @property
+    def input(self):
+        """Project's input folder
+        """
+        return self._input
 
-            if not path_to_origin.is_absolute():
-                raise ValueError('_path_to_origin must be an absolute path')
+    @property
+    def output(self):
+        """Project's output folder
+        """
+        return self._output
 
-            self.origin = path_to_origin
-
-        if not self.origin.is_dir():
-            self.origin.mkdir()
+    @property
+    def log(self):
+        """Project's log folder
+        """
+        return self._log
