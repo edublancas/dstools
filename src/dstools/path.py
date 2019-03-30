@@ -8,7 +8,6 @@ class PathManager:
 
         subdirectory = env.name if env.name != 'root' else ''
 
-        self._home = self._build_absolute_path(env, 'home', subdirectory)
         self._input = self._build_absolute_path(env, 'input', subdirectory)
         self._output = self._build_absolute_path(env, 'output', subdirectory)
         self._log = self._build_absolute_path(env, 'log', subdirectory)
