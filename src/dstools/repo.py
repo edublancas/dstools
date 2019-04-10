@@ -3,7 +3,6 @@ import subprocess
 from shlex import quote
 import sys
 from pathlib import Path
-from dstools import Env
 
 
 def _run_command(path, command):
@@ -61,9 +60,7 @@ def get_diff(path):
     return _run_command(path, "git diff -- . ':(exclude)*.ipynb'")
 
 
-def get_env_metadata():
-    env = Env.get_instance()
-
+def get_env_metadata(env):
     git_summary = one_line_git_summary(env.path.home)
     hash_ = git_hash(env.path.home)
     git_diff = get_diff(env.path.home)
@@ -73,8 +70,7 @@ def get_env_metadata():
                 git_timestamp=git_timestamp)
 
 
-def save_env_metadata(path_to_output):
-    env = Env.get_instance()
+def save_env_metadata(env, path_to_output):
     summary = one_line_git_summary(env.path.home)
     hash_ = git_hash(env.path.home)
     diff = get_diff(env.path.home)
