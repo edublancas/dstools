@@ -38,7 +38,7 @@ def git_hash(path):
 def get_git_timestamp(path):
     """Timestamp for last commit
     """
-    return _run_command(path, 'git log -1 --format=%ct')
+    return int(_run_command(path, 'git log -1 --format=%ct'))
 
 
 def get_version(package_name):
