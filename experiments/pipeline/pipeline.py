@@ -1,7 +1,11 @@
 # inspired by airflow
+import subprocess
+from pathlib import Path
 import time
 import logging
 from datetime import datetime
+
+from dstools import Env
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,21 +24,21 @@ class Task:
     """A task represents a unit of work
     """
 
-    def __init__(self, source_code, identifier):
+    def __init__(self, source_code, product):
         self._upstream = []
         self._already_checked = False
 
-        self._identifier = identifier
+        self._product = product
         self._source_code = source_code
         self._logger = logging.getLogger(__name__)
 
+        product.task = self
+
         _TASKS.append(self)
 
-        self._metadata = self.fetch_metadata(self.identifier)
-
     @property
-    def identifier(self):
-        return self._identifier
+    def product(self):
+        return self._product
 
     @property
     def is_end_task(self):
@@ -45,34 +49,15 @@ class Task:
         return not len(self._upstream)
 
     @property
-    def timestamp(self):
-        # TODO make sure metadata is always up to date
-        return self._metadata['timestamp']
-
-    @property
-    def stored_source_code(self):
-        return self._metadata['stored_source_code']
-
-    @property
     def source_code(self):
         return self._source_code
 
-    def fetch_metadata(self, identifier):
+    @property
+    def upstream(self):
+        return self._upstream
+
+    def run(self):
         raise NotImplementedError('You have to implement this method')
-
-    def save_metadata(self, identifier, new_metadata):
-        raise NotImplementedError('You have to implement this method')
-
-    def run(self, identifier, source_code):
-        raise NotImplementedError('You have to implement this method')
-
-    def outdated_data_dependencies(self):
-        outdated = any([up.timestamp > self.timestamp
-                        for up in self._upstream])
-        return outdated
-
-    def outdated_code_dependency(self):
-        return self.stored_source_code != self.source_code
 
     def set_upstream(self, task):
         self._upstream.append(task)
@@ -91,8 +76,8 @@ class Task:
             self._build()
 
     def _build(self):
-        outdated_data_deps = self.outdated_data_dependencies()
-        outdated_code_dep = self.outdated_code_dependency()
+        outdated_data_deps = self.product.outdated_data_dependencies()
+        outdated_code_dep = self.product.outdated_code_dependency()
 
         self._logger.info(f'-----\nChecking {repr(self)}....')
 
@@ -110,16 +95,15 @@ class Task:
             self._logger.info(f'Running {repr(self)}')
 
             # execute code...
-            self.run(self.identifier, self.source_code)
+            self.run()
 
             # TODO: should check if job ran successfully, if not, stop execution
 
-            # update metadata in the current object
-            self._metadata['timestamp'] = datetime.now()
-            self._metadata['stored_source_code'] = self.source_code
+            # update metadata
+            self.product.timestamp = datetime.now().timestamp()
+            self.product.stored_source_code = self.source_code
+            self.product.save_metadata()
 
-            # and in the external task
-            self.save_metadata(self.identifier, self._metadata)
         else:
             self._logger.info('Up to date data deps, no need to run'
                               f' {repr(self)}')
@@ -129,24 +113,65 @@ class Task:
         self._already_checked = True
 
     def __repr__(self):
-        return f'{type(self).__name__}: {self.identifier}'
+        return f'{type(self).__name__}: {self.source_code}'
 
 
 class Product:
     """A product is a change that the task triggers
     """
 
+    def __init__(self, identifier):
+        self._identifier = identifier
+
+        self.timestamp, self.stored_source_code = self.fetch_metadata()
+
+    @property
+    def identifier(self):
+        return self._identifier
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @property
+    def stored_source_code(self):
+        return self._stored_source_code
+
+    @property
+    def task(self):
+        return self._task
+
+    @task.setter
+    def task(self, value):
+        self._task = value
+
+    @timestamp.setter
+    def timestamp(self, value):
+        self._timestamp = value
+
+    @stored_source_code.setter
+    def stored_source_code(self, value):
+        self._stored_source_code = value
+
+    def outdated_data_dependencies(self):
+        outdated = any([up.product.timestamp > self.timestamp
+                        for up in self.task.upstream])
+        return outdated
+
+    def outdated_code_dependency(self):
+        return self.stored_source_code != self.task.source_code
+
+    def fetch_metadata(self):
+        raise NotImplementedError('You have to implement this method')
+
+    def save_metadata(self):
+        raise NotImplementedError('You have to implement this method')
+
 
 class PostgresTask(Task):
 
-    def fetch_metadata(self, identifier):
-        pass
-
-    def save_metadata(self, identifier, new_metadata):
-        pass
-
-    def run(self, identifier, source_code):
-        print(f'Running: {source_code}')
+    def run(self):
+        print(f'Running: {self.source_code}')
         time.sleep(5)
 
 
@@ -155,11 +180,64 @@ class PostgresRelation(Product):
 
 
 class File(Product):
-    pass
+    def __init__(self, identifier):
+        self._identifier = identifier
+        self._path_to_file = Path(self.identifier)
+        self._path_to_stored_source_code = Path(str(self.path_to_file)
+                                                + '.source')
+
+        self.timestamp, self.stored_source_code = self.fetch_metadata()
+
+    @property
+    def path_to_file(self):
+        return self._path_to_file
+
+    @property
+    def path_to_stored_source_code(self):
+        return self._path_to_stored_source_code
+
+    def fetch_metadata(self):
+        if self.path_to_file.exists():
+            timestamp = self.path_to_file.stat().st_mtime
+        else:
+            timestamp = None
+
+        if self.path_to_stored_source_code.exists():
+            stored_source_code = self.path_to_stored_source_code.read_text()
+        else:
+            stored_source_code = None
+
+        return timestamp, stored_source_code
+
+    def save_metadata(self):
+        # timestamp automatically updates when the file is saved...
+
+        self.path_to_stored_source_code.write_text(self.stored_source_code)
 
 
-class BashTask:
-    pass
+class BashTask(Task):
+    def run(self):
+        subprocess.call(self.source_code.split(' '))
+
+
+env = Env()
+
+red = File(Path(env.path.input / 'raw' / 'red.csv'))
+
+# NOTE: running like this obscures the actual source code inside the file
+# which might change. maybe I should pass the path to the file directlt
+# or the actual source code, but then we will be limited to running things
+# like bash SOMETHING (with no parameters). Maybe provided both options,
+# to the user, for .sh files, makes sense to use the content as source code
+# for commands that use libraries (i.e. psql), makes sense to use the
+# command as source code
+t1 = BashTask('bash get_data.sh', red)
+
+red_sample = File(Path(env.path.input / 'sample' / 'red.csv'))
+t2 = BashTask('python sample.py', red_sample)
+t2.set_upstream(t1)
+
+t2.build()
 
 # get users
 
