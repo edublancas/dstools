@@ -2,7 +2,6 @@ from dstools.pipeline import _TASKS, _NON_END_TASKS
 
 import subprocess
 from pathlib import Path
-import time
 import logging
 from datetime import datetime
 
@@ -74,12 +73,15 @@ class Task:
             self._build()
 
     def _build(self):
+        # NOTE: should i fetch metadata here? I need to make sure I have
+        # the latest before building
 
         self._logger.info(f'-----\nChecking {repr(self)}....')
 
         run = False
 
-        if self.product.exists():
+        # check dependencies only if the product exists and there is metadata
+        if self.product.exists() and self.product.metadata is not None:
             outdated_data_deps = self.product.outdated_data_dependencies()
             outdated_code_dep = self.product.outdated_code_dependency()
 
@@ -119,15 +121,6 @@ class Task:
 
     def __repr__(self):
         return f'{type(self).__name__}'
-
-
-class PostgresScript(Task):
-    """A tasks represented by a SQL script run agains a Postgres database
-    """
-
-    def run(self):
-        print(f'Running: {self.source_code}')
-        time.sleep(5)
 
 
 class BashCommand(Task):
