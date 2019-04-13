@@ -17,6 +17,8 @@ def build_all():
 
 
 class Task:
+    """A task represents a unit of work
+    """
 
     def __init__(self, source_code, identifier):
         self._upstream = []
@@ -28,7 +30,7 @@ class Task:
 
         _TASKS.append(self)
 
-        self._metadata = self.fetch_metdata(self.identifier)
+        self._metadata = self.fetch_metadata(self.identifier)
 
     @property
     def identifier(self):
@@ -55,10 +57,10 @@ class Task:
     def source_code(self):
         return self._source_code
 
-    def fetch_metdata(self, identifier):
+    def fetch_metadata(self, identifier):
         raise NotImplementedError('You have to implement this method')
 
-    def save_metdata(self, identifier, new_metadata):
+    def save_metadata(self, identifier, new_metadata):
         raise NotImplementedError('You have to implement this method')
 
     def run(self, identifier, source_code):
@@ -117,7 +119,7 @@ class Task:
             self._metadata['stored_source_code'] = self.source_code
 
             # and in the external task
-            self.save_metdata(self.identifier, self._metadata)
+            self.save_metadata(self.identifier, self._metadata)
         else:
             self._logger.info('Up to date data deps, no need to run'
                               f' {repr(self)}')
@@ -130,18 +132,34 @@ class Task:
         return f'{type(self).__name__}: {self.identifier}'
 
 
+class Product:
+    """A product is a change that the task triggers
+    """
+
+
 class PostgresTask(Task):
 
-    def fetch_metdata(self, identifier):
+    def fetch_metadata(self, identifier):
         pass
 
-    def save_metdata(self, identifier, new_metadata):
+    def save_metadata(self, identifier, new_metadata):
         pass
 
     def run(self, identifier, source_code):
         print(f'Running: {source_code}')
         time.sleep(5)
 
+
+class PostgresRelation(Product):
+    pass
+
+
+class File(Product):
+    pass
+
+
+class BashTask:
+    pass
 
 # get users
 

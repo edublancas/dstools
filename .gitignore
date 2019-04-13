@@ -1,3 +1,5 @@
+**/env.yaml
+
 usage/**/*.csv
 usage/**/*.yaml
 usage/**/*.json
