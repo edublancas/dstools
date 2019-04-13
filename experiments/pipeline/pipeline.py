@@ -76,6 +76,10 @@ class Task:
             self._build()
 
     def _build(self):
+
+        # TODO: check if product exists, if not, just run, if yes, check
+        # data and code dependencies
+
         outdated_data_deps = self.product.outdated_data_dependencies()
         outdated_code_dep = self.product.outdated_code_dependency()
 
@@ -238,6 +242,11 @@ t2 = BashTask('python sample.py', red_sample)
 t2.set_upstream(t1)
 
 t2.build()
+
+# TODO: have to decide how to deal with deleted files (timestamp is None)
+# maybe I need another state, like a not found. in such case I always
+# have to run. maybe add an exists() method so that the product checks if
+# exists, if not, build parents and then bulild node
 
 # get users
 
