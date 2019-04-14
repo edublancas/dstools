@@ -85,17 +85,17 @@ class Task:
 
             if outdated_data_deps:
                 run = True
-                self._logger.info(f'Outdated data deps...')
+                self._logger.info('Outdated data deps...')
             else:
-                self._logger.info(f'Up-to-date data deps...')
+                self._logger.info('Up-to-date data deps...')
 
             if outdated_code_dep:
                 run = True
-                self._logger.info(f'Outdated code dep...')
+                self._logger.info('Outdated code dep...')
             else:
-                self._logger.info(f'Up-to-date code dep...')
+                self._logger.info('Up-to-date code dep...')
         else:
-            self._logger.info(f'Product does not exist...')
+            self._logger.info('Product does not exist...')
             run = True
 
         if run:
@@ -119,7 +119,7 @@ class Task:
         else:
             self._logger.info(f'No need to run {repr(self)}')
 
-        self._logger.info(f'-----\n')
+        self._logger.info('-----\n')
 
         self._already_checked = True
 

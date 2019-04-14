@@ -28,8 +28,9 @@ pg.CONN = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
 
 @atexit.register
 def close_conn():
-    print('closing connection...')
-    pg.CONN.close()
+    if not pg.CONN.closed:
+        print('closing connection...')
+        pg.CONN.close()
 
 
 # TODO: be able to specify more than one product?
@@ -53,7 +54,6 @@ sample_task.set_upstream(get_data_task)
 # TODO: write motivation in the readme file
 # TODO: migrate this pipeline to the ds-template project
 # TODO: reset state after runing build all
-# TODO: create postgres mixing to share the CONN behavior
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
@@ -69,30 +69,26 @@ white_step.set_upstream(sample_task)
 
 
 wine_task = pg.PostgresScript(home / 'sql' / 'create_wine_view.sql',
-                              pg.PostgresRelation(('public', 'wine', 'table')),
-                              pg.CONN)
+                              pg.PostgresRelation(('public', 'wine', 'table')))
 wine_task.set_upstream(white_step)
 
 
 dataset_task = pg.PostgresScript(home / 'sql' / 'create_dataset.sql',
                                  pg.PostgresRelation(
-                                     ('public', 'dataset', 'table')),
-                                 pg.CONN)
+                                     ('public', 'dataset', 'table')))
 dataset_task.set_upstream(wine_task)
 
 
 training_task = pg.PostgresScript(home / 'sql' / 'create_training.sql',
                                   pg.PostgresRelation(
-                                      ('public', 'training', 'table')),
-                                  pg.CONN)
+                                      ('public', 'training', 'table')))
 training_task.set_upstream(dataset_task)
 
 
 testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
                                  pg.PostgresRelation(
-                                     ('public', 'testing', 'table')),
-                                 pg.CONN)
+                                     ('public', 'testing', 'table')))
 testing_task.set_upstream(dataset_task)
 
 build_all()
-pg.CONN.close()
+# pg.CONN.close()

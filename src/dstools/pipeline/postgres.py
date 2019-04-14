@@ -7,18 +7,7 @@ from psycopg2 import sql
 CONN = None
 
 
-class PostgresRelation(Product):
-    def __init__(self, identifier, conn=None):
-        if len(identifier) != 3:
-            raise ValueError('identifier must have 3 elements, '
-                             f'got: {len(identifier)}')
-
-        self._set_conn(conn)
-
-        # check if a valid conn is available before moving forward
-        self._get_conn()
-        super().__init__(PostgresIdentifier(*identifier))
-
+class PostgresConnectionMixin:
     def _set_conn(self, conn):
         self._conn = conn
 
@@ -31,6 +20,20 @@ class PostgresRelation(Product):
             ValueError('You have to either pass a connection object '
                        'in the constructor or set postgres.CONN to '
                        'a connection to be used by all postgres objects')
+
+
+class PostgresRelation(PostgresConnectionMixin, Product):
+    def __init__(self, identifier, conn=None):
+        if len(identifier) != 3:
+            raise ValueError('identifier must have 3 elements, '
+                             f'got: {len(identifier)}')
+
+        self._set_conn(conn)
+
+        # check if a valid conn is available before moving forward
+        self._get_conn()
+
+        super().__init__(PostgresIdentifier(*identifier))
 
     def fetch_metadata(self):
         # https://stackoverflow.com/a/11494353/709975
@@ -111,17 +114,20 @@ class PostgresIdentifier:
         self.name = name
 
 
-class PostgresScript(Task):
+class PostgresScript(PostgresConnectionMixin, Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
-    def __init__(self, source_code, product, conn):
+    def __init__(self, source_code, product, conn=None):
         super().__init__(source_code, product)
-        self._conn = conn
+        self._set_conn(conn)
+
+        # check if a valid conn is available before moving forward
+        self._get_conn()
 
     def run(self):
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(self.source_code)
-        self._conn.commit()
+        self._get_conn().commit()
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.path_to_source_code}'
