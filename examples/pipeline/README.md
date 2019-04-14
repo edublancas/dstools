@@ -15,8 +15,8 @@ python sample.py
 csvsql --db $DB --tables red --insert "$INPUT/sample/red.csv"  --overwrite
 csvsql --db $DB --tables white --insert "$INPUT/sample/white.csv"  --overwrite
 
-# create view with both tables
-psql $DB -f $HOME/sql/create_wine_view.sql
+# create table with both red and white
+psql $DB -f $HOME/sql/create_wine.sql
 
 # select features and add label
 psql $DB -f $HOME/sql/create_dataset.sql

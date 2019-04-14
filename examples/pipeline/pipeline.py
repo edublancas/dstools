@@ -38,8 +38,7 @@ get_data_task = BashScript(home / 'get_data.sh',
 
 
 red_path = env.path.input / 'sample' / 'red.csv'
-sample_task = PythonScript(home / 'sample.py',
-                           File(red_path))
+sample_task = PythonScript(home / 'sample.py', File(red_path))
 sample_task.set_upstream(get_data_task)
 
 # TODO: also have to rollback automatically when something goes wrong
@@ -53,29 +52,24 @@ sample_task.set_upstream(get_data_task)
 # TODO: function to plot topological order
 # TODO: write motivation in the readme file
 # TODO: migrate this pipeline to the ds-template project
-# NOTE: how to avoid having to carry the conn variable on each element?
 # TODO: reset state after runing build all
-# TODO: check exit status of each script, raise exception if any of them
-# failed
-# NOTE: parametrizing commands like this is unsafe, and they get logged
-# exposing credentials (if they are passed via format args)
 # TODO: create postgres mixing to share the CONN behavior
-red_src = (f'csvsql --db {env.db.uri} --tables red --insert '
-           f'{red_path}  --overwrite')
-red_task = BashCommand(red_src,
-                       pg.PostgresRelation(('public', 'red', 'table')))
+red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
+                       '--overwrite',
+                       pg.PostgresRelation(('public', 'red', 'table')),
+                       params=dict(db=env.db.uri, path=red_path))
 red_task.set_upstream(sample_task)
 
 white_path = Path(env.path.input / 'sample' / 'white.csv')
-white_src = (f'csvsql --db {env.db.uri} --tables white --insert '
-             f'{white_path}  --overwrite')
-white_step = BashCommand(white_src,
-                         pg.PostgresRelation(('public', 'white', 'table')))
+white_step = BashCommand('csvsql --db {db} --tables white --insert {path} '
+                         '--overwrite',
+                         pg.PostgresRelation(('public', 'white', 'table')),
+                         params=dict(db=env.db.uri, path=white_path))
 white_step.set_upstream(sample_task)
 
 
 wine_task = pg.PostgresScript(home / 'sql' / 'create_wine_view.sql',
-                              pg.PostgresRelation(('public', 'wine', 'view')),
+                              pg.PostgresRelation(('public', 'wine', 'table')),
                               pg.CONN)
 wine_task.set_upstream(white_step)
 

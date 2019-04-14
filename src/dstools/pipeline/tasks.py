@@ -1,6 +1,8 @@
 from dstools.pipeline import _TASKS, _NON_END_TASKS
 
+import shlex
 import subprocess
+from subprocess import CalledProcessError
 from pathlib import Path
 import logging
 from datetime import datetime
@@ -38,10 +40,6 @@ class Task:
         return self not in _NON_END_TASKS
 
     @property
-    def is_root_task(self):
-        return not len(self._upstream)
-
-    @property
     def source_code(self):
         return self._source_code
 
@@ -57,10 +55,10 @@ class Task:
         raise NotImplementedError('You have to implement this method')
 
     def set_upstream(self, task):
-        self._upstream.append(task)
-
         if task not in _NON_END_TASKS:
             _NON_END_TASKS.append(task)
+
+        self._upstream.append(task)
 
     def build(self):
 
@@ -132,8 +130,25 @@ class Task:
 class BashCommand(Task):
     """A task taht runs bash command
     """
+
+    def __init__(self, source_code, product, params=None):
+        super().__init__(source_code, product)
+        self._params = params
+
     def run(self):
-        subprocess.call(self.source_code.split(' '))
+        # quote params to make them safe
+        quoted = {k: shlex.quote(str(v)) for k, v in self._params.items()}
+        source_code = self.source_code.format(**quoted)
+        res = subprocess.run(shlex.split(source_code),
+                             stderr=subprocess.PIPE,
+                             stdout=subprocess.PIPE)
+
+        if res.returncode != 0:
+            # log source code without expanded params
+            self._logger.info(f'{self.source_code} returned stdout: '
+                              f'{res.stdout} and stderr: {res.stderr} '
+                              f'and exit status {res.returncode}')
+            raise CalledProcessError(res.returncode, self.source_code)
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.source_code}'
@@ -157,7 +172,11 @@ class ScriptTask(Task):
             raise ValueError(f'{type(self).__name__}: subclasses must '
                              'declare an interpreter')
 
-        subprocess.call([self._INTERPRETER, self.path_to_source_code])
+        subprocess.run([self._INTERPRETER,
+                        shlex.quote(str(self.path_to_source_code))],
+                       stderr=subprocess.PIPE,
+                       stdout=subprocess.PIPE,
+                       check=True)
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.path_to_source_code}'
@@ -170,6 +189,6 @@ class BashScript(ScriptTask):
 
 
 class PythonScript(ScriptTask):
-    """A task that runs a bash script
+    """A task that runs a python script
     """
     _INTERPRETER = 'python'

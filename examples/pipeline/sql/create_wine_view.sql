@@ -1,8 +1,8 @@
 BEGIN;
 
-DROP VIEW IF EXISTS wine;
+DROP TABLE IF EXISTS wine;
 
-CREATE VIEW wine AS
+CREATE TABLE wine AS
 SELECT *, 'red' AS color FROM red
 UNION ALL
 SELECT *, 'white' AS color FROM white

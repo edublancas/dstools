@@ -42,7 +42,7 @@ class PostgresRelation(Product):
         WHERE nspname = %(schema)s
         AND relname = %(name)s
         """
-        cur = self._conn.cursor()
+        cur = self._get_conn().cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         metadata = cur.fetchone()
@@ -72,9 +72,9 @@ class PostgresRelation(Product):
             query = (sql.SQL("COMMENT ON VIEW {}.{} IS %(metadata)s;")
                      .format(schema, name))
 
-        cur = self._conn.cursor()
+        cur = self._get_conn().cursor()
         cur.execute(query, dict(metadata=metadata))
-        self._conn.commit()
+        self._get_conn().commit()
         cur.close()
 
     def exists(self):
@@ -89,7 +89,7 @@ class PostgresRelation(Product):
         );
         """
 
-        cur = self._conn.cursor()
+        cur = self._get_conn().cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         exists = cur.fetchone()[0]
