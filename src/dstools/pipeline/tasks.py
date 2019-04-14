@@ -105,12 +105,18 @@ class Task:
 
             self.run()
 
-            # TODO: should check if job ran successfully, if not, stop execution
+            # TODO: should check if job ran successfully, if not,
+            # stop execution
 
             # update metadata
             self.product.timestamp = datetime.now().timestamp()
             self.product.stored_source_code = self.source_code
             self.product.save_metadata()
+
+            # TODO: also check that the Products were updated:
+            # if they did not exist, they must exist now, if they alredy
+            # exist, timestamp must be recent equal to the datetime.now()
+            # used. maybe run fetch metadata again and validate?
 
         else:
             self._logger.info(f'No need to run {repr(self)}')

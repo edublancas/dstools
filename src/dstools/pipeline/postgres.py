@@ -4,11 +4,33 @@ from dstools.pipeline.tasks import Task
 
 from psycopg2 import sql
 
+CONN = None
+
 
 class PostgresRelation(Product):
-    def __init__(self, identifier, conn):
+    def __init__(self, identifier, conn=None):
+        if len(identifier) != 3:
+            raise ValueError('identifier must have 3 elements, '
+                             f'got: {len(identifier)}')
+
+        self._set_conn(conn)
+
+        # check if a valid conn is available before moving forward
+        self._get_conn()
+        super().__init__(PostgresIdentifier(*identifier))
+
+    def _set_conn(self, conn):
         self._conn = conn
-        super().__init__(identifier)
+
+    def _get_conn(self):
+        if self._conn is not None:
+            return self._conn
+        elif CONN is not None:
+            return CONN
+        else:
+            ValueError('You have to either pass a connection object '
+                       'in the constructor or set postgres.CONN to '
+                       'a connection to be used by all postgres objects')
 
     def fetch_metadata(self):
         # https://stackoverflow.com/a/11494353/709975
@@ -43,7 +65,7 @@ class PostgresRelation(Product):
         schema = sql.Identifier(self.identifier.schema)
         name = sql.Identifier(self.identifier.name)
 
-        if self.identifier.kind == PostgresIdentifierTable.kind:
+        if self.identifier.kind == PostgresIdentifier.TABLE:
             query = (sql.SQL("COMMENT ON TABLE {}.{} IS %(metadata)s;")
                      .format(schema, name))
         else:
@@ -76,18 +98,17 @@ class PostgresRelation(Product):
 
 
 class PostgresIdentifier:
+    TABLE = 'table'
+    VIEW = 'view'
 
-    def __init__(self, schema, name):
+    def __init__(self, schema, name, kind):
+        if kind not in [self.TABLE, self.VIEW]:
+            raise ValueError('kind must be one of ["view", "table"] '
+                             f'got "{kind}"')
+
+        self.kind = kind
         self.schema = schema
         self.name = name
-
-
-class PostgresIdentifierTable(PostgresIdentifier):
-    kind = 'table'
-
-
-class PostgresIdentifierView(PostgresIdentifier):
-    kind = 'view'
 
 
 class PostgresScript(Task):

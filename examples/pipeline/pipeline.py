@@ -2,7 +2,7 @@
 %load_ext autoreload
 %autoreload 2
 """
-
+import atexit
 import logging
 from pathlib import Path
 
@@ -21,26 +21,25 @@ logger = logging.getLogger(__name__)
 
 env = Env()
 
-conn = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
-                        user=env.db.user, password=env.db.password)
+pg.CONN = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
+                           user=env.db.user, password=env.db.password)
+
+
+@atexit.register
+def close_conn():
+    print('closing connection...')
+    pg.CONN.close()
+
 
 # TODO: be able to specify more than one product?
-red = File(Path(env.path.input / 'raw' / 'red.csv'))
-red_source = env.path.home / 'get_data.sh'
-t1 = BashScript(red_source, red)
+get_data_task = BashScript(env.path.home / 'get_data.sh',
+                           File(env.path.input / 'raw' / 'red.csv'))
 
-red_sample_path = Path(env.path.input / 'sample' / 'red.csv')
-red_sample = File(red_sample_path)
-red_sample_source = env.path.home / 'sample.py'
-t2 = PythonScript(red_sample_source, red_sample)
-t2.set_upstream(t1)
 
-# TODO: simplify postgres interface, maybe let the user build an identifier
-# from a tuple, also the Relation/Identifier naming is kind of confusing.
-# maybe merge identifier and relation. Create PostgresTable and PostgresView
-# that will be Product subclasses and take a (schema, name) tuple as identifier
-# or schema.name string, and use the current identifier objects under
-# the hood
+sample_task = PythonScript(env.path.home / 'sample.py',
+                           File(env.path.input / 'sample' / 'red.csv'))
+sample_task.set_upstream(get_data_task)
+
 # TODO: also have to rollback automatically when something goes wrong
 # when runinng SQL code
 # TODO: double check that the Product is matches what is expected in the
@@ -52,44 +51,46 @@ t2.set_upstream(t1)
 # TODO: function to plot topological order
 # TODO: write motivation in the readme file
 # TODO: migrate this pipeline to the ds-template project
-id_ = pg.PostgresIdentifierTable('public', 'red')
-rel = pg.PostgresRelation(id_, conn)
-cmd = f'csvsql --db $DB --tables red --insert "{red_sample_path}"  --overwrite'
-t3 = BashCommand(cmd, rel)
-t3.set_upstream(t2)
+# NOTE: how to avoid having to carry the conn variable on each element?
+# TODO: reset state after runing build all
+# TODO: check exit status of each script, raise exception if any of them
+# failed
+# NOTE: parametrizing commands like this is unsafe, and they get logged
+# exposing credentials (if they are passed via format args)
+# TODO: create postgres mixing to share the CONN behavior
+red_prod = pg.PostgresRelation(('public', 'red', 'table'))
+red_src = (f'csvsql --db {env.db.uri} --tables red --insert '
+           f'{red_sample_path}  --overwrite')
+red_task = BashCommand(red_src, red_prod)
+red_task.set_upstream(sample_task)
 
-white_sample_path = Path(env.path.input / 'sample' / 'white.csv')
-id_ = pg.PostgresIdentifierTable('public', 'white')
-rel = pg.PostgresRelation(id_, conn)
-cmd = f'csvsql --db $DB --tables white --insert "{white_sample_path}"  --overwrite'
-t4 = BashCommand(cmd, rel)
-t4.set_upstream(t2)
+white_path = Path(env.path.input / 'sample' / 'white.csv')
+white_src = (f'csvsql --db {env.db.uri} --tables white --insert '
+             f'{white_path}  --overwrite')
+white_prod = pg.PostgresRelation(('public', 'white', 'table'))
+white_step = BashCommand(white_src, white_prod)
+white_step.set_upstream(sample_task)
 
 
-id_ = pg.PostgresIdentifierView('public', 'wine')
-rel = pg.PostgresRelation(id_, conn)
-source = env.path.home / 'sql' / 'create_wine_view.sql'
-t5 = pg.PostgresScript(source, rel, conn)
-t5.set_upstream(t4)
+wine_src = env.path.home / 'sql' / 'create_wine_view.sql'
+wine_prod = pg.PostgresRelation(('public', 'wine', 'view'))
+wine_task = pg.PostgresScript(wine_src, wine_prod, pg.CONN)
+wine_task.set_upstream(white_step)
 
+dataset_src = env.path.home / 'sql' / 'create_dataset.sql'
+datased_prod = pg.PostgresRelation(('public', 'dataset', 'table'))
+dataset_task = pg.PostgresScript(dataset_src, datased_prod, pg.CONN)
+dataset_task.set_upstream(wine_task)
 
-id_ = pg.PostgresIdentifierTable('public', 'dataset')
-rel = pg.PostgresRelation(id_, conn)
-source = env.path.home / 'sql' / 'create_dataset.sql'
-t6 = pg.PostgresScript(source, rel, conn)
-t6.set_upstream(t5)
+training_src = env.path.home / 'sql' / 'create_training.sql'
+training_prod = pg.PostgresRelation(('public', 'training', 'table'))
+training_task = pg.PostgresScript(training_src, training_prod, pg.CONN)
+training_task.set_upstream(dataset_task)
 
-id_ = pg.PostgresIdentifierTable('public', 'training')
-rel = pg.PostgresRelation(id_, conn)
-source = env.path.home / 'sql' / 'create_training.sql'
-t7 = pg.PostgresScript(source, rel, conn)
-t7.set_upstream(t6)
-
-id_ = pg.PostgresIdentifierTable('public', 'testing')
-rel = pg.PostgresRelation(id_, conn)
-source = env.path.home / 'sql' / 'create_testing.sql'
-t8 = pg.PostgresScript(source, rel, conn)
-t8.set_upstream(t6)
+testing_src = env.path.home / 'sql' / 'create_testing.sql'
+testing_prod = pg.PostgresRelation(('public', 'testing', 'table'))
+testing_task = pg.PostgresScript(testing_src, testing_prod, pg.CONN)
+testing_task.set_upstream(dataset_task)
 
 build_all()
-conn.close()
+pg.CONN.close()
