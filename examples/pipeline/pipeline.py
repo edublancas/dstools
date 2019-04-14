@@ -50,10 +50,9 @@ sample_task.set_upstream(get_data_task)
 # them, for example, if sql files follow a naming convention such as
 # create_[kind]_[schema].[name], we can infer identifier, to we only
 # need to pass the path to the file
-# TODO: function to plot topological order
+# TODO: function to plot graph (have to implement topological sorting first)
 # TODO: write motivation in the readme file
 # TODO: migrate this pipeline to the ds-template project
-# TODO: reset state after runing build all
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
