@@ -50,9 +50,11 @@ sample_task.set_upstream(get_data_task)
 # them, for example, if sql files follow a naming convention such as
 # create_[kind]_[schema].[name], we can infer identifier, to we only
 # need to pass the path to the file
-# TODO: function to plot graph (have to implement topological sorting first)
 # TODO: write motivation in the readme file
 # TODO: migrate this pipeline to the ds-template project
+# TODO: implement topological sorting to avoid this reverse order
+# execution, remove the _already_checked flag and the _NON_END_TASKS,
+# do not rely on networkx, just make it an optional dependency for plotting
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
@@ -60,16 +62,17 @@ red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
 red_task.set_upstream(sample_task)
 
 white_path = Path(env.path.input / 'sample' / 'white.csv')
-white_step = BashCommand('csvsql --db {db} --tables white --insert {path} '
+white_task = BashCommand('csvsql --db {db} --tables white --insert {path} '
                          '--overwrite',
                          pg.PostgresRelation(('public', 'white', 'table')),
                          params=dict(db=env.db.uri, path=white_path))
-white_step.set_upstream(sample_task)
+white_task.set_upstream(sample_task)
 
 
-wine_task = pg.PostgresScript(home / 'sql' / 'create_wine_view.sql',
+wine_task = pg.PostgresScript(home / 'sql' / 'create_wine.sql',
                               pg.PostgresRelation(('public', 'wine', 'table')))
-wine_task.set_upstream(white_step)
+wine_task.set_upstream(white_task)
+wine_task.set_upstream(red_task)
 
 
 dataset_task = pg.PostgresScript(home / 'sql' / 'create_dataset.sql',
@@ -88,6 +91,7 @@ testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
                                  pg.PostgresRelation(
                                      ('public', 'testing', 'table')))
 testing_task.set_upstream(dataset_task)
+
 
 build_all()
 # pg.CONN.close()
