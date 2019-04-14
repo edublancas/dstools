@@ -1,12 +1,14 @@
 """
 Environment management
 """
+from warnings import warn
 from itertools import chain
 from pathlib import Path
 from glob import iglob
 
 from dstools.FrozenJSON import FrozenJSON
 from dstools.path import PathManager
+from dstools import repo
 
 
 class Env:
@@ -35,35 +37,37 @@ class Env:
     >>> env.path.log # returns an ansolute path to the log folder
 
     """
-
-    # singleton implementation based on:
-    # https://gist.github.com/pazdera/1098129
-    __instance = None
-
-    @staticmethod
-    def get_instance():
-
-        if Env.__instance is None:
-            raise Exception("Not instantiated")
-
-        return Env.__instance
+    __path_to_env_absolute = None
 
     def __init__(self, path_to_env=None):
-        if Env.__instance is not None:
-            raise Exception("Already instantiated")
-        else:
-            if path_to_env is None:
-                path_to_env = find_env()
 
+        if path_to_env is None:
+            path_to_env = find_env()
             if path_to_env is None:
                 raise ValueError("Couldn't find env.yaml")
 
-            self._env_content = FrozenJSON.from_yaml(path_to_env)
+        # check if env matches the one that has been instantiated already
+        path_to_env_absolute = Path(path_to_env).absolute()
 
-            self._name = _get_name(path_to_env)
-            self._path = PathManager(path_to_env, self)
+        if Env.__path_to_env_absolute is None:
+            Env.__path_to_env_absolute = path_to_env_absolute
+        else:
 
-            Env.__instance = self
+            if Env.__path_to_env_absolute != path_to_env_absolute:
+                warn('Env was already instantiated using file '
+                     f'{Env.__path_to_env_absolute} but new '
+                     'instance was created using '
+                     f'{path_to_env_absolute}, it is not recommended to '
+                     'have more than one environment per project')
+
+        self._path_to_env_absolute = path_to_env_absolute
+        self._env_content = FrozenJSON.from_yaml(path_to_env)
+
+        self._name = _get_name(path_to_env)
+        self._path = PathManager(path_to_env, self)
+
+    def __repr__(self):
+        return f'Env loaded from {self._path_to_env_absolute}'
 
     def __dir__(self):
         return dir(self._env_content)
@@ -82,6 +86,11 @@ class Env:
     @classmethod
     def _destroy(cls):
         cls.__instance = None
+
+    def get_metadata(self):
+        """Get env metadata such as git hash, last commit timestamp
+        """
+        return repo.get_env_metadata(self)
 
 
 def find_env(max_levels_up=3):
@@ -109,7 +118,7 @@ def load_config(config_file):
     file: str
         As returned from __file__
     """
-    project_dir = Env.get_instance().project_dir
+    project_dir = Env().project_dir
     return Path(project_dir, 'config', config_file).absolute()
 
 
