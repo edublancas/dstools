@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 env = Env()
+home = env.path.home
 
 pg.CONN = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
                            user=env.db.user, password=env.db.password)
@@ -32,12 +33,13 @@ def close_conn():
 
 
 # TODO: be able to specify more than one product?
-get_data_task = BashScript(env.path.home / 'get_data.sh',
+get_data_task = BashScript(home / 'get_data.sh',
                            File(env.path.input / 'raw' / 'red.csv'))
 
 
-sample_task = PythonScript(env.path.home / 'sample.py',
-                           File(env.path.input / 'sample' / 'red.csv'))
+red_path = env.path.input / 'sample' / 'red.csv'
+sample_task = PythonScript(home / 'sample.py',
+                           File(red_path))
 sample_task.set_upstream(get_data_task)
 
 # TODO: also have to rollback automatically when something goes wrong
@@ -58,38 +60,44 @@ sample_task.set_upstream(get_data_task)
 # NOTE: parametrizing commands like this is unsafe, and they get logged
 # exposing credentials (if they are passed via format args)
 # TODO: create postgres mixing to share the CONN behavior
-red_prod = pg.PostgresRelation(('public', 'red', 'table'))
 red_src = (f'csvsql --db {env.db.uri} --tables red --insert '
-           f'{red_sample_path}  --overwrite')
-red_task = BashCommand(red_src, red_prod)
+           f'{red_path}  --overwrite')
+red_task = BashCommand(red_src,
+                       pg.PostgresRelation(('public', 'red', 'table')))
 red_task.set_upstream(sample_task)
 
 white_path = Path(env.path.input / 'sample' / 'white.csv')
 white_src = (f'csvsql --db {env.db.uri} --tables white --insert '
              f'{white_path}  --overwrite')
-white_prod = pg.PostgresRelation(('public', 'white', 'table'))
-white_step = BashCommand(white_src, white_prod)
+white_step = BashCommand(white_src,
+                         pg.PostgresRelation(('public', 'white', 'table')))
 white_step.set_upstream(sample_task)
 
 
-wine_src = env.path.home / 'sql' / 'create_wine_view.sql'
-wine_prod = pg.PostgresRelation(('public', 'wine', 'view'))
-wine_task = pg.PostgresScript(wine_src, wine_prod, pg.CONN)
+wine_task = pg.PostgresScript(home / 'sql' / 'create_wine_view.sql',
+                              pg.PostgresRelation(('public', 'wine', 'view')),
+                              pg.CONN)
 wine_task.set_upstream(white_step)
 
-dataset_src = env.path.home / 'sql' / 'create_dataset.sql'
-datased_prod = pg.PostgresRelation(('public', 'dataset', 'table'))
-dataset_task = pg.PostgresScript(dataset_src, datased_prod, pg.CONN)
+
+dataset_task = pg.PostgresScript(home / 'sql' / 'create_dataset.sql',
+                                 pg.PostgresRelation(
+                                     ('public', 'dataset', 'table')),
+                                 pg.CONN)
 dataset_task.set_upstream(wine_task)
 
-training_src = env.path.home / 'sql' / 'create_training.sql'
-training_prod = pg.PostgresRelation(('public', 'training', 'table'))
-training_task = pg.PostgresScript(training_src, training_prod, pg.CONN)
+
+training_task = pg.PostgresScript(home / 'sql' / 'create_training.sql',
+                                  pg.PostgresRelation(
+                                      ('public', 'training', 'table')),
+                                  pg.CONN)
 training_task.set_upstream(dataset_task)
 
-testing_src = env.path.home / 'sql' / 'create_testing.sql'
-testing_prod = pg.PostgresRelation(('public', 'testing', 'table'))
-testing_task = pg.PostgresScript(testing_src, testing_prod, pg.CONN)
+
+testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
+                                 pg.PostgresRelation(
+                                     ('public', 'testing', 'table')),
+                                 pg.CONN)
 testing_task.set_upstream(dataset_task)
 
 build_all()
