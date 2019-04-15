@@ -10,7 +10,7 @@ import psycopg2
 
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks import BashCommand, BashScript, PythonScript
-from dstools.pipeline import build_all
+from dstools.pipeline import build_all, plot
 from dstools.pipeline import postgres as pg
 from dstools import Env
 
@@ -55,6 +55,8 @@ sample_task.set_upstream(get_data_task)
 # TODO: implement topological sorting to avoid this reverse order
 # execution, remove the _already_checked flag and the _NON_END_TASKS,
 # do not rely on networkx, just make it an optional dependency for plotting
+# from networkx.algorithms import topological_sort
+# s = list(topological_sort(G))
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
@@ -93,5 +95,6 @@ testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
 testing_task.set_upstream(dataset_task)
 
 
-build_all()
+plot()
+# build_all()
 # pg.CONN.close()
