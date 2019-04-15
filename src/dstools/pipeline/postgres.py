@@ -1,3 +1,4 @@
+import base64
 import json
 from dstools.pipeline.products import Product
 from dstools.pipeline.tasks import Task
@@ -22,8 +23,32 @@ class PostgresConnectionMixin:
                        'a connection to be used by all postgres objects')
 
 
+class JSONSerializer:
+    @staticmethod
+    def serialize(metadata):
+        return json.dumps(metadata)
+
+    @staticmethod
+    def deserialize(metadata_str):
+        return json.loads(metadata_str)
+
+
+class Base64Serializer:
+    @staticmethod
+    def serialize(metadata):
+        json_str = json.dumps(metadata)
+        return base64.encodebytes(json_str.encode('utf-8')).decode('utf-8')
+
+    @staticmethod
+    def deserialize(metadata_str):
+        bytes_ = metadata_str.encode('utf-8')
+        metadata = json.loads(base64.decodebytes(bytes_).decode('utf-8'))
+        return metadata
+
+
 class PostgresRelation(PostgresConnectionMixin, Product):
-    def __init__(self, identifier, conn=None):
+    def __init__(self, identifier, conn=None,
+                 metadata_serializer=Base64Serializer):
         if len(identifier) != 3:
             raise ValueError('identifier must have 3 elements, '
                              f'got: {len(identifier)}')
@@ -32,6 +57,8 @@ class PostgresRelation(PostgresConnectionMixin, Product):
 
         # check if a valid conn is available before moving forward
         self._get_conn()
+
+        self.metadata_serializer = metadata_serializer
 
         super().__init__(PostgresIdentifier(*identifier))
 
@@ -55,15 +82,13 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         if metadata is None:
             return None
         else:
-            return json.loads(metadata[0])
+            return self.metadata_serializer.deserialize(metadata[0])
 
         # TODO: also check if metadata  does not give any parsing errors,
         # if yes, also return a dict with None values, and maybe emit a warn
 
-        return metadata
-
     def save_metadata(self):
-        metadata = json.dumps(self.metadata)
+        metadata = self.metadata_serializer.serialize(self.metadata)
 
         schema = sql.Identifier(self.identifier.schema)
         name = sql.Identifier(self.identifier.name)
