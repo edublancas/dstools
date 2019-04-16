@@ -57,6 +57,9 @@ sample_task.set_upstream(get_data_task)
 # do not rely on networkx, just make it an optional dependency for plotting
 # from networkx.algorithms import topological_sort
 # s = list(topological_sort(G))
+# TODO: add products as edge names in plot
+# TODO: use color in plots to indicate outdated data/code dependencies
+
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
