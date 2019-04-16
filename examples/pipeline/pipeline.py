@@ -59,6 +59,11 @@ sample_task.set_upstream(get_data_task)
 # s = list(topological_sort(G))
 # TODO: add products as edge names in plot
 # TODO: use color in plots to indicate outdated data/code dependencies
+# TODO: consider adding a new type of task named Check, this should be run
+# every time its upstream task is run (no need to check dependencies) and
+# should perform some basic checking on the output: like, number of rows
+# proportion of NAs. possibly stored historic results to compare how these
+# checks have changed across versions
 
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
