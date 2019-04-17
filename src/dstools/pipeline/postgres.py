@@ -146,12 +146,17 @@ class PostgresIdentifier:
 class PostgresScript(PostgresConnectionMixin, Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
-    def __init__(self, source_code, product, dag, conn=None):
+    def __init__(self, source_code, product, dag, conn=None, name=None):
         super().__init__(source_code, product, dag)
         self._set_conn(conn)
 
         # check if a valid conn is available before moving forward
         self._get_conn()
+        self.name = name
+
+        if self.path_to_source_code is None and self.name is None:
+            ValueError('If you pass the code directly (instead of a Path '
+                       'object you have to provide a name in the constructor')
 
     def run(self):
         cursor = self._get_conn().cursor()
@@ -159,4 +164,7 @@ class PostgresScript(PostgresConnectionMixin, Task):
         self._get_conn().commit()
 
     def __repr__(self):
-        return f'{type(self).__name__}: {self.path_to_source_code}'
+        if self.path_to_source_code is not None:
+            return f'{type(self).__name__}: {self.path_to_source_code}'
+        else:
+            return f'{type(self).__name__}: {self.name}'
