@@ -30,9 +30,10 @@ class MetaProduct:
 
 class DAG:
 
-    def __init__(self):
+    def __init__(self, name=None):
         self.tasks = []
         self.product = MetaProduct(self)
+        self.name = name
 
     def add_task(self, task):
         self.tasks.append(task)
@@ -61,3 +62,7 @@ class DAG:
         path = tempfile.mktemp(suffix='.png')
         G_.draw(path, prog='dot', args='')
         subprocess.run(['open', path])
+
+    def __repr__(self):
+        name = self.name if self.name is not None else 'Unnamed'
+        return f'{type(self).__name__}: {name}'
