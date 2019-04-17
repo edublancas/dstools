@@ -105,6 +105,10 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         self._get_conn().commit()
         cur.close()
 
+    def __repr__(self):
+        id_ = self.identifier
+        return f'PostgresRelation({id_.kind}): {id_.schema}.{id_.name}'
+
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975
         query = """
@@ -142,8 +146,8 @@ class PostgresIdentifier:
 class PostgresScript(PostgresConnectionMixin, Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
-    def __init__(self, source_code, product, conn=None, name=None):
-        super().__init__(source_code, product)
+    def __init__(self, source_code, product, dag, conn=None, name=None):
+        super().__init__(source_code, product, dag)
         self._set_conn(conn)
 
         # check if a valid conn is available before moving forward
