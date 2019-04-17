@@ -55,13 +55,7 @@ sample_task.set_upstream(get_data_task)
 # need to pass the path to the file
 # TODO: write motivation in the readme file
 # TODO: migrate this pipeline to the ds-template project
-# TODO: implement topological sorting to avoid this reverse order
-# execution, remove the _already_checked flag and the _NON_END_TASKS,
-# do not rely on networkx, just make it an optional dependency for plotting
-# from networkx.algorithms import topological_sort
-# s = list(topological_sort(G))
 # TODO: add products as edge names in plot
-# TODO: use color in plots to indicate outdated data/code dependencies
 # TODO: consider adding a new type of task named Check, this should be run
 # every time its upstream task is run (no need to check dependencies) and
 # should perform some basic checking on the output: like, number of rows
