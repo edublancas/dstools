@@ -1,5 +1,3 @@
-from dstools.pipeline import _TASKS, _NON_END_TASKS
-
 import shlex
 import subprocess
 from subprocess import CalledProcessError
@@ -12,7 +10,7 @@ class Task:
     """A task represents a unit of work
     """
 
-    def __init__(self, source_code, product):
+    def __init__(self, source_code, product, dag):
         self._upstream = []
         self._already_checked = False
 
@@ -29,15 +27,11 @@ class Task:
 
         product.task = self
 
-        _TASKS.append(self)
+        dag.add_task(self)
 
     @property
     def product(self):
         return self._product
-
-    @property
-    def is_end_task(self):
-        return self not in _NON_END_TASKS
 
     @property
     def source_code(self):
@@ -55,22 +49,9 @@ class Task:
         raise NotImplementedError('You have to implement this method')
 
     def set_upstream(self, task):
-        if task not in _NON_END_TASKS:
-            _NON_END_TASKS.append(task)
-
         self._upstream.append(task)
 
     def build(self):
-
-        # first get upstreams up to date
-        for task in self._upstream:
-            task.build()
-
-        # bring this task up to date
-        if not self._already_checked:
-            self._build()
-
-    def _build(self):
         # NOTE: should i fetch metadata here? I need to make sure I have
         # the latest before building
 
@@ -131,8 +112,8 @@ class BashCommand(Task):
     """A task taht runs bash command
     """
 
-    def __init__(self, source_code, product, params=None):
-        super().__init__(source_code, product)
+    def __init__(self, source_code, product, dag, params=None):
+        super().__init__(source_code, product, dag)
         self._params = params
 
     def run(self):
@@ -159,13 +140,13 @@ class ScriptTask(Task):
     """
     _INTERPRETER = None
 
-    def __init__(self, source_code, product):
+    def __init__(self, source_code, product, dag):
         if not isinstance(source_code, Path):
             raise ValueError(f'{type(self).__name__} must be called with '
                              'a pathlib.Path object in the source_code '
                              'parameter')
 
-        super().__init__(source_code, product)
+        super().__init__(source_code, product, dag)
 
     def run(self):
         if self._INTERPRETER is None:

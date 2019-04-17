@@ -10,8 +10,8 @@ import psycopg2
 
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks import BashCommand, BashScript, PythonScript
-from dstools.pipeline import build_all, plot
 from dstools.pipeline import postgres as pg
+from dstools.pipeline.dag import DAG
 from dstools import Env
 
 
@@ -33,13 +33,16 @@ def close_conn():
         pg.CONN.close()
 
 
+dag = DAG()
+
 # TODO: be able to specify more than one product?
 get_data_task = BashScript(home / 'get_data.sh',
-                           File(env.path.input / 'raw' / 'red.csv'))
+                           File(env.path.input / 'raw' / 'red.csv'),
+                           dag)
 
 
 red_path = env.path.input / 'sample' / 'red.csv'
-sample_task = PythonScript(home / 'sample.py', File(red_path))
+sample_task = PythonScript(home / 'sample.py', File(red_path), dag)
 sample_task.set_upstream(get_data_task)
 
 # TODO: also have to rollback automatically when something goes wrong
@@ -68,41 +71,49 @@ sample_task.set_upstream(get_data_task)
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
-                       params=dict(db=env.db.uri, path=red_path))
+                       dag,
+                       params=dict(db=env.db.uri, path=red_path),)
 red_task.set_upstream(sample_task)
 
 white_path = Path(env.path.input / 'sample' / 'white.csv')
 white_task = BashCommand('csvsql --db {db} --tables white --insert {path} '
                          '--overwrite',
                          pg.PostgresRelation(('public', 'white', 'table')),
+                         dag,
                          params=dict(db=env.db.uri, path=white_path))
 white_task.set_upstream(sample_task)
 
 
 wine_task = pg.PostgresScript(home / 'sql' / 'create_wine.sql',
-                              pg.PostgresRelation(('public', 'wine', 'table')))
+                              pg.PostgresRelation(('public', 'wine', 'table')),
+                              dag)
 wine_task.set_upstream(white_task)
 wine_task.set_upstream(red_task)
 
 
 dataset_task = pg.PostgresScript(home / 'sql' / 'create_dataset.sql',
                                  pg.PostgresRelation(
-                                     ('public', 'dataset', 'table')))
+                                     ('public', 'dataset', 'table')),
+                                 dag)
 dataset_task.set_upstream(wine_task)
 
 
 training_task = pg.PostgresScript(home / 'sql' / 'create_training.sql',
                                   pg.PostgresRelation(
-                                      ('public', 'training', 'table')))
+                                      ('public', 'training', 'table')),
+                                  dag)
 training_task.set_upstream(dataset_task)
 
 
 testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
                                  pg.PostgresRelation(
-                                     ('public', 'testing', 'table')))
+                                     ('public', 'testing', 'table')),
+                                 dag)
 testing_task.set_upstream(dataset_task)
 
 
-plot()
-# build_all()
+dag.plot()
+
+# dag.build()
+
 # pg.CONN.close()

@@ -16,11 +16,11 @@ class Product:
 
     @property
     def timestamp(self):
-        return self._metadata.get('timestamp')
+        return self.metadata.get('timestamp')
 
     @property
     def stored_source_code(self):
-        return self._metadata.get('stored_source_code')
+        return self.metadata.get('stored_source_code')
 
     @property
     def task(self):
@@ -36,16 +36,10 @@ class Product:
 
     @timestamp.setter
     def timestamp(self, value):
-        if self.metadata is None:
-            self.metadata = {}
-
         self.metadata['timestamp'] = value
 
     @stored_source_code.setter
     def stored_source_code(self, value):
-        if self.metadata is None:
-            self.metadata = {}
-
         self.metadata['stored_source_code'] = value
 
     @metadata.setter
@@ -53,23 +47,29 @@ class Product:
         self._metadata = value
 
     def outdated_data_dependencies(self):
-        # check timestamps only if we have a timestamp for this product
-        if self.timestamp is not None:
-            outdated = any([up.product.timestamp > self.timestamp
-                            for up in self.task.upstream])
-            return outdated
+        def is_outdated(up_prod):
+            if self.timestamp is None or up_prod.timestamp is None:
+                return True
+            else:
+                return ((up_prod.timestamp > self.timestamp)
+                        or up_prod.outdated())
 
-        # if not, then mark as outdated
-        else:
-            return True
+        outdated = any([is_outdated(up.product) for up in self.task.upstream])
+
+        return outdated
 
     def outdated_code_dependency(self):
         return self.stored_source_code != self.task.source_code
 
+    def outdated(self):
+        return (self.outdated_data_dependencies()
+                or self.outdated_code_dependency())
+
     def _fetch_metadata(self):
-        # only try to fetch metata if the product exists, if it doesn't
-        # exist, metadata should be None
-        return None if not self.exists() else self.fetch_metadata()
+        # if the product does not exist, return a metadata
+        # with None in the values
+        return (dict(timestamp=None, stored_source_code=None)
+                if not self.exists() else self.fetch_metadata())
 
     def fetch_metadata(self):
         raise NotImplementedError('You have to implement this method')
