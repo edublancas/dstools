@@ -49,6 +49,7 @@ class DAG:
 
         for t in self.tasks:
             edges = [(up, t) for up in t.upstream]
+            #FIXME: fix for single node DAG, add t node here
             G.add_edges_from(edges)
 
         for n, data in G.nodes(data=True):

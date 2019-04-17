@@ -83,6 +83,9 @@ class Product:
                 # types and fill with None if any of the keys is missing
                 return metadata
 
+    def pre_save_metadata_hook(self):
+        pass
+
     def fetch_metadata(self):
         raise NotImplementedError('You have to implement this method')
 

@@ -51,7 +51,7 @@ class Task:
     def set_upstream(self, task):
         self._upstream.append(task)
 
-    def build(self):
+    def build(self, force=False):
         # NOTE: should i fetch metadata here? I need to make sure I have
         # the latest before building
 
@@ -79,7 +79,10 @@ class Task:
             self._logger.info('Product does not exist...')
             run = True
 
-        if run:
+        if run or force:
+            if force:
+                self._logger.info('Forcing...')
+
             self._logger.info(f'Running {repr(self)}')
 
             self.run()
@@ -88,6 +91,7 @@ class Task:
             # stop execution
 
             # update metadata
+            self.product.pre_save_metadata_hook()
             self.product.timestamp = datetime.now().timestamp()
             self.product.stored_source_code = self.source_code
             self.product.save_metadata()
