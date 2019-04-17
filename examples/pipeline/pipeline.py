@@ -61,6 +61,8 @@ sample_task.set_upstream(get_data_task)
 # should perform some basic checking on the output: like, number of rows
 # proportion of NAs. possibly stored historic results to compare how these
 # checks have changed across versions
+# TODO: product.blame() should return metadata, who modified the product,
+# when (human-readable format), and git metadata
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
