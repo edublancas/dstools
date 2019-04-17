@@ -25,7 +25,13 @@ class MetaProduct:
 
     @property
     def timestamp(self):
-        return max([t.product.timestamp for t in self.dag.tasks])
+        timestamps = [t.product.timestamp
+                      for t in self.dag.tasks
+                      if t.product.timestamp is not None]
+        if timestamps:
+            return max(timestamps)
+        else:
+            return None
 
 
 class DAG:
