@@ -41,11 +41,11 @@ class DAG:
         G = nx.DiGraph()
 
         for t in self.tasks:
-            G.add_node(t, color='red' if t.product.outdated() else 'green')
-
-        for t in self.tasks:
             edges = [(up, t) for up in t.upstream]
             G.add_edges_from(edges)
+
+        for n, data in G.nodes(data=True):
+            data['color'] = 'red' if n.product.outdated() else 'green'
 
         return G
 
