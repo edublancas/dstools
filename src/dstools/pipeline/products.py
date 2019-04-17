@@ -66,10 +66,22 @@ class Product:
                 or self.outdated_code_dependency())
 
     def _fetch_metadata(self):
+        metadata_empty = dict(timestamp=None, stored_source_code=None)
         # if the product does not exist, return a metadata
         # with None in the values
-        return (dict(timestamp=None, stored_source_code=None)
-                if not self.exists() else self.fetch_metadata())
+        if not self.exists():
+            return metadata_empty
+        else:
+            metadata = self.fetch_metadata()
+
+            if metadata is None:
+                return metadata_empty
+            else:
+                # FIXME: we need to further validate this, need to check
+                # that this is an instance of mapping, if yes, then
+                # check keys [timestamp, stored_source_code], check
+                # types and fill with None if any of the keys is missing
+                return metadata
 
     def fetch_metadata(self):
         raise NotImplementedError('You have to implement this method')
