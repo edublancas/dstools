@@ -7,9 +7,9 @@ from dstools.sql import infer
 
 def test_detects_create_table_w_schema():
     assert (infer.created_table("CREATE TABLE my_schema.my_table") ==
-            ('my_schema', 'my_table'))
+            ('my_schema', 'my_table', 'table'))
 
 
 def test_detects_create_table_wo_schema():
     assert (infer.created_table("CREATE TABLE my_table") ==
-            (None, 'my_table'))
+            (None, 'my_table', 'table'))
