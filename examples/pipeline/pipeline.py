@@ -103,7 +103,7 @@ training_task.set_upstream(dataset_task)
 testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
                                  pg.PostgresRelation(
                                      ('public', 'testing', 'table')),
-                                 dag)
+                                 dag, name='testing')
 testing_task.set_upstream(dataset_task)
 
 

@@ -38,11 +38,15 @@ class DAG:
 
     def __init__(self, name=None):
         self.tasks = []
+        self.tasks_by_name = {}
         self.product = MetaProduct(self)
         self.name = name
 
     def add_task(self, task):
         self.tasks.append(task)
+
+        if task.name is not None:
+            self.tasks_by_name[task.name] = task
 
     def mk_graph(self):
         G = nx.DiGraph()

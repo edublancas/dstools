@@ -10,7 +10,9 @@ class Task:
     """A task represents a unit of work
     """
 
-    def __init__(self, source_code, product, dag):
+    def __init__(self, source_code, product, dag, name=None):
+        self.name = name
+
         self._upstream = []
         self._already_checked = False
 
@@ -22,6 +24,10 @@ class Task:
         else:
             self._source_code = source_code
             self._path_to_source_code = None
+
+        if self.path_to_source_code is None and self.name is None:
+            ValueError('If you pass the code directly (instead of a Path '
+                       'object you have to provide a name in the constructor')
 
         self._logger = logging.getLogger(__name__)
 
@@ -109,15 +115,18 @@ class Task:
         self._already_checked = True
 
     def __repr__(self):
-        return f'{type(self).__name__}'
+        if self.path_to_source_code is not None:
+            return f'{type(self).__name__}: {self.path_to_source_code}'
+        else:
+            return f'{type(self).__name__}: {self.name}'
 
 
 class BashCommand(Task):
     """A task taht runs bash command
     """
 
-    def __init__(self, source_code, product, dag, params=None):
-        super().__init__(source_code, product, dag)
+    def __init__(self, source_code, product, dag, name=None, params=None):
+        super().__init__(source_code, product, dag, name)
         self._params = params
 
     def run(self):
@@ -135,22 +144,19 @@ class BashCommand(Task):
                               f'and exit status {res.returncode}')
             raise CalledProcessError(res.returncode, self.source_code)
 
-    def __repr__(self):
-        return f'{type(self).__name__}: {self.source_code}'
-
 
 class ScriptTask(Task):
     """A task that runs a generic script
     """
     _INTERPRETER = None
 
-    def __init__(self, source_code, product, dag):
+    def __init__(self, source_code, product, dag, name=None):
         if not isinstance(source_code, Path):
             raise ValueError(f'{type(self).__name__} must be called with '
                              'a pathlib.Path object in the source_code '
                              'parameter')
 
-        super().__init__(source_code, product, dag)
+        super().__init__(source_code, product, dag, name)
 
     def run(self):
         if self._INTERPRETER is None:
@@ -162,9 +168,6 @@ class ScriptTask(Task):
                        stderr=subprocess.PIPE,
                        stdout=subprocess.PIPE,
                        check=True)
-
-    def __repr__(self):
-        return f'{type(self).__name__}: {self.path_to_source_code}'
 
 
 class BashScript(ScriptTask):

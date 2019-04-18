@@ -150,18 +150,12 @@ class PostgresScript(PostgresConnectionMixin, Task):
     """
 
     def __init__(self, source_code, product, dag, conn=None, name=None):
-        super().__init__(source_code, product, dag)
+        super().__init__(source_code, product, dag, name)
 
         self._set_conn(conn)
 
         # check if a valid conn is available before moving forward
         self._get_conn()
-        self.name = name
-
-        if self.path_to_source_code is None and self.name is None:
-            ValueError('If you pass the code directly (instead of a Path '
-                       'object you have to provide a name in the constructor')
-
         self._validate()
 
     def _validate(self):
@@ -189,9 +183,3 @@ class PostgresScript(PostgresConnectionMixin, Task):
         cursor = self._get_conn().cursor()
         cursor.execute(self.source_code)
         self._get_conn().commit()
-
-    def __repr__(self):
-        if self.path_to_source_code is not None:
-            return f'{type(self).__name__}: {self.path_to_source_code}'
-        else:
-            return f'{type(self).__name__}: {self.name}'
