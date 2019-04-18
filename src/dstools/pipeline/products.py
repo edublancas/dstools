@@ -89,7 +89,7 @@ class Product:
         """Run tests, raise exceptions if any of these are not true
         """
         for fn in self.tests:
-            assert fn(self.product)
+            assert fn(self)
 
     def check(self):
         """
@@ -97,7 +97,7 @@ class Product:
         False, a warning is sent
         """
         for fn in self.checks:
-            if not fn(self.check):
+            if not fn(self):
                 warnings.warn(f'Check did not pass: {fn}')
 
     def pre_save_metadata_hook(self):
