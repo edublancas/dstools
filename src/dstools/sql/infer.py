@@ -14,7 +14,7 @@ def find_with_positions(regex, s):
     return {clean(*m.groups()): m.start() for m in regex.finditer(s)}
 
 
-def created_table(sql):
+def created_tables(sql):
     logger = logging.getLogger(__name__)
 
     re_created = re.compile(r".*CREATE TABLE (\w+\.{1})?(\w+).*")
@@ -42,7 +42,7 @@ def created_table(sql):
     return stay
 
 
-def created_view(sql):
+def created_views(sql):
     logger = logging.getLogger(__name__)
 
     re_created = re.compile(r".*CREATE VIEW (\w+\.{1})?(\w+).*")
@@ -68,4 +68,4 @@ def created_view(sql):
 
 
 def created_relations(sql):
-    return created_table(sql) + created_view(sql)
+    return created_tables(sql) + created_views(sql)

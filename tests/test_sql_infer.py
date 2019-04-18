@@ -6,10 +6,10 @@ from dstools.sql import infer
 
 
 def test_detects_create_table_w_schema():
-    assert (infer.created_table("CREATE TABLE my_schema.my_table") ==
-            ('my_schema', 'my_table', 'table'))
+    ct = infer.created_tables("CREATE TABLE my_schema.my_table")
+    assert len(ct) == 1 and ct[0] == ('my_schema', 'my_table', 'table')
 
 
 def test_detects_create_table_wo_schema():
-    assert (infer.created_table("CREATE TABLE my_table") ==
-            (None, 'my_table', 'table'))
+    ct = infer.created_tables("CREATE TABLE my_table")
+    assert len(ct) == 1 and ct[0] == (None, 'my_table', 'table')
