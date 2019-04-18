@@ -1,7 +1,9 @@
+import warnings
 import base64
 import json
 from dstools.pipeline.products import Product
 from dstools.pipeline.tasks import Task
+from dstools.sql import infer
 
 from psycopg2 import sql
 
@@ -146,8 +148,10 @@ class PostgresIdentifier:
 class PostgresScript(PostgresConnectionMixin, Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
+
     def __init__(self, source_code, product, dag, conn=None, name=None):
         super().__init__(source_code, product, dag)
+
         self._set_conn(conn)
 
         # check if a valid conn is available before moving forward
@@ -157,6 +161,29 @@ class PostgresScript(PostgresConnectionMixin, Task):
         if self.path_to_source_code is None and self.name is None:
             ValueError('If you pass the code directly (instead of a Path '
                        'object you have to provide a name in the constructor')
+
+        self._validate()
+
+    def _validate(self):
+        infered_relations = infer.created_relations(self.source_code)
+
+        if not infered_relations:
+            warnings.warn('It seems like your code will not create any '
+                          'TABLES or VIEWS but your product is '
+                          f'{self.product}')
+        elif len(infered_relations) > 1:
+            warnings.warn('It seems like your code will create create more '
+                          'than one TABLES or VIEWS but you only declared '
+                          f' one product: {self.product}')
+        else:
+            schema, name, kind = infered_relations[0]
+            id_ = self.product.identifier
+
+            if ((schema != id_.schema) or (name != id_.name)
+                    or (kind != id_.kind)):
+                warnings.warn('It seems like your code will create create a '
+                              f'{kind} in {schema}.{name} but your product '
+                              f'did not match: {self.product}')
 
     def run(self):
         cursor = self._get_conn().cursor()
