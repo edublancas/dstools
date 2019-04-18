@@ -61,6 +61,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         self._get_conn()
 
         self.metadata_serializer = metadata_serializer
+        self.tests = []
 
         super().__init__(PostgresIdentifier(*identifier))
 
@@ -183,3 +184,7 @@ class PostgresScript(PostgresConnectionMixin, Task):
         cursor = self._get_conn().cursor()
         cursor.execute(self.source_code)
         self._get_conn().commit()
+
+        if self.product.tests:
+            for fn in self.product.tests:
+                assert fn(self.product)

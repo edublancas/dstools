@@ -1,0 +1,34 @@
+from psycopg2 import sql
+
+
+class Postgres:
+
+    @staticmethod
+    def no_nas_in_column(col):
+        col = sql.Identifier(col)
+
+        def _no_nas_in_column(pg_product):
+            id_ = pg_product.identifier
+            schema = sql.Identifier(id_.schema)
+            name = sql.Identifier(id_.name)
+
+            sql_code = (sql.SQL("""SELECT NOT EXISTS(SELECT * FROM
+                                {schema}.{name}
+                                WHERE {col} IS NULL LIMIT 1)""")
+                        .format(col=col, schema=schema, name=name))
+
+            # FIXME: probably abstract this cursor, execute, try thing...
+            conn = pg_product._get_conn()
+            cur = conn.cursor()
+
+            try:
+                cur.execute(sql_code)
+            except Exception as e:
+                conn.rollback()
+                raise e
+
+            result = cur.fetchone()[0]
+            cur.close()
+            return result
+
+        return _no_nas_in_column

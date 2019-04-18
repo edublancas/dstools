@@ -12,6 +12,7 @@ from dstools.pipeline.products import File
 from dstools.pipeline.tasks import BashCommand, BashScript, PythonScript
 from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG
+from dstools import testing
 from dstools import Env
 
 
@@ -100,9 +101,10 @@ training_task = pg.PostgresScript(home / 'sql' / 'create_training.sql',
 training_task.set_upstream(dataset_task)
 
 
+testing_table = pg.PostgresRelation(('public', 'testing', 'table'))
+testing_table.tests = [testing.Postgres.no_nas_in_column('label')]
 testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
-                                 pg.PostgresRelation(
-                                     ('public', 'testing', 'table')),
+                                 testing_table,
                                  dag, name='testing')
 testing_task.set_upstream(dataset_task)
 
@@ -110,5 +112,3 @@ testing_task.set_upstream(dataset_task)
 dag.plot()
 
 # dag.build()
-
-# pg.CONN.close()
