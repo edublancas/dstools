@@ -185,6 +185,5 @@ class PostgresScript(PostgresConnectionMixin, Task):
         cursor.execute(self.source_code)
         self._get_conn().commit()
 
-        if self.product.tests:
-            for fn in self.product.tests:
-                assert fn(self.product)
+        self.product.check()
+        self.product.test()

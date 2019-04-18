@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 
@@ -9,6 +10,7 @@ class Product:
         self._identifier = identifier
 
         self.metadata = self._fetch_metadata()
+        self.tests, self.checks = [], []
 
     @property
     def identifier(self):
@@ -82,6 +84,21 @@ class Product:
                 # check keys [timestamp, stored_source_code], check
                 # types and fill with None if any of the keys is missing
                 return metadata
+
+    def test(self):
+        """Run tests, raise exceptions if any of these are not true
+        """
+        for fn in self.tests:
+            assert fn(self.product)
+
+    def check(self):
+        """
+        Run checks, this are just for diagnostic purposes, if a any returns
+        False, a warning is sent
+        """
+        for fn in self.checks:
+            if not fn(self.check):
+                warnings.warn(f'Check did not pass: {fn}')
 
     def pre_save_metadata_hook(self):
         pass
