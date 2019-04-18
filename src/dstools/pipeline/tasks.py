@@ -14,7 +14,6 @@ class Task:
         self.name = name
 
         self._upstream = []
-        self._already_checked = False
 
         self._product = product
 
@@ -111,8 +110,6 @@ class Task:
             self._logger.info(f'No need to run {repr(self)}')
 
         self._logger.info('-----\n')
-
-        self._already_checked = True
 
     def __repr__(self):
         if self.path_to_source_code is not None:
