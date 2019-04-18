@@ -15,7 +15,10 @@ pg.CONN = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
 p = pg.PostgresRelation(('public', 'wine', 'table'))
 
 
-fn = testing.Postgres.no_nas_in_column('alcohol')
-fn(p)
+no_nas = testing.Postgres.no_nas_in_column('alcohol')
+colors = testing.Postgres.distinct_values_in_column('color', {'red', 'white'})
+
+assert no_nas(p)
+assert colors(p)
 
 pg.CONN.close()
