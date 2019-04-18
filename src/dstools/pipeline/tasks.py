@@ -9,7 +9,8 @@ from datetime import datetime
 class Task:
     """A task represents a unit of work
     """
-
+    # FIXME: source_code can really be many things, a path to a file
+    # a string with source code, a python callabel, rename
     def __init__(self, source_code, product, dag, name=None):
         self.name = name
 
@@ -177,3 +178,12 @@ class PythonScript(ScriptTask):
     """A task that runs a python script
     """
     _INTERPRETER = 'python'
+
+
+class PythonCallable(Task):
+    def __init__(self, source_code, product, dag, name=None, kwargs={}):
+        super().__init__(source_code, product, dag, name)
+        self.kwargs = kwargs
+
+    def run(self):
+        self.source_code(**self.kwargs)
