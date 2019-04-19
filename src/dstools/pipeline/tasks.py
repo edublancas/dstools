@@ -134,7 +134,7 @@ class Task:
         self._logger.info('-----\n')
 
     def __repr__(self):
-        return f'{type(self).__name__}: {self.name}'
+        return f'{type(self).__name__}: {self.name} ->\n\t{self.product}'
 
 
 class BashCommand(Task):
