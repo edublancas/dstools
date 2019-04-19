@@ -9,8 +9,7 @@ from pathlib import Path
 import psycopg2
 
 from dstools.pipeline.products import File
-from dstools.pipeline.tasks import (BashCommand, BashScript, PythonScript,
-                                    PythonCallable)
+from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable)
 from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG
 from dstools import testing

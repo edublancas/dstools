@@ -150,8 +150,8 @@ class PostgresScript(PostgresConnectionMixin, Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
 
-    def __init__(self, source_code, product, dag, conn=None, name=None):
-        super().__init__(source_code, product, dag, name)
+    def __init__(self, code, product, dag, conn=None, name=None):
+        super().__init__(code, product, dag, name)
 
         self._set_conn(conn)
 

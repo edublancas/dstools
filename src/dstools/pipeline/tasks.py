@@ -1,3 +1,4 @@
+import inspect
 import shlex
 import subprocess
 from subprocess import CalledProcessError
@@ -8,26 +9,19 @@ from datetime import datetime
 
 class Task:
     """A task represents a unit of work
-    """
-    # FIXME: source_code can really be many things, a path to a file
-    # a string with source code, a python callabel, rename
-    def __init__(self, source_code, product, dag, name=None):
-        self.name = name
 
+    Parameters
+    ----------
+    code: callable, Path, str
+    """
+    def __init__(self, code, product, dag, name=None):
         self._upstream = []
 
+        self._code = code
         self._product = product
 
-        if isinstance(source_code, Path):
-            self._source_code = source_code.read_text()
-            self._path_to_source_code = source_code
-        else:
-            self._source_code = source_code
-            self._path_to_source_code = None
-
-        if self.path_to_source_code is None and self.name is None:
-            ValueError('If you pass the code directly (instead of a Path '
-                       'object you have to provide a name in the constructor')
+        self._set_name(name)
+        self._set_source_code()
 
         self._logger = logging.getLogger(__name__)
 
@@ -35,17 +29,44 @@ class Task:
 
         dag.add_task(self)
 
+    def _set_name(self, name):
+        if name is not None:
+            self._name = name
+        elif callable(self.code):
+            self._name = self.code.__name__
+        elif isinstance(self.code, str):
+            if len(self.code) < 60:
+                self._name = self.code
+            else:
+                self._name = self.code[:60]+'...'
+        elif isinstance(self.code, Path):
+            self._name = self.code
+
+    def _set_source_code(self):
+        if callable(self.code):
+            # TODO: i think this doesn't work sometime and dill has a function
+            # that covers more use cases, check
+            self._source_code = inspect.getsource(self.code)
+        elif isinstance(self.code, str):
+            self._source_code = self.code
+        elif isinstance(self.code, Path):
+            self._source_code = self.code.read_text()
+
     @property
-    def product(self):
-        return self._product
+    def name(self):
+        return self._name
 
     @property
     def source_code(self):
         return self._source_code
 
     @property
-    def path_to_source_code(self):
-        return self._path_to_source_code
+    def product(self):
+        return self._product
+
+    @property
+    def code(self):
+        return self._code
 
     @property
     def upstream(self):
@@ -113,18 +134,15 @@ class Task:
         self._logger.info('-----\n')
 
     def __repr__(self):
-        if self.path_to_source_code is not None:
-            return f'{type(self).__name__}: {self.path_to_source_code}'
-        else:
-            return f'{type(self).__name__}: {self.name}'
+        return f'{type(self).__name__}: {self.name}'
 
 
 class BashCommand(Task):
     """A task taht runs bash command
     """
 
-    def __init__(self, source_code, product, dag, name=None, params=None):
-        super().__init__(source_code, product, dag, name)
+    def __init__(self, code, product, dag, name=None, params=None):
+        super().__init__(code, product, dag, name)
         self._params = params
 
     def run(self):
@@ -148,13 +166,13 @@ class ScriptTask(Task):
     """
     _INTERPRETER = None
 
-    def __init__(self, source_code, product, dag, name=None):
-        if not isinstance(source_code, Path):
+    def __init__(self, code, product, dag, name=None):
+        if not isinstance(code, Path):
             raise ValueError(f'{type(self).__name__} must be called with '
-                             'a pathlib.Path object in the source_code '
+                             'a pathlib.Path object in the code '
                              'parameter')
 
-        super().__init__(source_code, product, dag, name)
+        super().__init__(code, product, dag, name)
 
     def run(self):
         if self._INTERPRETER is None:
@@ -162,7 +180,7 @@ class ScriptTask(Task):
                              'declare an interpreter')
 
         subprocess.run([self._INTERPRETER,
-                        shlex.quote(str(self.path_to_source_code))],
+                        shlex.quote(str(self.source_code))],
                        stderr=subprocess.PIPE,
                        stdout=subprocess.PIPE,
                        check=True)
@@ -181,9 +199,9 @@ class PythonScript(ScriptTask):
 
 
 class PythonCallable(Task):
-    def __init__(self, source_code, product, dag, name=None, kwargs={}):
-        super().__init__(source_code, product, dag, name)
+    def __init__(self, code, product, dag, name=None, kwargs={}):
+        super().__init__(code, product, dag, name)
         self.kwargs = kwargs
 
     def run(self):
-        self.source_code(**self.kwargs)
+        self.code(**self.kwargs)
