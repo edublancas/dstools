@@ -15,17 +15,17 @@ from dstools.env import Env
 from dstools.util import ensure_iterator, _unwrap_if_single_element
 
 
-@ensure_iterator(param=('sufix', 'extension'))
-def make_filename(sufix=None, extension=None, timestamp_separator=':'):
+@ensure_iterator(param=('suffix', 'extension'))
+def make_filename(suffix=None, extension=None, timestamp_separator='__'):
     """Generate filename(s) with the current datetime in ISO 8601 format
     """
     now = datetime.datetime.now()
     filename = now.strftime('%Y-%m-%dT%H-%M-%S')
 
-    if sufix is None:
+    if suffix is None:
         names = [filename]
     else:
-        names = [filename+timestamp_separator+suf for suf in sufix]
+        names = [filename+timestamp_separator+suf for suf in suffix]
 
     if extension is None:
         res = names

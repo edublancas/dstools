@@ -1,24 +1,15 @@
 """
 Pre-process red.csv and white.csv
 """
-import psycopg2
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
-
 import pandas as pd
-from dstools import Env
 
 
-def train_and_save_report(path_to_report):
-
-    env = Env()
-
-    conn = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
-                            user=env.db.user, password=env.db.password)
-
-    df_training = pd.read_sql('SELECT * FROM training', conn)
-    df_testing = pd.read_sql('SELECT * FROM testing', conn)
+def train_and_save_report(path_to_dataset, path_to_report):
+    df_training = pd.read_csv(path_to_dataset / 'training.csv')
+    df_testing = pd.read_csv(path_to_dataset / 'testing.csv')
 
     X = df_training.drop('label', axis='columns').values
     y = df_training.label
@@ -38,5 +29,3 @@ def train_and_save_report(path_to_report):
     path_to_report.parent.mkdir(exist_ok=True)
 
     path_to_report.write_text(report)
-
-    conn.close()

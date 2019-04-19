@@ -14,7 +14,9 @@ from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG
 from dstools import testing
 from dstools import Env
+from dstools import mkfilename
 from train import train_and_save_report
+from download_dataset import download_dataset
 
 
 logging.basicConfig(level=logging.INFO)
@@ -83,16 +85,27 @@ training_task.set_upstream(dataset_task)
 testing_table = pg.PostgresRelation(('public', 'testing', 'table'))
 testing_table.tests = [testing.Postgres.no_nas_in_column('label')]
 testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
-                                 testing_table,
-                                 dag, name='testing')
+                                 testing_table, dag)
+
 testing_task.set_upstream(dataset_task)
 
-# File(red_path)
-path_to_report = env.path.input / 'reports' / 'pipeline_report.txt'
-kwargs = dict(path_to_report=Path(path_to_report))
-train_task = PythonCallable(train_and_save_report, File(path_to_report), dag, kwargs=kwargs)
-train_task.set_upstream(training_task)
-train_task.set_upstream(testing_task)
+
+path_to_dataset = env.path.input / 'datasets'
+kwargs = dict(path_to_dataset=path_to_dataset, conn=pg.CONN)
+dataset_task = PythonCallable(download_dataset,
+                              File(path_to_dataset / 'training.csv'),
+                              dag, kwargs=kwargs)
+dataset_task.set_upstream(training_task)
+dataset_task.set_upstream(testing_task)
+
+
+path_to_report = env.path.input / 'reports' / mkfilename('report.txt')
+kwargs = dict(path_to_dataset=path_to_dataset,
+              path_to_report=path_to_report)
+train_task = PythonCallable(train_and_save_report, File(
+    path_to_report), dag, kwargs=kwargs)
+train_task.set_upstream(dataset_task)
+train_task.set_upstream(dataset_task)
 
 dag.plot()
 
