@@ -9,11 +9,13 @@ from pathlib import Path
 import psycopg2
 
 from dstools.pipeline.products import File
-from dstools.pipeline.tasks import BashCommand, BashScript, PythonScript
+from dstools.pipeline.tasks import (BashCommand, BashScript, PythonScript,
+                                    PythonCallable)
 from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG
 from dstools import testing
 from dstools import Env
+from train import train_and_save_report
 
 
 logging.basicConfig(level=logging.INFO)
@@ -42,15 +44,12 @@ get_data_task = BashScript(home / 'get_data.sh',
 
 
 red_path = env.path.input / 'sample' / 'red.csv'
-sample_task = PythonScript(home / 'sample.py', File(red_path), dag)
-sample_task.set_upstream(get_data_task)
-
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
                        dag,
                        params=dict(db=env.db.uri, path=red_path),)
-red_task.set_upstream(sample_task)
+red_task.set_upstream(get_data_task)
 
 white_path = Path(env.path.input / 'sample' / 'white.csv')
 white_task = BashCommand('csvsql --db {db} --tables white --insert {path} '
@@ -58,7 +57,7 @@ white_task = BashCommand('csvsql --db {db} --tables white --insert {path} '
                          pg.PostgresRelation(('public', 'white', 'table')),
                          dag,
                          params=dict(db=env.db.uri, path=white_path))
-white_task.set_upstream(sample_task)
+white_task.set_upstream(get_data_task)
 
 
 wine_task = pg.PostgresScript(home / 'sql' / 'create_wine.sql',
@@ -89,6 +88,12 @@ testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
                                  dag, name='testing')
 testing_task.set_upstream(dataset_task)
 
+# File(red_path)
+path_to_report = env.path.input / 'reports' / 'pipeline_report.txt'
+kwargs = dict(path_to_report=Path(path_to_report))
+train_task = PythonCallable(train_and_save_report, File(path_to_report), dag, kwargs=kwargs)
+train_task.set_upstream(training_task)
+train_task.set_upstream(testing_task)
 
 dag.plot()
 
