@@ -112,6 +112,9 @@ class Product:
     def exists(self):
         raise NotImplementedError('You have to implement this method')
 
+    def __repr__(self):
+        return f'{type(self).__name__}: {self.identifier}'
+
 
 class File(Product):
     def __init__(self, identifier):
