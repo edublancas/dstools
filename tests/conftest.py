@@ -1,6 +1,8 @@
+import shutil
 import os
 import pytest
 from pathlib import Path
+import tempfile
 
 
 def _path_to_tests():
@@ -10,6 +12,23 @@ def _path_to_tests():
 @pytest.fixture(scope='session')
 def path_to_tests():
     return _path_to_tests()
+
+
+@pytest.fixture()
+def tmp_example_directory():
+    """Move to examples/pipeline/
+    """
+    old = os.getcwd()
+    path = _path_to_tests() / '..' / 'examples' / 'pipeline'
+    tmp = Path(tempfile.mkdtemp()) / 'content'
+
+    # we have to add extra folder content/, otherwise copytree complains
+    shutil.copytree(path, tmp)
+    os.chdir(tmp)
+
+    yield tmp
+
+    os.chdir(old)
 
 
 @pytest.fixture(scope='session')

@@ -107,6 +107,6 @@ train_task = PythonCallable(train_and_save_report, File(
 train_task.set_upstream(dataset_task)
 train_task.set_upstream(dataset_task)
 
-dag.plot()
+# dag.plot()
 
 # dag.build()
