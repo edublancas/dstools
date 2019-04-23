@@ -14,6 +14,7 @@ class Task:
     ----------
     code: callable, Path, str
     """
+
     def __init__(self, code, product, dag, name=None):
         self._upstream = []
 
@@ -178,12 +179,17 @@ class ScriptTask(Task):
         if self._INTERPRETER is None:
             raise ValueError(f'{type(self).__name__}: subclasses must '
                              'declare an interpreter')
+        res = subprocess.run([self._INTERPRETER,
+                              self.code],
+                             stderr=subprocess.PIPE,
+                             stdout=subprocess.PIPE)
 
-        subprocess.run([self._INTERPRETER,
-                        self.code],
-                       stderr=subprocess.PIPE,
-                       stdout=subprocess.PIPE,
-                       check=True)
+        if res.returncode != 0:
+            # log source code without expanded params
+            self._logger.info(f'{self.source_code} returned stdout: '
+                              f'{res.stdout} and stderr: {res.stderr} '
+                              f'and exit status {res.returncode}')
+            raise CalledProcessError(res.returncode, self.source_code)
 
 
 class BashScript(ScriptTask):
