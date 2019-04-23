@@ -1,7 +1,7 @@
 # plot module
 # matplotlib
 
-pytest
+pytest>=3.5
 pytest-cov
 pytest-flake8
 
