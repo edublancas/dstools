@@ -6,7 +6,8 @@ import logging
 from pathlib import Path
 
 from dstools.pipeline.products import File
-from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable)
+from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable,
+                                    PythonScript)
 from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG
 from dstools import testing
@@ -24,8 +25,12 @@ logger = logging.getLogger(__name__)
 
 env = Env()
 home = env.path.home
+path_to_sample = env.path.input / 'sample'
+
+path_to_sample.mkdir(exist_ok=True)
 
 pg.CONN = util.open_db_conn()
+db = util.load_db_credentials()
 
 dag = DAG()
 
@@ -33,22 +38,26 @@ get_data_task = BashScript(home / 'get_data.sh',
                            File(env.path.input / 'raw' / 'red.csv'),
                            dag)
 
+sample_task = PythonScript(home / 'sample.py',
+                           File(env.path.input / 'sample' / 'red.csv'),
+                           dag)
+sample_task.set_upstream(get_data_task)
 
-red_path = env.path.input / 'sample' / 'red.csv'
+red_path = path_to_sample / 'red.csv'
 red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
                        dag,
-                       params=dict(db=env.db.uri, path=red_path),)
-red_task.set_upstream(get_data_task)
+                       params=dict(db=db['uri'], path=red_path))
+red_task.set_upstream(sample_task)
 
-white_path = Path(env.path.input / 'sample' / 'white.csv')
+white_path = Path(path_to_sample / 'white.csv')
 white_task = BashCommand('csvsql --db {db} --tables white --insert {path} '
                          '--overwrite',
                          pg.PostgresRelation(('public', 'white', 'table')),
                          dag,
-                         params=dict(db=env.db.uri, path=white_path))
-white_task.set_upstream(get_data_task)
+                         params=dict(db=db['uri'], path=white_path))
+white_task.set_upstream(sample_task)
 
 
 wine_task = pg.PostgresScript(home / 'sql' / 'create_wine.sql',
@@ -99,6 +108,6 @@ train_task.set_upstream(dataset_task)
 
 # dag.plot()
 
-# dag.build()
+dag.build()
 
 pg.CONN.close()

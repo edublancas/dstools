@@ -15,24 +15,28 @@ def close_conn():
             CONN.close()
 
 
-def open_db_conn():
+def load_db_credentials():
     try:
         p = Path('~', '.auth', 'postgres-dstools.json').expanduser()
 
         with open(p) as f:
             db = json.load(f)
     except FileNotFoundError:
-        # running on travis
         db = json.loads(environ['DB_CREDENTIALS'])
-    else:
-        # running locally
-        global CONN
 
-        if CONN is None:
-            conn = psycopg2.connect(dbname=db['dbname'],
-                                    host=db['host'],
-                                    user=db['user'],
-                                    password=db['password'])
-            CONN = conn
+    return db
+
+
+def open_db_conn():
+    db = load_db_credentials()
+
+    global CONN
+
+    if CONN is None:
+        conn = psycopg2.connect(dbname=db['dbname'],
+                                host=db['host'],
+                                user=db['user'],
+                                password=db['password'])
+        CONN = conn
 
     return CONN

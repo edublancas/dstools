@@ -138,7 +138,7 @@ class Task:
 
 
 class BashCommand(Task):
-    """A task taht runs bash command
+    """A task that runs bash command
     """
 
     def __init__(self, code, product, dag, name=None, params=None):
@@ -180,7 +180,7 @@ class ScriptTask(Task):
                              'declare an interpreter')
 
         subprocess.run([self._INTERPRETER,
-                        shlex.quote(str(self.source_code))],
+                        self.code],
                        stderr=subprocess.PIPE,
                        stdout=subprocess.PIPE,
                        check=True)
