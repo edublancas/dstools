@@ -28,7 +28,7 @@ class PathManager:
             path_to_key_absolute = path_to_key
 
         if not path_to_key_absolute.is_dir():
-            path_to_key_absolute.mkdir()
+            path_to_key_absolute.mkdir(parents=True)
 
         return path_to_key_absolute
 
