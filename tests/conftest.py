@@ -15,6 +15,17 @@ def path_to_tests():
 
 
 @pytest.fixture()
+def tmp_directory():
+    old = os.getcwd()
+    tmp = tempfile.mkdtemp()
+    os.chdir(tmp)
+
+    yield tmp
+
+    os.chdir(old)
+
+
+@pytest.fixture()
 def tmp_example_directory():
     """Move to examples/pipeline/
     """

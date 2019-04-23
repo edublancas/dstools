@@ -5,6 +5,7 @@ from subprocess import CalledProcessError
 from pathlib import Path
 import logging
 from datetime import datetime
+from dstools.pipeline import util
 
 
 class Task:
@@ -133,6 +134,28 @@ class Task:
             self._logger.info(f'No need to run {repr(self)}')
 
         self._logger.info('-----\n')
+
+    def status(self):
+        """Prints the current task status
+        """
+        p = self.product
+
+        outd_code = p.outdated_code_dependency()
+
+        dt = datetime.fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M')
+
+        out = ''
+        out += f'* Last updated: {dt}\n'
+        out += f'* Oudated data dependencies: {p.outdated_data_dependencies()}'
+        out += f'\n* Oudated code dependency: {outd_code}'
+
+        if outd_code:
+            out += '\n\nCODE DIFF\n*********\n'
+            out += util.diff_strings(p.stored_source_code, self.source_code)
+            out += '\n*********'
+
+        print(out)
+        return out
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} ->\n\t{self.product}'
