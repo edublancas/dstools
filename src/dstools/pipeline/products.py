@@ -89,7 +89,9 @@ class Product:
         """Run tests, raise exceptions if any of these are not true
         """
         for fn in self.tests:
-            assert fn(self)
+            res = fn(self)
+            if not res:
+                raise AssertionError(f'{self} failed test: {fn}')
 
     def check(self):
         """
