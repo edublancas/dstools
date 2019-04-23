@@ -71,8 +71,8 @@ setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
     install_requires=[
-        # FIXME: remove
-        'pyyaml'
+        # FIXME: remove pyyaml
+        'pyyaml', 'networkx'
     ],
     extras_require={
         # eg:
