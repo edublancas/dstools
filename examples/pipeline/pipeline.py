@@ -2,11 +2,8 @@
 %load_ext autoreload
 %autoreload 2
 """
-import atexit
 import logging
 from pathlib import Path
-
-import psycopg2
 
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable)
@@ -15,7 +12,9 @@ from dstools.pipeline.dag import DAG
 from dstools import testing
 from dstools import Env
 from dstools import mkfilename
+
 from train import train_and_save_report
+import util
 from download_dataset import download_dataset
 
 
@@ -26,16 +25,7 @@ logger = logging.getLogger(__name__)
 env = Env()
 home = env.path.home
 
-pg.CONN = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
-                           user=env.db.user, password=env.db.password)
-
-
-@atexit.register
-def close_conn():
-    if not pg.CONN.closed:
-        print('closing connection...')
-        pg.CONN.close()
-
+pg.CONN = util.open_db_conn()
 
 dag = DAG()
 
@@ -110,3 +100,5 @@ train_task.set_upstream(dataset_task)
 # dag.plot()
 
 # dag.build()
+
+pg.CONN.close()

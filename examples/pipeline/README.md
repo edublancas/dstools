@@ -1,5 +1,6 @@
 # pipeline example
 
+
 ```bash
 DB=$(dstools env db)
 INPUT=$(dstools env path.input)
