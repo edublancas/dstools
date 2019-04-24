@@ -9,6 +9,12 @@ from dstools.pipeline import util
 from dstools.pipeline.products import Product, MetaProduct
 
 
+class TaskGroup:
+
+    def __init__(self, tasks):
+        self.tasks = tasks
+
+
 class Task:
     """A task represents a unit of work
 
@@ -83,7 +89,21 @@ class Task:
         raise NotImplementedError('You have to implement this method')
 
     def set_upstream(self, task):
-        self._upstream.append(task)
+        if isinstance(task, Task):
+            self._upstream.append(task)
+        else:
+            for t in task:
+                self._upstream.append(task)
+
+    def __rshift__(self, other):
+        """ a >> b is the same as b.set_upstream(a)
+        """
+        other.set_upstream(self)
+
+    def __add__(self, other):
+        """ a + b means TaskGroup([a, b])
+        """
+        return TaskGroup((self, other))
 
     def build(self, force=False):
         # NOTE: should i fetch metadata here? I need to make sure I have
