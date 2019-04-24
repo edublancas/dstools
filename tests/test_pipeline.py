@@ -1,12 +1,15 @@
 from pathlib import Path
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import Task
+from dstools.pipeline.tasks import Task, BashCommand
 from dstools.pipeline.products import File
 
 
 def test_non_existent_file():
+    dag = DAG()
     f = File('file.txt')
+    ta = Task('echo hi', f, dag)
+
     assert not f.exists()
     assert f.outdated()
     assert f.outdated_code_dependency()
@@ -21,35 +24,34 @@ def test_outdated_data_simple_dependency(tmp_directory):
     fa = Path('a.txt')
     fb = Path('b.txt')
 
-    ta = Task('echo hi', File(fa), dag)
-    tb = Task('echo hi', File(fb), dag)
+    ta = BashCommand('touch a.txt', File(fa), dag)
+    tb = BashCommand('touch b.txt', File(fb), dag)
 
     tb.set_upstream(ta)
 
+    assert not ta.product.exists()
     assert not tb.product.exists()
+    assert ta.product.outdated()
     assert tb.product.outdated()
-    assert tb.product.outdated_code_dependency()
-    assert tb.product.outdated_data_dependencies()
 
-    fa.touch()
-    fb.touch()
+    dag.build()
 
+    # they both exist now
+    assert ta.product.exists()
     assert tb.product.exists()
 
-    # FIXME: provide a method for refreshing metadata
-    tb.product.metadata = tb.product.fetch_metadata()
+    ta.product.get_metadata()
+    tb.product.get_metadata()
 
+    # and arent outdated...
+    assert not ta.product.outdated()
+    assert not tb.product.outdated()
 
-def test_outdated_code_simple_dependency():
-    """ A -> B
-    """
-    pass
+    # let's make b outdated
+    ta.build(force=True)
 
-
-def test_outdated_data_and_code_simple_dependency():
-    """ A -> B
-    """
-    pass
+    assert not ta.product.outdated()
+    assert tb.product.outdated()
 
 
 def test_many_upstream():

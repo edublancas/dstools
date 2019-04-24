@@ -9,8 +9,9 @@ class Product:
     def __init__(self, identifier):
         self._identifier = identifier
 
-        self.metadata = self._fetch_metadata()
+        self.get_metadata()
         self.tests, self.checks = [], []
+        self.task = None
 
     @property
     def identifier(self):
@@ -26,6 +27,9 @@ class Product:
 
     @property
     def task(self):
+        if self._task is None:
+            raise ValueError('This product has not been assigned to any Task')
+
         return self._task
 
     @property
@@ -50,6 +54,10 @@ class Product:
 
     def outdated_data_dependencies(self):
         def is_outdated(up_prod):
+            """
+            A task becomes data outdated if an upstream product has a higher
+            timestamp or if an upstream product is outdated
+            """
             if self.timestamp is None or up_prod.timestamp is None:
                 return True
             else:
@@ -67,23 +75,27 @@ class Product:
         return (self.outdated_data_dependencies()
                 or self.outdated_code_dependency())
 
-    def _fetch_metadata(self):
+    def get_metadata(self):
+        """
+        This method calls Product.fetch_metadata() (provided by subclasses),
+        if some conditions are met, then it saves it in Product.metadata
+        """
         metadata_empty = dict(timestamp=None, stored_source_code=None)
         # if the product does not exist, return a metadata
         # with None in the values
         if not self.exists():
-            return metadata_empty
+            self.metadata = metadata_empty
         else:
             metadata = self.fetch_metadata()
 
             if metadata is None:
-                return metadata_empty
+                self.metadata = metadata_empty
             else:
                 # FIXME: we need to further validate this, need to check
                 # that this is an instance of mapping, if yes, then
                 # check keys [timestamp, stored_source_code], check
                 # types and fill with None if any of the keys is missing
-                return metadata
+                self.metadata = metadata
 
     def test(self):
         """Run tests, raise exceptions if any of these are not true
@@ -120,15 +132,16 @@ class Product:
 
 class File(Product):
     def __init__(self, identifier):
-        # overridinfg super() since _path_to_file must be set before running
-        # _fetch_metadata()
+        # FIXME: overridinfg super() since _path_to_file must be set before
+        # running get_metadata(), but I should refactor to avoid this
 
         self._identifier = identifier
         self._path_to_file = Path(self.identifier)
         self._path_to_stored_source_code = Path(str(self.path_to_file)
                                                 + '.source')
 
-        self.metadata = self._fetch_metadata()
+        self.get_metadata()
+        self.task = None
 
     @property
     def path_to_file(self):

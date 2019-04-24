@@ -167,7 +167,7 @@ class BashCommand(Task):
 
     def __init__(self, code, product, dag, name=None, params=None):
         super().__init__(code, product, dag, name)
-        self._params = params
+        self._params = params if params is not None else {}
 
     def run(self):
         # quote params to make them safe
