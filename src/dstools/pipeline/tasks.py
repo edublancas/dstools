@@ -147,10 +147,14 @@ class Task:
 
         outd_code = p.outdated_code_dependency()
 
-        dt = datetime.fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M')
-
         out = ''
-        out += f'* Last updated: {dt}\n'
+
+        if p.timestamp is not None:
+            dt = datetime.fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M')
+            out += f'* Last updated: {dt}\n'
+        else:
+            out += f'* Timestamp is None\n'
+
         out += f'* Oudated data dependencies: {p.outdated_data_dependencies()}'
         out += f'\n* Oudated code dependency: {outd_code}'
 

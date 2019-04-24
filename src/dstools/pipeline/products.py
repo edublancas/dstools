@@ -169,7 +169,7 @@ class MetaProduct:
     @property
     def task(self):
         return self.products[0].task
-    
+
 
     @task.setter
     def task(self, value):
