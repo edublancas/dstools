@@ -40,9 +40,6 @@ def test_outdated_data_simple_dependency(tmp_directory):
     assert ta.product.exists()
     assert tb.product.exists()
 
-    ta.product.get_metadata()
-    tb.product.get_metadata()
-
     # and arent outdated...
     assert not ta.product.outdated()
     assert not tb.product.outdated()
@@ -57,7 +54,41 @@ def test_outdated_data_simple_dependency(tmp_directory):
 def test_many_upstream():
     """ {A, B} -> C
     """
-    pass
+    dag = DAG()
+
+    fa = Path('a.txt')
+    fb = Path('b.txt')
+    fc = Path('c.txt')
+
+    ta = BashCommand('touch a.txt', File(fa), dag)
+    tb = BashCommand('touch b.txt', File(fb), dag)
+    tc = BashCommand('touch c.txt', File(fc), dag)
+
+    tc.set_upstream(ta)
+    tc.set_upstream(tb)
+
+    dag.build()
+
+    assert ta.product.exists()
+    assert tb.product.exists()
+    assert tc.product.exists()
+
+    assert not ta.product.outdated()
+    assert not tb.product.outdated()
+    assert not tc.product.outdated()
+
+    ta.build(force=True)
+
+    assert not ta.product.outdated()
+    assert not tb.product.outdated()
+    assert tc.product.outdated()
+
+    dag.build()
+    tb.build(force=True)
+
+    assert not ta.product.outdated()
+    assert not tb.product.outdated()
+    assert tc.product.outdated()
 
 
 def test_many_downstream():
