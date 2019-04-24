@@ -6,7 +6,11 @@ import networkx as nx
 # NOTE: requires pygraphviz and pygraphviz
 
 
-class MetaProduct:
+class DAGProduct:
+    """
+    A class that exposes a Product-like API for representing
+    a DAG status
+    """
 
     def __init__(self, dag):
         self.dag = dag
@@ -39,7 +43,7 @@ class DAG:
     def __init__(self, name=None):
         self.tasks = []
         self.tasks_by_name = {}
-        self.product = MetaProduct(self)
+        self.product = DAGProduct(self)
         self.name = name
 
     def add_task(self, task):

@@ -101,3 +101,16 @@ def test_chained_dependency():
     """ A -> B -> C
     """
     pass
+
+
+
+def test_can_create_task_with_many_products():
+    dag = DAG()
+    fa1 = File('a1.txt')
+    fa2 = File('a2.txt')
+    ta = Task('echo hi', [fa1, fa2], dag)
+
+    assert not ta.product.exists()
+    assert ta.product.outdated()
+    assert ta.product.outdated_code_dependency()
+    assert not ta.product.outdated_data_dependencies()

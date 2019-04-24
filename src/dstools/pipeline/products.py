@@ -124,10 +124,64 @@ class Product:
         raise NotImplementedError('You have to implement this method')
 
     def exists(self):
+        """
+        This method returns True if the product exists, it is not part
+        of the metadata, so there is no cached status
+        """
         raise NotImplementedError('You have to implement this method')
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.identifier}'
+
+
+class MetaProduct:
+    """Exposes a Product-like API for a list of products
+    """
+
+    def __init__(self, products):
+        self.products = products
+
+    def exists(self):
+        return all([p.exists() for p in self.products])
+
+    def outdated(self):
+        return (self.outdated_data_dependencies()
+                or self.outdated_code_dependency())
+
+    def outdated_data_dependencies(self):
+        return any([p.outdated_data_dependencies()
+                    for p in self.products])
+
+    def outdated_code_dependency(self):
+        return any([p.outdated_code_dependency()
+                    for p in self.products])
+
+    @property
+    def timestamp(self):
+        timestamps = [p.timestamp
+                      for p in self.products
+                      if p.timestamp is not None]
+        if timestamps:
+            return max(timestamps)
+        else:
+            return None
+
+    @property
+    def task(self):
+        return self.products[0].task
+    
+
+    @task.setter
+    def task(self, value):
+        for p in self.products:
+            p.task = value
+
+
+    def __repr__(self):
+        reprs = ', '.join([repr(p) for p in self.products])
+        return f'{type(self).__name__}: {reprs}'
+
+
 
 
 class File(Product):

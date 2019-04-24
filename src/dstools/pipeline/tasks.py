@@ -6,6 +6,7 @@ from pathlib import Path
 import logging
 from datetime import datetime
 from dstools.pipeline import util
+from dstools.pipeline.products import Product, MetaProduct
 
 
 class Task:
@@ -20,14 +21,18 @@ class Task:
         self._upstream = []
 
         self._code = code
-        self._product = product
+
+        if isinstance(product, Product):
+            self._product = product
+        else:
+            self._product = MetaProduct(product)
 
         self._set_name(name)
         self._set_source_code()
 
         self._logger = logging.getLogger(__name__)
 
-        product.task = self
+        self.product.task = self
 
         dag.add_task(self)
 
