@@ -78,6 +78,9 @@ class DAG:
         G_.draw(path, prog='dot', args='')
         subprocess.run(['open', path])
 
+    def __getitem__(self, key):
+        return self.tasks_by_name[key]
+
     def __repr__(self):
         name = self.name if self.name is not None else 'Unnamed'
         return f'{type(self).__name__}: {name}'
