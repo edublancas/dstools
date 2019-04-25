@@ -110,7 +110,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
 
     def __repr__(self):
         id_ = self.identifier
-        return f'PostgresRelation({id_.kind}): {id_.schema}.{id_.name}'
+        return f'PG{id_.kind.capitalize()}: {id_.schema}.{id_.name}'
 
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975
@@ -151,6 +151,9 @@ class PostgresIdentifier:
         self.kind = kind
         self.schema = schema
         self.name = name
+
+    def __repr__(self):
+        return f'{self.schema}.{self.name} (PG{self.kind.capitalize()})'
 
 
 class PostgresScript(PostgresConnectionMixin, Task):

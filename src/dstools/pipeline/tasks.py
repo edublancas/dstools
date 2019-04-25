@@ -223,7 +223,14 @@ class Task:
         return out
 
     def __repr__(self):
-        return f'{type(self).__name__}: {self.name} ->\n\t{self.product}'
+        return f'{type(self).__name__}: {self.name} -> {self.product}'
+
+    def short_repr(self):
+        def short(s):
+            max_l = 30
+            return s if len(s) <= max_l else s[:max_l-3]+'...'
+
+        return f'{short(self.name)} -> \n{short(self.product.short_repr())}'
 
 
 class BashCommand(Task):

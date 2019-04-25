@@ -133,6 +133,9 @@ class Product:
     def __repr__(self):
         return f'{type(self).__name__}: {self.identifier}'
 
+    def short_repr(self):
+        return f'{self.identifier}'
+
 
 class MetaProduct:
     """Exposes a Product-like API for a list of products
@@ -170,21 +173,18 @@ class MetaProduct:
     def task(self):
         return self.products[0].task
 
-
     @task.setter
     def task(self, value):
         for p in self.products:
             p.task = value
-
 
     def __repr__(self):
         reprs = ', '.join([repr(p) for p in self.products])
         return f'{type(self).__name__}: {reprs}'
 
 
-
-
 class File(Product):
+
     def __init__(self, identifier):
         # FIXME: overridinfg super() since _path_to_file must be set before
         # running get_metadata(), but I should refactor to avoid this

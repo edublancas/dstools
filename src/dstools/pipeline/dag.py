@@ -62,10 +62,13 @@ class DAG:
 
         for n, data in G.nodes(data=True):
             data['color'] = 'red' if n.product.outdated() else 'green'
+            data['label'] = n.short_repr()
 
         return G
 
     def build(self):
+        # attributes docs:
+        # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
         G = self.mk_graph()
 
         for t in nx.algorithms.topological_sort(G):
@@ -75,11 +78,11 @@ class DAG:
         G = self.mk_graph()
         G_ = nx.nx_agraph.to_agraph(G)
         path = tempfile.mktemp(suffix='.png')
-        G_.draw(path, prog='dot', args='')
+        G_.draw(path, prog='dot', args='-Grankdir=LR')
         subprocess.run(['open', path])
 
-    def __getitem__(self, key):
-        return self.tasks_by_name[key]
+    # def __getitem__(self, key):
+    #     return self.tasks_by_name[key]
 
     def __repr__(self):
         name = self.name if self.name is not None else 'Unnamed'
