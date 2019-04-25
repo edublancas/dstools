@@ -9,7 +9,7 @@ from dstools.pipeline.tasks import BashCommand
 from dstools.pipeline.products import File
 
 
-def test_passing_self_and_up_in_bashcommand():
+def test_passing_self_and_up_in_bashcommand(tmp_directory):
     dag = DAG()
 
     fa = Path('a.txt')

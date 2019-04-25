@@ -85,7 +85,7 @@ class Task:
             else:
                 self._name = self.code[:60]+'...'
         elif isinstance(self.code, Path):
-            self._name = self.code
+            self._name = str(self.code)
 
     def _set_source_code(self):
         if callable(self.code):
