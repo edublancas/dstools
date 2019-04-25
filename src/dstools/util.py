@@ -10,6 +10,15 @@ from inspect import signature, _empty, getargspec
 from copy import copy
 
 
+def isiterable(obj):
+    try:
+        iter(obj)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
 def _is_iterable(obj):
     """Determine wheter obj is an interable (excluding strings and mappings)
     """

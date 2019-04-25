@@ -103,7 +103,6 @@ def test_chained_dependency():
     pass
 
 
-
 def test_can_create_task_with_many_products():
     dag = DAG()
     fa1 = File('a1.txt')
@@ -114,3 +113,75 @@ def test_can_create_task_with_many_products():
     assert ta.product.outdated()
     assert ta.product.outdated_code_dependency()
     assert not ta.product.outdated_data_dependencies()
+
+
+def test_overloaded_operators():
+    dag = DAG()
+
+    fa = Path('a.txt')
+    fb = Path('b.txt')
+    fc = Path('c.txt')
+
+    ta = BashCommand('touch a.txt', File(fa), dag)
+    tb = BashCommand('touch b.txt', File(fb), dag)
+    tc = BashCommand('touch c.txt', File(fc), dag)
+
+    ta >> tb >> tc
+
+    assert not ta.upstream
+    assert tb in tc.upstream
+    assert ta in tb.upstream
+
+
+def test_adding_tasks():
+    dag = DAG()
+
+    fa = Path('a.txt')
+    fb = Path('b.txt')
+    fc = Path('c.txt')
+
+    ta = BashCommand('touch a.txt', File(fa), dag)
+    tb = BashCommand('touch b.txt', File(fb), dag)
+    tc = BashCommand('touch c.txt', File(fc), dag)
+
+    assert list((ta + tb).tasks) == [ta, tb]
+    assert list((tb + ta).tasks) == [tb, ta]
+    assert list((ta + tb + tc).tasks) == [ta, tb, tc]
+    assert list(((ta + tb) + tc).tasks) == [ta, tb, tc]
+    assert list((ta + (tb + tc)).tasks) == [ta, tb, tc]
+
+
+def test_adding_tasks_left():
+    dag = DAG()
+
+    fa = Path('a.txt')
+    fb = Path('b.txt')
+    fc = Path('c.txt')
+
+    ta = BashCommand('touch a.txt', File(fa), dag)
+    tb = BashCommand('touch b.txt', File(fb), dag)
+    tc = BashCommand('touch c.txt', File(fc), dag)
+
+    (ta + tb) >> tc
+
+    assert not ta.upstream
+    assert not tb.upstream
+    assert tc.upstream == [ta, tb]
+
+
+def test_adding_tasks_right():
+    dag = DAG()
+
+    fa = Path('a.txt')
+    fb = Path('b.txt')
+    fc = Path('c.txt')
+
+    ta = BashCommand('touch a.txt', File(fa), dag)
+    tb = BashCommand('touch b.txt', File(fb), dag)
+    tc = BashCommand('touch c.txt', File(fc), dag)
+
+    ta >> (tb + tc)
+
+    assert not ta.upstream
+    assert tb.upstream == [ta]
+    assert tc.upstream == [ta]

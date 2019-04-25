@@ -7,12 +7,43 @@ import logging
 from datetime import datetime
 from dstools.pipeline import util
 from dstools.pipeline.products import Product, MetaProduct
+from dstools.util import isiterable
 
 
 class TaskGroup:
 
     def __init__(self, tasks):
         self.tasks = tasks
+
+    def __iter__(self):
+        for t in self.tasks:
+            yield t
+
+    def __add__(self, other):
+        if isiterable(other):
+            return TaskGroup(list(self.tasks) + list(other))
+        else:
+            return TaskGroup(list(self.tasks) + [other])
+
+    def __radd__(self, other):
+        if isiterable(other):
+            return TaskGroup(list(other) + list(self.tasks))
+        else:
+            return TaskGroup([other] + list(self.tasks))
+
+    def set_upstream(self, other):
+        if isiterable(other):
+            for t in self.tasks:
+                for o in other:
+                    t.set_upstream(other)
+        else:
+            for t in self.tasks:
+                t.set_upstream(other)
+
+    def __rshift__(self, other):
+        other.set_upstream(self)
+        # return other so a >> b >> c works
+        return other
 
 
 class Task:
@@ -88,22 +119,27 @@ class Task:
     def run(self):
         raise NotImplementedError('You have to implement this method')
 
-    def set_upstream(self, task):
-        if isinstance(task, Task):
-            self._upstream.append(task)
+    def set_upstream(self, other):
+        if isiterable(other):
+            for o in other:
+                self._upstream.append(o)
         else:
-            for t in task:
-                self._upstream.append(task)
+            self._upstream.append(other)
 
     def __rshift__(self, other):
         """ a >> b is the same as b.set_upstream(a)
         """
         other.set_upstream(self)
+        # return other so a >> b >> c works
+        return other
 
     def __add__(self, other):
         """ a + b means TaskGroup([a, b])
         """
-        return TaskGroup((self, other))
+        if isiterable(other):
+            return TaskGroup([self] + list(other))
+        else:
+            return TaskGroup((self, other))
 
     def build(self, force=False):
         # NOTE: should i fetch metadata here? I need to make sure I have
