@@ -137,6 +137,12 @@ class PostgresIdentifier:
     VIEW = 'view'
 
     def __init__(self, schema, name, kind):
+        if len(name) > 63:
+            url = ('https://www.postgresql.org/docs/current/'
+                   'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
+            raise ValueError('Maximum length name in postgres is 63, see: '
+                             f'{url}')
+
         if kind not in [self.TABLE, self.VIEW]:
             raise ValueError('kind must be one of ["view", "table"] '
                              f'got "{kind}"')
