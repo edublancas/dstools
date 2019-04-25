@@ -56,6 +56,7 @@ class Task:
 
     def __init__(self, code, product, dag, name=None):
         self._upstream = []
+        self._upstream_by_name = {}
 
         self._code = code
 
@@ -116,6 +117,10 @@ class Task:
     def upstream(self):
         return self._upstream
 
+    @property
+    def upstream_by_name(self):
+        return self._upstream_by_name
+
     def run(self):
         raise NotImplementedError('You have to implement this method')
 
@@ -123,8 +128,10 @@ class Task:
         if isiterable(other):
             for o in other:
                 self._upstream.append(o)
+                self._upstream_by_name[o.name] = o
         else:
             self._upstream.append(other)
+            self._upstream_by_name[other.name] = other
 
     def __rshift__(self, other):
         """ a >> b is the same as b.set_upstream(a)
@@ -237,17 +244,28 @@ class BashCommand(Task):
     """A task that runs bash command
     """
 
-    def __init__(self, code, product, dag, name=None, params=None):
+    def __init__(self, code, product, dag, name=None, params=None,
+                 subprocess_run_kwargs={'stderr': subprocess.PIPE,
+                                        'stdout': subprocess.PIPE,
+                                        'shell': False},
+                 split_source_code=True):
         super().__init__(code, product, dag, name)
         self._params = params if params is not None else {}
+        self.split_source_code = split_source_code
+        self.subprocess_run_kwargs = subprocess_run_kwargs
 
     def run(self):
         # quote params to make them safe
-        quoted = {k: shlex.quote(str(v)) for k, v in self._params.items()}
-        source_code = self.source_code.format(**quoted)
-        res = subprocess.run(shlex.split(source_code),
-                             stderr=subprocess.PIPE,
-                             stdout=subprocess.PIPE)
+        params = {k: shlex.quote(str(v)) for k, v in self._params.items()}
+        # also pass upstream tasks
+        params['up'] = self.upstream_by_name
+        params['self'] = self
+
+        source_code = self.source_code.format(**params)
+        source_code = (shlex.split(source_code) if self.split_source_code
+                       else source_code)
+        res = subprocess.run(source_code,
+                             **self.subprocess_run_kwargs)
 
         if res.returncode != 0:
             # log source code without expanded params
