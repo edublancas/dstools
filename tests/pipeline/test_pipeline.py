@@ -51,7 +51,7 @@ def test_outdated_data_simple_dependency(tmp_directory):
     assert tb.product.outdated()
 
 
-def test_many_upstream():
+def test_many_upstream(tmp_directory):
     """ {A, B} -> C
     """
     dag = DAG()
