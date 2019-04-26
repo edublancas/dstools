@@ -87,3 +87,6 @@ class DAG:
     def __repr__(self):
         name = self.name if self.name is not None else 'Unnamed'
         return f'{type(self).__name__}: {name}'
+
+    def short_repr(self):
+        return repr(self)
