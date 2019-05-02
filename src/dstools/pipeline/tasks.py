@@ -253,6 +253,7 @@ class BashCommand(Task):
         self._params = params if params is not None else {}
         self.split_source_code = split_source_code
         self.subprocess_run_kwargs = subprocess_run_kwargs
+        self._logger = logging.getLogger(__name__)
 
     def run(self):
         # quote params to make them safe
@@ -273,6 +274,9 @@ class BashCommand(Task):
                               f'{res.stdout} and stderr: {res.stderr} '
                               f'and exit status {res.returncode}')
             raise CalledProcessError(res.returncode, self.source_code)
+        else:
+            self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
+                              f' stderr: {res.stderr}')
 
 
 class ScriptTask(Task):
@@ -303,6 +307,9 @@ class ScriptTask(Task):
                               f'{res.stdout} and stderr: {res.stderr} '
                               f'and exit status {res.returncode}')
             raise CalledProcessError(res.returncode, self.source_code)
+        else:
+            self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
+                              f' stderr: {res.stderr}')
 
 
 class BashScript(ScriptTask):
