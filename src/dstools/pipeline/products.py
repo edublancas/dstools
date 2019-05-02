@@ -143,6 +143,7 @@ class MetaProduct:
 
     def __init__(self, products):
         self.products = products
+        self.metadata = {p: p.metadata for p in self.products}
 
     def exists(self):
         return all([p.exists() for p in self.products])
@@ -170,6 +171,19 @@ class MetaProduct:
             return None
 
     @property
+    def stored_source_code(self):
+        stored_source_code = set([p.stored_source_code
+                                  for p in self.products
+                                  if p.stored_source_code is not None])
+        if len(stored_source_code):
+            warnings.warn(f'Stored source codes for products {self.products} '
+                          'are different, but they are part of the same '
+                          'MetaProduct, returning stored_source_code as None')
+            return None
+        else:
+            return list(stored_source_code)[0]
+
+    @property
     def task(self):
         return self.products[0].task
 
@@ -177,6 +191,26 @@ class MetaProduct:
     def task(self, value):
         for p in self.products:
             p.task = value
+
+    @timestamp.setter
+    def timestamp(self, value):
+        for p in self.products:
+            p.metadata['timestamp'] = value
+
+    @stored_source_code.setter
+    def stored_source_code(self, value):
+        for p in self.products:
+            p.metadata['stored_source_code'] = value
+
+    def save_metadata(self):
+        for p in self.products:
+            p.save_metadata()
+
+    def pre_save_metadata_hook(self):
+        pass
+
+    def short_repr(self):
+        return ', '.join([p.short_repr() for p in self.products])
 
     def __repr__(self):
         reprs = ', '.join([repr(p) for p in self.products])
