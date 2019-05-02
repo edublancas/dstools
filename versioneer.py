@@ -156,7 +156,7 @@ def cli():
     1. MANUAL: Merge whatever you want to publish to master
     2. MANUAL: Update your CHANGELOG.rst
     2. CREATE A NEW VERSION: python versioneer.py new
-    3. MANUAL: git push --tags
+    3. PUBLISH: python versioneer.py [TAG] --production
     """
     pass
 
@@ -204,6 +204,7 @@ def new():
     click.echo('Creating new commit with new dev version...')
     msg = 'Bumps up project to version {}'.format(bumped_version)
     call(['git', 'commit', '-m', msg])
+    call(['git', 'push'])
 
     click.echo('Version {} was created, you are now in {}'
                .format(release, bumped_version))
