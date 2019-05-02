@@ -12,7 +12,7 @@ import datetime
 
 import click
 
-TESTING = True
+TESTING = False
 PACKAGE = 'src/dstools'
 PACKAGE_NAME = 'dstools'
 
@@ -151,6 +151,13 @@ class Versioner(object):
 
 @click.group()
 def cli():
+    """Automates release a new version and uploading it to PyPI
+
+    1. MANUAL: Merge whatever you want to publish to master
+    2. MANUAL: Update your CHANGELOG.rst
+    2. CREATE A NEW VERSION: python versioneer.py new
+    3. MANUAL: git push --tags
+    """
     pass
 
 
