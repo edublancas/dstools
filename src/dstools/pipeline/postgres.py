@@ -110,7 +110,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
 
     def __repr__(self):
         id_ = self.identifier
-        return f'PostgresRelation({id_.kind}): {id_.schema}.{id_.name}'
+        return f'PG{id_.kind.capitalize()}: {id_.schema}.{id_.name}'
 
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975
@@ -137,6 +137,13 @@ class PostgresIdentifier:
     VIEW = 'view'
 
     def __init__(self, schema, name, kind):
+        if len(name) > 63:
+            url = ('https://www.postgresql.org/docs/current/'
+                   'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
+            raise ValueError(f'"{name}" exceeds maximum length of 63 '
+                             f' (length is {len(name)}), '
+                             f'see: {url}')
+
         if kind not in [self.TABLE, self.VIEW]:
             raise ValueError('kind must be one of ["view", "table"] '
                              f'got "{kind}"')
@@ -144,6 +151,9 @@ class PostgresIdentifier:
         self.kind = kind
         self.schema = schema
         self.name = name
+
+    def __repr__(self):
+        return f'{self.schema}.{self.name} (PG{self.kind.capitalize()})'
 
 
 class PostgresScript(PostgresConnectionMixin, Task):

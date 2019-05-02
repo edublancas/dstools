@@ -6,7 +6,11 @@ import networkx as nx
 # NOTE: requires pygraphviz and pygraphviz
 
 
-class MetaProduct:
+class DAGProduct:
+    """
+    A class that exposes a Product-like API for representing
+    a DAG status
+    """
 
     def __init__(self, dag):
         self.dag = dag
@@ -39,7 +43,7 @@ class DAG:
     def __init__(self, name=None):
         self.tasks = []
         self.tasks_by_name = {}
-        self.product = MetaProduct(self)
+        self.product = DAGProduct(self)
         self.name = name
 
     def add_task(self, task):
@@ -52,16 +56,18 @@ class DAG:
         G = nx.DiGraph()
 
         for t in self.tasks:
-            edges = [(up, t) for up in t.upstream]
-            #FIXME: fix for single node DAG, add t node here
-            G.add_edges_from(edges)
+            G.add_node(t)
+            G.add_edges_from([(up, t) for up in t.upstream])
 
         for n, data in G.nodes(data=True):
             data['color'] = 'red' if n.product.outdated() else 'green'
+            data['label'] = n.short_repr()
 
         return G
 
     def build(self):
+        # attributes docs:
+        # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
         G = self.mk_graph()
 
         for t in nx.algorithms.topological_sort(G):
@@ -71,9 +77,15 @@ class DAG:
         G = self.mk_graph()
         G_ = nx.nx_agraph.to_agraph(G)
         path = tempfile.mktemp(suffix='.png')
-        G_.draw(path, prog='dot', args='')
+        G_.draw(path, prog='dot', args='-Grankdir=LR')
         subprocess.run(['open', path])
+
+    # def __getitem__(self, key):
+    #     return self.tasks_by_name[key]
 
     def __repr__(self):
         name = self.name if self.name is not None else 'Unnamed'
         return f'{type(self).__name__}: {name}'
+
+    def short_repr(self):
+        return repr(self)

@@ -1,5 +1,8 @@
 # pipeline example
 
+This example shows the usage of the `dstools.pipeline` module.
+
+
 ```bash
 DB=$(dstools env db)
 INPUT=$(dstools env path.input)

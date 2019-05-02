@@ -44,7 +44,7 @@ class Env:
         if path_to_env is None:
             path_to_env = find_env()
             if path_to_env is None:
-                raise ValueError("Couldn't find env.yaml")
+                raise FileNotFoundError("Couldn't find env.yaml")
 
         # check if env matches the one that has been instantiated already
         path_to_env_absolute = Path(path_to_env).absolute()

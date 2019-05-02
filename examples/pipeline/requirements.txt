@@ -1,1 +1,4 @@
+csvkit
 pandas
+psycopg2
+scikit-learn
