@@ -3,6 +3,11 @@ Script for creating new releases
 
 Maybe I should switch to this:
 https://blog.mozilla.org/warner/2012/01/31/version-string-management-in-python-introducing-python-versioneer/
+
+Deps: click, twine
+
+Packaging projects guide: https://packaging.python.org/tutorials/packaging-projects/
+Twine docs: https://github.com/pypa/twine
 """
 import ast
 import re
@@ -233,16 +238,20 @@ def release(tag, production):
     Merges dev with master and pushes
     """
     click.echo('Checking out tag {}'.format(tag))
-    call(['git', 'checkout',  tag])
+    # call(['git', 'checkout',  tag])
 
     current = Versioner.current_version()
 
     click.confirm('Version in {} tag is {}. Do you want to continue?'
                   .format(tag, current))
 
+    # create distribution
+    call(['python', 'setup.py', 'sdist', 'bdist_wheel'])
+
     click.echo('Publishing to PyPI...')
-    where = 'pypitest' if not production else 'pypi'
-    call(['python', 'setup.py', 'sdist', 'upload', '-r', where])
+    # where = 'pypitest' if not production else 'pypi'
+
+    call(['python', '-m', 'twine', 'upload', '--repository-url', 'https://test.pypi.org/legacy/', 'dist/*'])
 
 
 if __name__ == '__main__':
