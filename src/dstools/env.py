@@ -78,14 +78,13 @@ class Env:
 
     @property
     def path(self):
+        """
+        path manager, returnd paths to directories specified in your env
+        """
         return self._path
 
     def __getattr__(self, key):
         return getattr(self._env_content, key)
-
-    @classmethod
-    def _destroy(cls):
-        cls.__instance = None
 
     def get_metadata(self):
         """Get env metadata such as git hash, last commit timestamp
