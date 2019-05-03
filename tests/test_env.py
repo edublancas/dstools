@@ -17,9 +17,7 @@ def test_raises_error_if_wrong_format():
 
 def test_can_instantiate_env_if_located_in_current_dir(move_to_sample):
     Env()
-    Env._destroy()
 
 
 def test_can_instantiate_env_if_located_in_child_dir(move_to_module):
     Env()
-    Env._destroy()

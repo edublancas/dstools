@@ -6,8 +6,10 @@ https://blog.mozilla.org/warner/2012/01/31/version-string-management-in-python-i
 
 Deps: click, twine, keyring
 
-Packaging projects guide: https://packaging.python.org/tutorials/packaging-projects/
-Twine docs: https://github.com/pypa/twine
+Packaging projects guide:
+    https://packaging.python.org/tutorials/packaging-projects/
+Twine docs:
+    https://github.com/pypa/twine
 """
 import ast
 import re
