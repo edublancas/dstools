@@ -4,7 +4,7 @@ Script for creating new releases
 Maybe I should switch to this:
 https://blog.mozilla.org/warner/2012/01/31/version-string-management-in-python-introducing-python-versioneer/
 
-Deps: click, twine
+Deps: click, twine, keyring
 
 Packaging projects guide: https://packaging.python.org/tutorials/packaging-projects/
 Twine docs: https://github.com/pypa/twine
@@ -149,8 +149,8 @@ class Versioner(object):
         # add new CHANGELOG section
         start_current = 'Changelog\n========='
         start_new = (('Changelog\n=========\n\n{dev_version}\n'
-                     .format(dev_version=dev_version)
-                     + '-' * len(dev_version)) + '\n')
+                      .format(dev_version=dev_version)
+                      + '-' * len(dev_version)) + '\n')
         replace_in_file('CHANGELOG.rst', start_current, start_new)
 
 
@@ -162,6 +162,9 @@ def cli():
     2. MANUAL: Update your CHANGELOG.rst
     2. CREATE A NEW VERSION: python versioneer.py new
     3. PUBLISH: python versioneer.py [TAG] --production
+
+    To install from test:
+    pip install --index-url https://test.pypi.org/simple/ --no-deps [PKG]
     """
     pass
 
@@ -238,7 +241,7 @@ def release(tag, production):
     Merges dev with master and pushes
     """
     click.echo('Checking out tag {}'.format(tag))
-    # call(['git', 'checkout',  tag])
+    call(['git', 'checkout',  tag])
 
     current = Versioner.current_version()
 
@@ -246,12 +249,16 @@ def release(tag, production):
                   .format(tag, current))
 
     # create distribution
+    call(['rm', '-rf', 'dist/'])
     call(['python', 'setup.py', 'sdist', 'bdist_wheel'])
 
     click.echo('Publishing to PyPI...')
-    # where = 'pypitest' if not production else 'pypi'
 
-    call(['python', '-m', 'twine', 'upload', '--repository-url', 'https://test.pypi.org/legacy/', 'dist/*'])
+    if not production:
+        call(['twine', 'upload', '--repository-url',
+              'https://test.pypi.org/legacy/', 'dist/*'])
+    else:
+        call(['twine', 'upload', 'dist/*'])
 
 
 if __name__ == '__main__':
