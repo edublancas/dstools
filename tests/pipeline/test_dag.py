@@ -39,12 +39,13 @@ def test_dag_can_access_tasks_by_name():
     # td is not in the same dag, which is ok, but it still should be
     # discoverable
     td = BashCommand('touch d.txt', File(Path('c.txt')), dag2, 'td')
+    te = BashCommand('touch e.txt', File(Path('e.txt')), dag2, 'te')
 
-    ta >> tb >> tc >> td
+    td >> ta >> tb >> tc >> te
 
-    assert all([name in dag.tasks_by_name.keys() for name
-                in ('ta', 'tb', 'tc')])
+    # FIXME: i have to come up with a unified api for this
+    assert set(dag.tasks_by_name.keys()) == {'ta', 'tb', 'tc'}
 
-    dag.tasks_by_name.keys()
+    assert set(dag.to_dict().keys()) == {'ta', 'tb', 'tc', 'td'}
 
-    dag.to_dict()
+    # FIXME: te should also be discoverable
