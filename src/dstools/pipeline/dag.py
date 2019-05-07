@@ -53,6 +53,10 @@ class DAG:
             self.tasks_by_name[task.name] = task
 
     def mk_graph(self):
+        """
+        Return a networkx directed graph from declared tasks and declared
+        upstream dependencies
+        """
         G = nx.DiGraph()
 
         for t in self.tasks:
@@ -81,7 +85,11 @@ class DAG:
         subprocess.run(['open', path])
 
     # def __getitem__(self, key):
-    #     return self.tasks_by_name[key]
+        # return self.tasks_by_name[key]
+
+    def to_dict(self):
+        g = self.mk_graph()
+        return {n.name: n for n in g.nodes()}
 
     def __repr__(self):
         name = self.name if self.name is not None else 'Unnamed'
