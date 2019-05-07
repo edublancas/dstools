@@ -9,7 +9,7 @@ from dstools.pipeline.tasks import BashCommand
 from dstools.pipeline.products import File
 
 
-def test_passing_self_and_up_in_bashcommand(tmp_directory):
+def test_passing_t_and_up_in_bashcommand(tmp_directory):
     dag = DAG()
 
     fa = Path('a.txt')
@@ -20,15 +20,13 @@ def test_passing_self_and_up_in_bashcommand(tmp_directory):
               'stdout': subprocess.PIPE,
               'shell': True}
 
-    ta = BashCommand('echo a > {self.product.identifier}', File(fa), dag,
+    ta = BashCommand('echo a > {{t.product}} ', File(fa), dag,
                      'ta', {}, kwargs, False)
-    tb = BashCommand('cat {up[ta].product.identifier} > '
-                     '{self.product.identifier}'
-                     '&& echo b >> {self.product.identifier} ', File(fb), dag,
+    tb = BashCommand('cat {{up["ta"].product}} > {{t.product}}'
+                     '&& echo b >> {{t.product}} ', File(fb), dag,
                      'tb', {}, kwargs, False)
-    tc = BashCommand('cat {up[tb].product.identifier} > '
-                     '{self.product.identifier} '
-                     '&& echo c >> {self.product.identifier}', File(fc), dag,
+    tc = BashCommand('cat {{up["tb"].product}} > {{t.product}} '
+                     '&& echo c >> {{t.product}}', File(fc), dag,
                      'tc', {}, kwargs, False)
 
     ta >> tb >> tc

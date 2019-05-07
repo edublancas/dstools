@@ -223,7 +223,7 @@ class File(Product):
         # FIXME: overridinfg super() since _path_to_file must be set before
         # running get_metadata(), but I should refactor to avoid this
 
-        self._identifier = identifier
+        self._identifier = str(identifier)
         self._path_to_file = Path(self.identifier)
         self._path_to_stored_source_code = Path(str(self.path_to_file)
                                                 + '.source')
@@ -260,3 +260,6 @@ class File(Product):
 
     def exists(self):
         return self.path_to_file.exists()
+
+    def __str__(self):
+        return self.identifier
