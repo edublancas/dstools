@@ -103,10 +103,11 @@ class Task:
         # render source code
         # params = {k: shlex.quote(str(v)) for k, v in self.params.items()}
         # also pass upstream tasks
-        self.params['up'] = self.upstream_by_name
-        self.params['t'] = self
+        params = {**self.params, **self.upstream_by_name}
+        params['task'] = self
+        params['product'] = self.product
 
-        self._source_code = Template(self._source_code).render(self.params)
+        self._source_code = Template(self._source_code).render(params)
 
     @property
     def name(self):
