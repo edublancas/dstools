@@ -112,6 +112,10 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         id_ = self.identifier
         return f'PG{id_.kind.capitalize()}: {id_.schema}.{id_.name}'
 
+    def __str__(self):
+        id_ = self.identifier
+        return f'{id_.schema}.{id_.name}'
+
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975
         query = """
