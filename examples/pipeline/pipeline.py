@@ -44,7 +44,7 @@ sample_task = PythonScript(home / 'sample.py',
 sample_task.set_upstream(get_data_task)
 
 red_path = path_to_sample / 'red.csv'
-red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
+red_task = BashCommand('csvsql --db {{db}} --tables red --insert {{path}} '
                        '--overwrite',
                        pg.PostgresRelation(('public', 'red', 'table')),
                        dag,
@@ -52,7 +52,7 @@ red_task = BashCommand('csvsql --db {db} --tables red --insert {path} '
 red_task.set_upstream(sample_task)
 
 white_path = Path(path_to_sample / 'white.csv')
-white_task = BashCommand('csvsql --db {db} --tables white --insert {path} '
+white_task = BashCommand('csvsql --db {{db}} --tables white --insert {{path}} '
                          '--overwrite',
                          pg.PostgresRelation(('public', 'white', 'table')),
                          dag,
@@ -90,19 +90,19 @@ testing_task.set_upstream(dataset_task)
 
 
 path_to_dataset = env.path.input / 'datasets'
-kwargs = dict(path_to_dataset=path_to_dataset, conn=pg.CONN)
+params = dict(path_to_dataset=path_to_dataset, conn=pg.CONN)
 dataset_task = PythonCallable(download_dataset,
                               File(path_to_dataset / 'training.csv'),
-                              dag, kwargs=kwargs)
+                              dag, params=params)
 dataset_task.set_upstream(training_task)
 dataset_task.set_upstream(testing_task)
 
 
 path_to_report = env.path.input / 'reports' / mkfilename('report.txt')
-kwargs = dict(path_to_dataset=path_to_dataset,
+params = dict(path_to_dataset=path_to_dataset,
               path_to_report=path_to_report)
 train_task = PythonCallable(train_and_save_report, File(
-    path_to_report), dag, kwargs=kwargs)
+    path_to_report), dag, params=params)
 train_task.set_upstream(dataset_task)
 train_task.set_upstream(dataset_task)
 

@@ -1,3 +1,4 @@
+from jinja2 import Template
 import inspect
 import shlex
 import subprocess
@@ -54,9 +55,10 @@ class Task:
     code: callable, Path, str
     """
 
-    def __init__(self, code, product, dag, name=None):
+    def __init__(self, code, product, dag, name=None, params={}):
         self._upstream = []
         self._upstream_by_name = {}
+        self.params = params
 
         self._code = code
 
@@ -96,6 +98,15 @@ class Task:
             self._source_code = self.code
         elif isinstance(self.code, Path):
             self._source_code = self.code.read_text()
+
+    def compile_source_code(self):
+        # render source code
+        # params = {k: shlex.quote(str(v)) for k, v in self.params.items()}
+        # also pass upstream tasks
+        self.params['up'] = self.upstream_by_name
+        self.params['t'] = self
+
+        self._source_code = Template(self._source_code).render(self.params)
 
     @property
     def name(self):
@@ -149,6 +160,8 @@ class Task:
             return TaskGroup((self, other))
 
     def build(self, force=False):
+        self.compile_source_code()
+
         # NOTE: should i fetch metadata here? I need to make sure I have
         # the latest before building
 
@@ -244,27 +257,20 @@ class BashCommand(Task):
     """A task that runs bash command
     """
 
-    def __init__(self, code, product, dag, name=None, params=None,
+    def __init__(self, code, product, dag, name=None, params={},
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
                                         'shell': False},
                  split_source_code=True):
-        super().__init__(code, product, dag, name)
-        self._params = params if params is not None else {}
+        super().__init__(code, product, dag, name, params)
         self.split_source_code = split_source_code
         self.subprocess_run_kwargs = subprocess_run_kwargs
         self._logger = logging.getLogger(__name__)
 
     def run(self):
-        # quote params to make them safe
-        params = {k: shlex.quote(str(v)) for k, v in self._params.items()}
-        # also pass upstream tasks
-        params['up'] = self.upstream_by_name
-        params['self'] = self
+        source_code = (shlex.split(self.source_code) if self.split_source_code
+                       else self.source_code)
 
-        source_code = self.source_code.format(**params)
-        source_code = (shlex.split(source_code) if self.split_source_code
-                       else source_code)
         res = subprocess.run(source_code,
                              **self.subprocess_run_kwargs)
 
@@ -284,13 +290,13 @@ class ScriptTask(Task):
     """
     _INTERPRETER = None
 
-    def __init__(self, code, product, dag, name=None):
+    def __init__(self, code, product, dag, name=None, params={}):
         if not isinstance(code, Path):
             raise ValueError(f'{type(self).__name__} must be called with '
                              'a pathlib.Path object in the code '
                              'parameter')
 
-        super().__init__(code, product, dag, name)
+        super().__init__(code, product, dag, name, params)
 
     def run(self):
         if self._INTERPRETER is None:
@@ -325,9 +331,11 @@ class PythonScript(ScriptTask):
 
 
 class PythonCallable(Task):
-    def __init__(self, code, product, dag, name=None, kwargs={}):
-        super().__init__(code, product, dag, name)
-        self.kwargs = kwargs
+    def __init__(self, code, product, dag, name=None, params={}):
+        super().__init__(code, product, dag, name, params)
+
+    def compile_source_code(self):
+        pass
 
     def run(self):
-        self.code(**self.kwargs)
+        self.code(**self.params)
