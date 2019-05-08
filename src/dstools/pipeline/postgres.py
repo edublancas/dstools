@@ -1,3 +1,4 @@
+from jinja2 import Template
 import warnings
 import base64
 import json
@@ -61,9 +62,12 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         self._get_conn()
 
         self.metadata_serializer = metadata_serializer
-        self.tests = []
 
-        super().__init__(PostgresIdentifier(*identifier))
+        # overriding superclass init since we need a PostgresIdentifier here
+        self._identifier = PostgresIdentifier(*identifier)
+        self.tests, self.checks = [], []
+        self.did_download_metadata = False
+        self.task = None
 
     def fetch_metadata(self):
         # https://stackoverflow.com/a/11494353/709975
@@ -149,12 +153,8 @@ class PostgresIdentifier:
     VIEW = 'view'
 
     def __init__(self, schema, name, kind):
-        if len(name) > 63:
-            url = ('https://www.postgresql.org/docs/current/'
-                   'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
-            raise ValueError(f'"{name}" exceeds maximum length of 63 '
-                             f' (length is {len(name)}), '
-                             f'see: {url}')
+        self.needs_render = isinstance(name, Template)
+        self.rendered = False
 
         if kind not in [self.TABLE, self.VIEW]:
             raise ValueError('kind must be one of ["view", "table"] '
@@ -163,6 +163,41 @@ class PostgresIdentifier:
         self.kind = kind
         self.schema = schema
         self.name = name
+
+        if not self.needs_render:
+            self._validate_name()
+
+    def _validate_name(self):
+        if len(self.name) > 63:
+            url = ('https://www.postgresql.org/docs/current/'
+                   'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
+            raise ValueError(f'"{self.name}" exceeds maximum length of 63 '
+                             f' (length is {len(self.name)}), '
+                             f'see: {url}')
+
+    def render(self, params):
+        if self.needs_render:
+            if not self.rendered:
+                self.name = self.name.render(params)
+                self.rendered = True
+            else:
+                warnings.warn(f'Trying to render {repr(self)}, with was'
+                              ' already rendered, skipping render...')
+
+        return self
+
+    def __call__(self):
+        if self.needs_render and not self.rendered:
+            raise RuntimeError('Attempted to read Identifier '
+                               f'{repr(self)} '
+                               '(which was initialized with '
+                               'a jinja2.Template object) wihout '
+                               'rendering the DAG first, call '
+                               'dag.render() on the dag before reading '
+                               'the identifier or initialize with a str '
+                               'object')
+        else:
+            return self
 
     def __str__(self):
         return f'{self.schema}.{self.name}'
@@ -175,14 +210,17 @@ class PostgresScript(PostgresConnectionMixin, Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
 
-    def __init__(self, code, product, dag, conn=None, name=None, params={}):
+    def __init__(self, code, product, dag, name, conn=None, params={}):
         super().__init__(code, product, dag, name, params)
 
         self._set_conn(conn)
 
         # check if a valid conn is available before moving forward
         self._get_conn()
-        self._validate()
+
+        if not self._code.needs_render:
+            # FIXME: should also validate after render
+            self._validate()
 
     def _validate(self):
         infered_relations = infer.created_relations(self.source_code)

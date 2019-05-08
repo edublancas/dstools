@@ -1,5 +1,8 @@
+from jinja2 import Template
 import warnings
 from pathlib import Path
+
+from dstools.pipeline.identifiers import Identifier
 
 
 class Product:
@@ -7,15 +10,14 @@ class Product:
     """
 
     def __init__(self, identifier):
-        self._identifier = identifier
-
-        self.get_metadata()
+        self._identifier = StringIdentifier(identifier)
         self.tests, self.checks = [], []
+        self.did_download_metadata = False
         self.task = None
 
     @property
     def identifier(self):
-        return self._identifier
+        return self._identifier()
 
     @property
     def timestamp(self):
@@ -34,7 +36,12 @@ class Product:
 
     @property
     def metadata(self):
-        return self._metadata
+        if self.did_download_metadata:
+            return self._metadata
+        else:
+            self.get_metadata()
+            self.did_download_metadata = True
+            return self._metadata
 
     @task.setter
     def task(self, value):
@@ -130,6 +137,17 @@ class Product:
         """
         raise NotImplementedError('You have to implement this method')
 
+    def render(self, params):
+        """
+        Render Product - this will render contents of Templates used as
+        identifier for this Product, if a regular string was passed, this
+        method has no effect
+        """
+        self._identifier.render(params)
+
+    def __str__(self):
+        return str(self.identifier)
+
     def __repr__(self):
         return f'{type(self).__name__}: {self.identifier}'
 
@@ -144,6 +162,10 @@ class MetaProduct:
     def __init__(self, products):
         self.products = products
         self.metadata = {p: p.metadata for p in self.products}
+
+    @property
+    def identifier(self):
+        return [p.identifier for p in self.products]
 
     def exists(self):
         return all([p.exists() for p in self.products])
@@ -206,6 +228,10 @@ class MetaProduct:
         for p in self.products:
             p.save_metadata()
 
+    def render(self, params):
+        for p in self.products:
+            p.render(params)
+
     def pre_save_metadata_hook(self):
         pass
 
@@ -218,26 +244,15 @@ class MetaProduct:
 
 
 class File(Product):
-
-    def __init__(self, identifier):
-        # FIXME: overridinfg super() since _path_to_file must be set before
-        # running get_metadata(), but I should refactor to avoid this
-
-        self._identifier = str(identifier)
-        self._path_to_file = Path(self.identifier)
-        self._path_to_stored_source_code = Path(str(self.path_to_file)
-                                                + '.source')
-
-        self.get_metadata()
-        self.task = None
-
+    """A product representing a local file
+    """
     @property
     def path_to_file(self):
-        return self._path_to_file
+        return Path(self.identifier)
 
     @property
     def path_to_stored_source_code(self):
-        return self._path_to_stored_source_code
+        return Path(str(self.path_to_file) + '.source')
 
     def fetch_metadata(self):
         # we can safely do this here since this is only run when the file
@@ -255,11 +270,25 @@ class File(Product):
 
     def save_metadata(self):
         # timestamp automatically updates when the file is saved...
-
         self.path_to_stored_source_code.write_text(self.stored_source_code)
 
     def exists(self):
         return self.path_to_file.exists()
 
-    def __str__(self):
-        return self.identifier
+    def __repr__(self):
+        return f'File({repr(self._identifier)})'
+
+
+class StringIdentifier(Identifier):
+
+    def __init__(self, s):
+        self.needs_render = isinstance(s, Template)
+        self.rendered = False
+
+        if not self.needs_render and not isinstance(s, str):
+            # if no Template passed but parameter is not str, cast...
+            warnings.warn('Initialized StringIdentifier with non-string '
+                          f'object "{s}" type: {type(s)}, casting to str...')
+            s = str(s)
+
+        self._s = s
