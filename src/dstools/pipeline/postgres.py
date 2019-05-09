@@ -1,3 +1,6 @@
+"""
+Module for using PostgresSQL
+"""
 from jinja2 import Template
 import warnings
 import base64
@@ -50,6 +53,9 @@ class Base64Serializer:
 
 
 class PostgresRelation(PostgresConnectionMixin, Product):
+    """A Product that represents a postgres relation (table or view)
+    """
+
     def __init__(self, identifier, conn=None,
                  metadata_serializer=Base64Serializer):
         if len(identifier) != 3:
@@ -149,8 +155,11 @@ class PostgresRelation(PostgresConnectionMixin, Product):
 
 
 class PostgresIdentifier:
+    """An identifier that represents a database relation (table or view)
+    """
     TABLE = 'table'
     VIEW = 'view'
+    # FIXME: make this a subclass of Identifier, and add hooks
 
     def __init__(self, schema, name, kind):
         self.needs_render = isinstance(name, Template)
@@ -226,22 +235,23 @@ class PostgresScript(PostgresConnectionMixin, Task):
         infered_relations = infer.created_relations(self.source_code)
 
         if not infered_relations:
-            warnings.warn('It seems like your code will not create any '
-                          'TABLES or VIEWS but your product is '
-                          f'{self.product}')
+            warnings.warn(f'It seems like your task "{self}" will not create '
+                          'any tables or views but the task has product '
+                          f'"{self.product}"')
+        # FIXME: check when product is metaproduct
         elif len(infered_relations) > 1:
-            warnings.warn('It seems like your code will create create more '
-                          'than one TABLES or VIEWS but you only declared '
-                          f' one product: {self.product}')
+            warnings.warn(f'It seems like your task "{self}" will create '
+                          'more than one table or view but you only declared '
+                          f' one product: "{self.product}"')
         else:
             schema, name, kind = infered_relations[0]
             id_ = self.product.identifier
 
             if ((schema != id_.schema) or (name != id_.name)
                     or (kind != id_.kind)):
-                warnings.warn('It seems like your code will create create a '
-                              f'{kind} in {schema}.{name} but your product '
-                              f'did not match: {self.product}')
+                warnings.warn(f'It seems like your task "{self}" create '
+                              f'a {kind} "{schema}.{name}" but your product '
+                              f'did not match: "{self.product}"')
 
     def run(self):
         cursor = self._get_conn().cursor()

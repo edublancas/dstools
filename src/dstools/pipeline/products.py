@@ -1,12 +1,17 @@
-from jinja2 import Template
+"""
+Products are persistent changes triggered by Tasks such as a new file
+in the local filesystem or a table in a database
+"""
+
 import warnings
 from pathlib import Path
-
-from dstools.pipeline.identifiers import Identifier
+from dstools.pipeline.identifiers import StringIdentifier
 
 
 class Product:
-    """A product is a persistent triggered by a Task
+    """
+    A product is a persistent triggered by a Task, this is an abstract
+    class for all products
     """
 
     def __init__(self, identifier):
@@ -156,7 +161,9 @@ class Product:
 
 
 class MetaProduct:
-    """Exposes a Product-like API for a list of products
+    """
+    Exposes a Product-like API for a list of products, used internally
+    when a Task is declared to have more than one product
     """
 
     def __init__(self, products):
@@ -244,7 +251,7 @@ class MetaProduct:
 
 
 class File(Product):
-    """A product representing a local file
+    """A product representing a file in the local filesystem
     """
     @property
     def path_to_file(self):
@@ -277,18 +284,3 @@ class File(Product):
 
     def __repr__(self):
         return f'File({repr(self._identifier)})'
-
-
-class StringIdentifier(Identifier):
-
-    def __init__(self, s):
-        self.needs_render = isinstance(s, Template)
-        self.rendered = False
-
-        if not self.needs_render and not isinstance(s, str):
-            # if no Template passed but parameter is not str, cast...
-            warnings.warn('Initialized StringIdentifier with non-string '
-                          f'object "{s}" type: {type(s)}, casting to str...')
-            s = str(s)
-
-        self._s = s

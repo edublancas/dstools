@@ -1,32 +1,48 @@
-from jinja2 import Template
+"""
+Identifiers are used by products to represent their persistent
+representations, for example product, for example, File uses it to represent
+the path to a file. Identifiers are lazy-loaded, they can be initialized
+with a jinja2.Template and rendered before task execution, which makes
+passing metadata between products and its upstream tasks possible.
+"""
+from pathlib import Path
+import inspect
 import warnings
+
+from jinja2 import Template
 
 
 class Identifier:
+    """Identifier abstract class
+    """
 
     def __init__(self, s):
         self.needs_render = isinstance(s, Template)
         self.rendered = False
+        self.s = s
 
-        if not self.needs_render and not isinstance(s, str):
-            # if no Template passed but parameter is not str, cast...
-            warnings.warn('Initialized StringIdentifier with non-string '
-                          f'object "{s}" type: {type(s)}, casting to str...')
-            s = str(s)
+        self.after_init_hook()
 
-        self._s = s
+    def after_init_hook(self):
+        raise NotImplementedError('Identifier subclasses must implement this '
+                                  'method')
+
+    def after_render_hook(self):
+        raise NotImplementedError('Identifier subclasses must implement this '
+                                  'method')
 
     def __str__(self):
         return self()
 
     def __repr__(self):
-        return f'{type(self)}({self._s})'
+        return f'{type(self)}({self.s})'
 
     def render(self, params):
         if self.needs_render:
             if not self.rendered:
-                self._s = self._s.render(params)
+                self.s = self.s.render(params)
                 self.rendered = True
+                self.after_render_hook()
             else:
                 warnings.warn(f'Trying to render {repr(self)}, with was'
                               ' already rendered, skipping render...')
@@ -46,6 +62,57 @@ class Identifier:
                                    'dag.render() on the dag before reading '
                                    'the identifier or initialize with a str '
                                    'object')
-            return self._s
+            return self.s
         else:
-            return self._s
+            return self.s
+
+
+class StringIdentifier(Identifier):
+    """Identifier that represents a str object
+    """
+
+    def after_init_hook(self):
+        if not self.needs_render and not isinstance(self.s, str):
+            # if no Template passed but parameter is not str, cast...
+            warnings.warn('Initialized StringIdentifier with non-string '
+                          f'object "{self.s}" type: '
+                          f'{type(self.s)}, casting to str...')
+            self.s = str(self.s)
+
+    def after_render_hook(self):
+        pass
+
+
+class CodeIdentifier(Identifier):
+    """
+    A CodeIdentifier represents a piece of code in various forms:
+    a Python callable, a language-agnostic string, a path to a soure code file
+    or a jinja2.Template
+    """
+
+    def after_init_hook(self):
+        valid_type = (callable(self.s)
+                      or isinstance(self.s, str)
+                      or isinstance(self.s, Path)
+                      or isinstance(self.s, Template))
+        if not valid_type:
+            TypeError('Code must be a callable, str, pathlib.Path or '
+                      f'jinja2.Template, got {type(self.s)}')
+
+    @property
+    def source(self):
+        if callable(self.s):
+            # TODO: i think this doesn't work sometime and dill has a function
+            # that covers more use cases, check
+            return inspect.getsource(self())
+            return self()
+        elif isinstance(self.s, Path):
+            return self().read_text()
+        elif isinstance(self.s, Template) or isinstance(self.s, str):
+            return self()
+        else:
+            TypeError('Code must be a callable, str, pathlib.Path or '
+                      f'jinja2.Template, got {type(self.code)}')
+
+    def after_render_hook(self):
+        pass
