@@ -15,8 +15,12 @@ class DAG:
     def __init__(self, name=None):
         self.tasks = []
         self.tasks_by_name = {}
-        self.product = MetaProduct([t.product for t in self.tasks])
         self.name = name
+
+    @property
+    def product(self):
+        # We have to rebuild it since tasks might have been added
+        return MetaProduct([t.product for t in self.tasks])
 
     def add_task(self, task):
         """Adds a task to the DAG
