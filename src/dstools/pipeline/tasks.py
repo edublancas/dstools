@@ -226,20 +226,25 @@ class Task:
         up = {n: t.product.identifier for n, t
               in self.upstream_by_name.items()}
 
+        # NOTE: we modify self.params so the new parameters are available
+        # after render, this is needed by PythonCallable, which does not
+        # need rendered source code, but it needs this parameters when
+        # the callable is executed
+
         # pass identifier objects only
-        params = {**self.params, **up}
+        self.params = {**self.params, **up}
 
         # FIXME: need to render code here as well
         try:
-            self.product.render(params)
+            self.product.render(self.params)
         except Exception as e:
             raise RuntimeError(f'Error rendering product {self.product} from '
                                f'task {self} with params '
                                f'{params}. Exception: {e}')
 
-        params['me'] = self.product.identifier
+        self.params['me'] = self.product.identifier
 
-        self._code.render(params)
+        self._code.render(self.params)
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'

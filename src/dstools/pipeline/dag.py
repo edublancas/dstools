@@ -15,7 +15,7 @@ class DAG:
     def __init__(self, name=None):
         self.tasks = []
         self.tasks_by_name = {}
-        self.product = MetaProduct(self.tasks)
+        self.product = MetaProduct([t.product for t in self.tasks])
         self.name = name
 
     def add_task(self, task):
