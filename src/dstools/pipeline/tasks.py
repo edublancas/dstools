@@ -231,10 +231,15 @@ class Task:
         # need rendered source code, but it needs this parameters when
         # the callable is executed
 
-        # pass identifier objects only
+        # NOTE: we are passing all upstream products two times, at first
+        # i thought it was a good idea just to pass then "expanded"
+        # using **up to make templates cleaner, but for some cases we want
+        # to iterate over all upstream dependencies, so having "up" is easier,
+        # I have to decide if it's best to leave these two or just one
         self.params = {**self.params, **up}
+        self.params['up'] = up
 
-        # FIXME: need to render code here as well
+        # first, render the current product
         try:
             self.product.render(self.params)
         except Exception as e:
@@ -242,8 +247,11 @@ class Task:
                                f'task {self} with params '
                                f'{params}. Exception: {e}')
 
+        # then, make it available before rendering code since it might be a
+        # template with a reference to the current product
         self.params['me'] = self.product.identifier
 
+        # render code
         self._code.render(self.params)
 
     def __repr__(self):
