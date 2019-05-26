@@ -2,7 +2,8 @@
 Products are persistent changes triggered by Tasks such as a new file
 in the local filesystem or a table in a database
 """
-
+import logging
+import os
 import warnings
 from pathlib import Path
 from dstools.pipeline.identifiers import StringIdentifier
@@ -19,6 +20,7 @@ class Product:
         self.tests, self.checks = [], []
         self.did_download_metadata = False
         self.task = None
+        self.logger = logging.getLogger(__name__)
 
     @property
     def identifier(self):
@@ -135,6 +137,11 @@ class Product:
     def save_metadata(self):
         raise NotImplementedError('You have to implement this method')
 
+    def delete(self):
+        """Deletes the product
+        """
+        raise NotImplementedError('You have to implement this method')
+
     def exists(self):
         """
         This method returns True if the product exists, it is not part
@@ -176,6 +183,10 @@ class MetaProduct:
 
     def exists(self):
         return all([p.exists() for p in self.products])
+
+    def delete(self):
+        for product in self.products:
+            product.delete()
 
     def outdated(self):
         return (self.outdated_data_dependencies()
@@ -281,6 +292,10 @@ class File(Product):
 
     def exists(self):
         return self.path_to_file.exists()
+
+    def delete(self):
+        self.logger.debug(f'Deleting {self.path_to_file}')
+        os.remove(self.path_to_file)
 
     def __repr__(self):
         return f'File({repr(self._identifier)})'

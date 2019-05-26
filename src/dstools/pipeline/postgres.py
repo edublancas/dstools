@@ -2,6 +2,7 @@
 Module for using PostgresSQL
 """
 from jinja2 import Template
+import logging
 import warnings
 import base64
 from functools import total_ordering
@@ -76,6 +77,8 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         self.did_download_metadata = False
         self.task = None
 
+        self.logger = logging.getLogger(__name__)
+
     def fetch_metadata(self):
         # https://stackoverflow.com/a/11494353/709975
         query = """
@@ -145,6 +148,16 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         exists = cur.fetchone()[0]
         cur.close()
         return exists
+
+    def delete(self):
+        """Deletes the product
+        """
+        query = f"DROP {self.identifier.kind} IF EXISTS {self}"
+        self.logger.debug(f'Running "{query}" on the databse...')
+        cur = self._get_conn().cursor()
+        cur.execute(query)
+        cur.close()
+        self._get_conn().commit()
 
     @property
     def name(self):
