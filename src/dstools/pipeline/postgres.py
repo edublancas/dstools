@@ -4,6 +4,7 @@ Module for using PostgresSQL
 from jinja2 import Template
 import warnings
 import base64
+from functools import total_ordering
 import json
 from dstools.pipeline.products import Product
 from dstools.pipeline.tasks import Task
@@ -154,6 +155,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         return self.identifier.schema
 
 
+@total_ordering
 class PostgresIdentifier:
     """An identifier that represents a database relation (table or view)
     """
@@ -213,6 +215,13 @@ class PostgresIdentifier:
 
     def __repr__(self):
         return f'{self.schema}.{self.name} (PG{self.kind.capitalize()})'
+
+    def __eq__(self, other):
+        """Compare schema.name to set order"""
+        return str(self) == str(other)
+
+    def __lt__(self, other):
+        return str(self) < str(other)
 
 
 class PostgresScript(PostgresConnectionMixin, Task):
