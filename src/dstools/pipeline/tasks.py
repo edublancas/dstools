@@ -171,7 +171,13 @@ class Task:
 
             self._logger.info(f'Running {repr(self)}')
 
+            then = datetime.now()
+
             self.run()
+
+            now = datetime.now()
+            elapsed = (now - then).total_seconds()
+            self._logger.info(f'Done. Operation took {elapsed:.1f} seconds')
 
             # TODO: should check if job ran successfully, if not,
             # stop execution
