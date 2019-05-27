@@ -34,7 +34,6 @@ def test_passing_upstream_and_product_in_bashcommand(tmp_directory):
 
     ta >> tb >> tc
 
-    dag.render()
     dag.build()
 
     assert fc.read_text() == 'a\nb\nc\n'
@@ -56,7 +55,6 @@ def test_passing_upstream_and_product_in_postgres(open_conn):
     ta_rel = pg.PostgresRelation(('public', 'series', 'table'))
     ta = pg.PostgresScript(ta_t, ta_rel, dag, 'ta')
 
-    dag.render()
     dag.build()
 
     assert ta_rel.exists()

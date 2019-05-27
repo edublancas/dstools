@@ -1,11 +1,34 @@
 """
 DAG module
 """
+from collections import OrderedDict
 import subprocess
 import tempfile
 import networkx as nx
+from tabulate import tabulate
 
 from dstools.pipeline.products import MetaProduct
+
+
+class DAGStats(OrderedDict):
+
+    def __str__(self):
+        names = [t.name for t in self.keys()]
+        content = [list(d.values()) for d in self.values()]
+        total = sum([elapsed or 0 for run, elapsed in content])
+
+        def prop(elapsed, total):
+            if elapsed is None:
+                return None
+            else:
+                return 100 * elapsed / total
+
+        rows = [(name, run, elapsed, prop(elapsed, total))
+                for name, (run, elapsed) in zip(names, content)]
+
+        return tabulate(rows, headers=['Task name', 'Ran?', 'Elapsed',
+                                       'Percentage'],
+                        floatfmt='.2f')
 
 
 class DAG:
@@ -55,13 +78,24 @@ class DAG:
         """
         Runs the DAG in order so that all upstream dependencies are run for
         every task
+
+        Returns
+        -------
+        DAGStats
+            A dict-like object with tasks as keys and dicts with task
+            status as values. str(DAGStats) returns a table in plain text
         """
         # attributes docs:
         # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
         G = self.mk_graph(add_properties=True)
 
+        stats = DAGStats()
+
         for t in nx.algorithms.topological_sort(G):
-            t.build()
+            status = t.build()
+            stats[t] = status
+
+        return stats
 
     def plot(self):
         """Plot the DAG

@@ -137,6 +137,13 @@ class Task:
             return TaskGroup((self, other))
 
     def build(self, force=False):
+        """Run the task if needed by checking its dependencies
+
+        Returns
+        -------
+        dict
+            A dictionary with keys 'run' and 'elapsed'
+        """
 
         # NOTE: should i fetch metadata here? I need to make sure I have
         # the latest before building
@@ -144,6 +151,7 @@ class Task:
         self._logger.info(f'-----\nChecking {repr(self)}....')
 
         run = False
+        elapsed = None
 
         # check dependencies only if the product exists and there is metadata
         if self.product.exists() and self.product.metadata is not None:
@@ -198,6 +206,8 @@ class Task:
 
         self._logger.info('-----\n')
 
+        return dict(run=run, elapsed=elapsed)
+
     def status(self):
         """Prints the current task status
         """
@@ -208,7 +218,8 @@ class Task:
         out = ''
 
         if p.timestamp is not None:
-            dt = datetime.fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M')
+            dt = (datetime
+                  .fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M'))
             out += f'* Last updated: {dt}\n'
         else:
             out += f'* Timestamp is None\n'
@@ -251,7 +262,7 @@ class Task:
         except Exception as e:
             raise RuntimeError(f'Error rendering product {self.product} from '
                                f'task {self} with params '
-                               f'{params}. Exception: {e}')
+                               f'{self.params}. Exception: {e}')
 
         # then, make it available before rendering code since it might be a
         # template with a reference to the current product

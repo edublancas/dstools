@@ -72,7 +72,7 @@ setup(
     ],
     install_requires=[
         # FIXME: remove pyyaml
-        'pyyaml', 'networkx', 'click', 'jinja2'
+        'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate'
     ],
     extras_require={
         # eg:
