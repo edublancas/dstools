@@ -110,6 +110,6 @@ train_task.set_upstream(download_task)
 
 stats = dag.build()
 
-print(str(stats))
+# print(str(stats))
 
 pg.CONN.close()

@@ -1,6 +1,7 @@
 """
 DAG module
 """
+import logging
 from collections import OrderedDict
 import subprocess
 import tempfile
@@ -26,7 +27,7 @@ class DAGStats(OrderedDict):
         rows = [(name, run, elapsed, prop(elapsed, total))
                 for name, (run, elapsed) in zip(names, content)]
 
-        return tabulate(rows, headers=['Task name', 'Ran?', 'Elapsed',
+        return tabulate(rows, headers=['Task name', 'Ran?', 'Elapsed (s)',
                                        'Percentage'],
                         floatfmt='.2f')
 
@@ -39,6 +40,7 @@ class DAG:
         self.tasks = []
         self.tasks_by_name = {}
         self.name = name
+        self.logger = logging.getLogger(__name__)
 
     @property
     def product(self):
@@ -94,6 +96,8 @@ class DAG:
         for t in nx.algorithms.topological_sort(G):
             status = t.build()
             stats[t] = status
+
+        self.logger.info(f' DAGStats\n{stats}')
 
         return stats
 
