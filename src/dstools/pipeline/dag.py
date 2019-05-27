@@ -41,6 +41,9 @@ class DAG:
             G.add_node(t)
             G.add_edges_from([(up, t) for up in t.upstream])
 
+        for t in nx.algorithms.topological_sort(G):
+            t.render()
+
         if add_properties:
             for n, data in G.nodes(data=True):
                 data['color'] = 'red' if n.product.outdated() else 'green'
@@ -48,20 +51,11 @@ class DAG:
 
         return G
 
-    def render(self):
-        """Render all tasks in the DAG
-        """
-        G = self.mk_graph(add_properties=False)
-
-        for t in nx.algorithms.topological_sort(G):
-            t.render()
-
     def build(self):
         """
         Runs the DAG in order so that all upstream dependencies are run for
         every task
         """
-        # FIXME: must render first
         # attributes docs:
         # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
         G = self.mk_graph(add_properties=True)
@@ -75,7 +69,6 @@ class DAG:
         # https://networkx.github.io/documentation/networkx-1.10/reference/drawing.html
         # # http://graphviz.org/doc/info/attrs.html
         # NOTE: requires pygraphviz and pygraphviz
-        # FIXME: must render first
         G = self.mk_graph(add_properties=True)
         G_ = nx.nx_agraph.to_agraph(G)
         path = tempfile.mktemp(suffix='.png')

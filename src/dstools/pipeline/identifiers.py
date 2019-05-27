@@ -58,10 +58,11 @@ class Identifier:
                                    f'{repr(self)} '
                                    '(which was initialized with '
                                    'a jinja2.Template object) wihout '
-                                   'rendering the DAG first, call '
-                                   'dag.render() on the dag before reading '
+                                   'rendering the task first, call '
+                                   'task.render() before reading '
                                    'the identifier or initialize with a str '
-                                   'object')
+                                   'object, if this is part of a DAG, '
+                                   'the task should render automatically')
             return self.s
         else:
             return self.s
