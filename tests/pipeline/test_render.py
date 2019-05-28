@@ -40,8 +40,7 @@ def test_can_render_templates_in_products(dag, tmp_directory):
     t2 = dag.tasks_by_name['t2']
     t3 = dag.tasks_by_name['t3']
 
-    # mk_graph calls render for every task implicitely
-    dag.mk_graph()
+    dag.render()
 
     assert str(t3.product) == '3_2_1.txt'
     assert str(t2.product) == '2_1.txt'
