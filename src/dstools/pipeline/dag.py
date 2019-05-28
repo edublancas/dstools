@@ -83,14 +83,16 @@ class DAG:
         """
         self.render()
 
-        for n, data in self.to_graph().nodes(data=True):
+        G = self.to_graph()
+
+        for n, data in G.nodes(data=True):
             data['color'] = 'red' if n.product.outdated() else 'green'
             data['label'] = n.short_repr()
 
         # https://networkx.github.io/documentation/networkx-1.10/reference/drawing.html
         # # http://graphviz.org/doc/info/attrs.html
         # NOTE: requires pygraphviz and pygraphviz
-        G_ = nx.nx_agraph.to_agraph(self.to_graph())
+        G_ = nx.nx_agraph.to_agraph(G)
         path = tempfile.mktemp(suffix='.png')
         G_.draw(path, prog='dot', args='-Grankdir=LR')
         subprocess.run(['open', path])
