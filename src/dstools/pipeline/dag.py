@@ -83,7 +83,7 @@ class DAG:
         """
         self.render()
 
-        for n, data in self.graph.nodes(data=True):
+        for n, data in self.to_graph().nodes(data=True):
             data['color'] = 'red' if n.product.outdated() else 'green'
             data['label'] = n.short_repr()
 
