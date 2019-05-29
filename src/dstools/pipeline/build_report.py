@@ -1,8 +1,8 @@
 from tabulate import tabulate
 
 
-class BuildStatus:
-    """A class to encapsulate the status of a task/dag after building
+class BuildReport:
+    """A class to report information after a task is built
     """
 
     def __init__(self, run, elapsed):
@@ -13,8 +13,8 @@ class BuildStatus:
     @classmethod
     def from_components(cls, components):
         names = [t.name for t in components.keys()]
-        status = components.values()
-        total = sum([s.elapsed or 0 for s in status])
+        report = components.values()
+        total = sum([s.elapsed or 0 for s in report])
 
         def prop(elapsed, total):
             if elapsed is None:
@@ -23,9 +23,9 @@ class BuildStatus:
                 return 100 * elapsed / total
 
         rows = [(n, s.run, s.elapsed, prop(s.elapsed, total))
-                for n, s in zip(names, status)]
+                for n, s in zip(names, report)]
 
-        run = any(s.run for s in status)
+        run = any(s.run for s in report)
         elapsed = total if run else None
 
         obj = cls(run=run, elapsed=elapsed)

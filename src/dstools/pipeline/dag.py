@@ -7,12 +7,19 @@ import subprocess
 import tempfile
 import networkx as nx
 
-from dstools.pipeline.build_status import BuildStatus
+from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.products import MetaProduct
 
 
 class DAG:
     """A DAG is a collection of tasks with dependencies
+
+    Attributes
+    ----------
+    build_report: BuildStatus
+        A dict-like object with tasks as keys and BuildStatus objects for each
+        task as values. str(BuildStatus) returns a table in plain text. This
+        object is created after build() is run, otherwise is None
     """
     # TODO: remove the tasks, and tasks_by_name properties and use the
     # networkx.DiGraph structure directly to avoid having to re-build the
@@ -22,6 +29,7 @@ class DAG:
         self.tasks_by_name = {}
         self.name = name
         self.logger = logging.getLogger(__name__)
+        self.build_report = None
 
     @property
     def product(self):
@@ -70,13 +78,12 @@ class DAG:
         status_all = OrderedDict()
 
         for t in nx.algorithms.topological_sort(self.to_graph()):
-            status_all[t] = t.build()
+            status_all[t] = t.build().build_report
 
-        status = BuildStatus.from_components(status_all)
+        self.build_report = BuildReport.from_components(status_all)
+        self.logger.info(f' DAG status:\n{self.build_report}')
 
-        self.logger.info(f' DAG status:\n{status}')
-
-        return status
+        return self
 
     def plot(self):
         """Plot the DAG

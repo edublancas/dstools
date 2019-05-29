@@ -11,7 +11,7 @@ from datetime import datetime
 from dstools.pipeline import util
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.identifiers import CodeIdentifier
-from dstools.pipeline.build_status import BuildStatus
+from dstools.pipeline.build_report import BuildReport
 from dstools.util import isiterable
 
 
@@ -72,6 +72,7 @@ class Task:
         self._name = name
 
         self.params = params
+        self.build_report = None
 
         self._code = CodeIdentifier(code)
 
@@ -207,7 +208,9 @@ class Task:
 
         self._logger.info('-----\n')
 
-        return BuildStatus(run=run, elapsed=elapsed)
+        self.build_report = BuildReport(run=run, elapsed=elapsed)
+
+        return self
 
     def status(self):
         """Prints the current task status
