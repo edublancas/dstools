@@ -149,10 +149,11 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         cur.close()
         return exists
 
-    def delete(self):
+    def delete(self, force=False):
         """Deletes the product
         """
-        query = f"DROP {self.identifier.kind} IF EXISTS {self}"
+        cascade = 'CASCADE' if force else ''
+        query = f"DROP {self.identifier.kind} IF EXISTS {self} {cascade}"
         self.logger.debug(f'Running "{query}" on the databse...')
         cur = self._get_conn().cursor()
         cur.execute(query)

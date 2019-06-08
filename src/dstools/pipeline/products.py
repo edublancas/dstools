@@ -137,7 +137,7 @@ class Product:
     def save_metadata(self):
         raise NotImplementedError('You have to implement this method')
 
-    def delete(self):
+    def delete(self, force=False):
         """Deletes the product
         """
         raise NotImplementedError('You have to implement this method')
@@ -184,9 +184,9 @@ class MetaProduct:
     def exists(self):
         return all([p.exists() for p in self.products])
 
-    def delete(self):
+    def delete(self, force=False):
         for product in self.products:
-            product.delete()
+            product.delete(force)
 
     def outdated(self):
         return (self.outdated_data_dependencies()
@@ -293,7 +293,9 @@ class File(Product):
     def exists(self):
         return self.path_to_file.exists()
 
-    def delete(self):
+    def delete(self, force=False):
+        # force is not used for this product but it is left for API
+        # compatibility
         self.logger.debug(f'Deleting {self.path_to_file}')
         os.remove(self.path_to_file)
 
