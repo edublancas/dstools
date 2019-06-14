@@ -39,10 +39,10 @@ class PathManager:
     def input(self):
         """Project's input folder
         """
-        if not self._output.exists():
-            self._output.mkdir(parents=True)
+        if not self._input.exists():
+            self._input.mkdir(parents=True)
 
-        return self._output
+        return self._input
 
     @property
     def output(self):
