@@ -27,9 +27,6 @@ class PathManager:
 
             path_to_key_absolute = path_to_key
 
-        if not path_to_key_absolute.is_dir():
-            path_to_key_absolute.mkdir(parents=True)
-
         return path_to_key_absolute
 
     @property
@@ -42,16 +39,25 @@ class PathManager:
     def input(self):
         """Project's input folder
         """
-        return self._input
+        if not self._output.exists():
+            self._output.mkdir(parents=True)
+
+        return self._output
 
     @property
     def output(self):
         """Project's output folder
         """
+        if not self._output.exists():
+            self._output.mkdir(parents=True)
+
         return self._output
 
     @property
     def log(self):
         """Project's log folder
         """
+        if not self._log.exists():
+            self._log.mkdir(parents=True)
+
         return self._log
