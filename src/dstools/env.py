@@ -1,6 +1,7 @@
 """
 Environment management
 """
+import logging
 from warnings import warn
 from itertools import chain
 from pathlib import Path
@@ -37,37 +38,54 @@ class Env:
     >>> env.path.log # returns an ansolute path to the log folder
 
     """
-    __path_to_env_absolute = None
+    __path_to_env = None
 
     def __init__(self, path_to_env=None):
+        self.logger = logging.getLogger(__name__)
 
-        if path_to_env is None:
-            path_to_env = find_env()
+        # if not env has been set...
+        if Env.__path_to_env is None:
+
+            # try to set it if no argument was provided
             if path_to_env is None:
-                raise FileNotFoundError("Couldn't find env.yaml")
 
-        # check if env matches the one that has been instantiated already
-        path_to_env_absolute = Path(path_to_env).absolute()
+                path_to_env = find_env()
 
-        if Env.__path_to_env_absolute is None:
-            Env.__path_to_env_absolute = path_to_env_absolute
+                if path_to_env is None:
+                    raise FileNotFoundError("Couldn't find env.yaml")
+
+            # resolve it
+            path_to_env = Path(path_to_env).resolve()
+            Env.__path_to_env = path_to_env
+
+        # if an environment has been set...
         else:
+            # if no argument provided, just use whatever env was already used
+            if path_to_env is None:
+                path_to_env = Env.__path_to_env
+                self.logger.info('Already instantiated Env, loading it from '
+                                 f'{path_to_env}...')
 
-            if Env.__path_to_env_absolute != path_to_env_absolute:
-                warn('Env was already instantiated using file '
-                     f'{Env.__path_to_env_absolute} but new '
-                     'instance was created using '
-                     f'{path_to_env_absolute}, it is not recommended to '
-                     'have more than one environment per project')
+            # otherwise, resolve argument and warng the user if there is
+            # conflcit
+            else:
+                path_to_env = Path(path_to_env).resolve()
 
-        self._path_to_env_absolute = path_to_env_absolute
+                if Env.__path_to_env != path_to_env:
+                    warn('Env was already instantiated using file '
+                         f'{Env.__path_to_env} but new '
+                         'instance was created using '
+                         f'{path_to_env}, it is not recommended to '
+                         'have more than one environment per project')
+
+        self._path_to_env = path_to_env
         self._env_content = FrozenJSON.from_yaml(path_to_env)
 
         self._name = _get_name(path_to_env)
         self._path = PathManager(path_to_env, self)
 
     def __repr__(self):
-        return f'Env loaded from {self._path_to_env_absolute}'
+        return f'Env loaded from {self._path_to_env}'
 
     def __dir__(self):
         return dir(self._env_content)
