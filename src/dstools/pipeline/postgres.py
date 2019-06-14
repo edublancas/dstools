@@ -2,8 +2,10 @@
 Module for using PostgresSQL
 """
 from jinja2 import Template
+import logging
 import warnings
 import base64
+from functools import total_ordering
 import json
 from dstools.pipeline.products import Product
 from dstools.pipeline.tasks import Task
@@ -75,6 +77,8 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         self.did_download_metadata = False
         self.task = None
 
+        self.logger = logging.getLogger(__name__)
+
     def fetch_metadata(self):
         # https://stackoverflow.com/a/11494353/709975
         query = """
@@ -145,6 +149,17 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         cur.close()
         return exists
 
+    def delete(self, force=False):
+        """Deletes the product
+        """
+        cascade = 'CASCADE' if force else ''
+        query = f"DROP {self.identifier.kind} IF EXISTS {self} {cascade}"
+        self.logger.debug(f'Running "{query}" on the databse...')
+        cur = self._get_conn().cursor()
+        cur.execute(query)
+        cur.close()
+        self._get_conn().commit()
+
     @property
     def name(self):
         return self.identifier.name
@@ -154,6 +169,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         return self.identifier.schema
 
 
+@total_ordering
 class PostgresIdentifier:
     """An identifier that represents a database relation (table or view)
     """
@@ -213,6 +229,13 @@ class PostgresIdentifier:
 
     def __repr__(self):
         return f'{self.schema}.{self.name} (PG{self.kind.capitalize()})'
+
+    def __eq__(self, other):
+        """Compare schema.name to set order"""
+        return str(self) == str(other)
+
+    def __lt__(self, other):
+        return str(self) < str(other)
 
 
 class PostgresScript(PostgresConnectionMixin, Task):

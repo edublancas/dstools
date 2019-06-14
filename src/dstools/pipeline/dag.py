@@ -1,22 +1,40 @@
 """
 DAG module
 """
+import logging
+from collections import OrderedDict
 import subprocess
 import tempfile
 import networkx as nx
 
+from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.products import MetaProduct
 
 
 class DAG:
     """A DAG is a collection of tasks with dependencies
-    """
 
+    Attributes
+    ----------
+    build_report: BuildStatus
+        A dict-like object with tasks as keys and BuildStatus objects for each
+        task as values. str(BuildStatus) returns a table in plain text. This
+        object is created after build() is run, otherwise is None
+    """
+    # TODO: remove the tasks, and tasks_by_name properties and use the
+    # networkx.DiGraph structure directly to avoid having to re-build the
+    # graph every time
     def __init__(self, name=None):
         self.tasks = []
         self.tasks_by_name = {}
-        self.product = MetaProduct(self.tasks)
         self.name = name
+        self.logger = logging.getLogger(__name__)
+        self.build_report = None
+
+    @property
+    def product(self):
+        # We have to rebuild it since tasks might have been added
+        return MetaProduct([t.product for t in self.tasks])
 
     def add_task(self, task):
         """Adds a task to the DAG
@@ -26,53 +44,61 @@ class DAG:
         if task.name is not None:
             self.tasks_by_name[task.name] = task
 
-    def mk_graph(self, add_properties=False):
-        """
-        Return a networkx directed graph from declared tasks and declared
-        upstream dependencies
-        """
+    def to_graph(self):
         G = nx.DiGraph()
 
-        for t in self.tasks:
-            G.add_node(t)
-            G.add_edges_from([(up, t) for up in t.upstream])
-
-        if add_properties:
-            for n, data in G.nodes(data=True):
-                data['color'] = 'red' if n.product.outdated() else 'green'
-                data['label'] = n.short_repr()
+        for task in self.tasks:
+            G.add_node(task)
+            G.add_edges_from([(up, task) for up in task.upstream])
 
         return G
 
     def render(self):
-        """Render all tasks in the DAG
+        """Render the graph
         """
-        G = self.mk_graph(add_properties=False)
-
-        for t in nx.algorithms.topological_sort(G):
+        for t in nx.algorithms.topological_sort(self.to_graph()):
             t.render()
 
     def build(self):
         """
         Runs the DAG in order so that all upstream dependencies are run for
         every task
+
+        Returns
+        -------
+        DAGStats
+            A dict-like object with tasks as keys and dicts with task
+            status as values. str(DAGStats) returns a table in plain text
         """
-        # FIXME: must render first
+        self.render()
+
         # attributes docs:
         # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
-        G = self.mk_graph(add_properties=True)
 
-        for t in nx.algorithms.topological_sort(G):
-            t.build()
+        status_all = OrderedDict()
+
+        for t in nx.algorithms.topological_sort(self.to_graph()):
+            status_all[t] = t.build().build_report
+
+        self.build_report = BuildReport.from_components(status_all)
+        self.logger.info(f' DAG status:\n{self.build_report}')
+
+        return self
 
     def plot(self):
         """Plot the DAG
         """
+        self.render()
+
+        G = self.to_graph()
+
+        for n, data in G.nodes(data=True):
+            data['color'] = 'red' if n.product.outdated() else 'green'
+            data['label'] = n.short_repr()
+
         # https://networkx.github.io/documentation/networkx-1.10/reference/drawing.html
         # # http://graphviz.org/doc/info/attrs.html
         # NOTE: requires pygraphviz and pygraphviz
-        # FIXME: must render first
-        G = self.mk_graph(add_properties=True)
         G_ = nx.nx_agraph.to_agraph(G)
         path = tempfile.mktemp(suffix='.png')
         G_.draw(path, prog='dot', args='-Grankdir=LR')
@@ -81,8 +107,9 @@ class DAG:
     def status(self):
         """Returns the status of each node in the DAG
         """
-        G = self.mk_graph(add_properties=True)
-        return [t.status() for t in nx.algorithms.topological_sort(G)]
+        self.render()
+        return [t.status() for t
+                in nx.algorithms.topological_sort(self.to_graph())]
 
     # def __getitem__(self, key):
         # return self.tasks_by_name[key]
@@ -91,8 +118,8 @@ class DAG:
         """
         Convert the DAG to a dictionary where each key is a task
         """
-        g = self.mk_graph()
-        return {n.name: n for n in g.nodes()}
+        self.render()
+        return {n.name: n for n in self.to_graph().nodes()}
 
     def __repr__(self):
         name = self.name if self.name is not None else 'Unnamed'

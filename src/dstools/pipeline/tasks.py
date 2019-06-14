@@ -11,6 +11,7 @@ from datetime import datetime
 from dstools.pipeline import util
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.identifiers import CodeIdentifier
+from dstools.pipeline.build_report import BuildReport
 from dstools.util import isiterable
 
 
@@ -71,6 +72,7 @@ class Task:
         self._name = name
 
         self.params = params
+        self.build_report = None
 
         self._code = CodeIdentifier(code)
 
@@ -137,6 +139,13 @@ class Task:
             return TaskGroup((self, other))
 
     def build(self, force=False):
+        """Run the task if needed by checking its dependencies
+
+        Returns
+        -------
+        dict
+            A dictionary with keys 'run' and 'elapsed'
+        """
 
         # NOTE: should i fetch metadata here? I need to make sure I have
         # the latest before building
@@ -144,6 +153,7 @@ class Task:
         self._logger.info(f'-----\nChecking {repr(self)}....')
 
         run = False
+        elapsed = None
 
         # check dependencies only if the product exists and there is metadata
         if self.product.exists() and self.product.metadata is not None:
@@ -171,7 +181,13 @@ class Task:
 
             self._logger.info(f'Running {repr(self)}')
 
+            then = datetime.now()
+
             self.run()
+
+            now = datetime.now()
+            elapsed = (now - then).total_seconds()
+            self._logger.info(f'Done. Operation took {elapsed:.1f} seconds')
 
             # TODO: should check if job ran successfully, if not,
             # stop execution
@@ -192,6 +208,10 @@ class Task:
 
         self._logger.info('-----\n')
 
+        self.build_report = BuildReport(run=run, elapsed=elapsed)
+
+        return self
+
     def status(self):
         """Prints the current task status
         """
@@ -202,7 +222,8 @@ class Task:
         out = ''
 
         if p.timestamp is not None:
-            dt = datetime.fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M')
+            dt = (datetime
+                  .fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M'))
             out += f'* Last updated: {dt}\n'
         else:
             out += f'* Timestamp is None\n'
@@ -226,20 +247,33 @@ class Task:
         up = {n: t.product.identifier for n, t
               in self.upstream_by_name.items()}
 
-        # pass identifier objects only
-        params = {**self.params, **up}
+        # NOTE: we modify self.params so the new parameters are available
+        # after render, this is needed by PythonCallable, which does not
+        # need rendered source code, but it needs this parameters when
+        # the callable is executed
 
-        # FIXME: need to render code here as well
+        # NOTE: we are passing all upstream products two times, at first
+        # i thought it was a good idea just to pass then "expanded"
+        # using **up to make templates cleaner, but for some cases we want
+        # to iterate over all upstream dependencies, so having "up" is easier,
+        # I have to decide if it's best to leave these two or just one
+        self.params = {**self.params, **up}
+        self.params['up'] = up
+
+        # first, render the current product
         try:
-            self.product.render(params)
+            self.product.render(self.params)
         except Exception as e:
             raise RuntimeError(f'Error rendering product {self.product} from '
                                f'task {self} with params '
-                               f'{params}. Exception: {e}')
+                               f'{self.params}. Exception: {e}')
 
-        params['me'] = self.product.identifier
+        # then, make it available before rendering code since it might be a
+        # template with a reference to the current product
+        self.params['me'] = self.product.identifier
 
-        self._code.render(params)
+        # render code
+        self._code.render(self.params)
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
