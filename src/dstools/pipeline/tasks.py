@@ -86,6 +86,7 @@ class Task:
         self.product.task = self
 
         dag.add_task(self)
+        self.dag = dag
 
     @property
     def name(self):

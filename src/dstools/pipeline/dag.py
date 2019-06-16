@@ -57,6 +57,13 @@ class DAG:
         """Render the graph
         """
         for t in nx.algorithms.topological_sort(self.to_graph()):
+
+            # some upstream tasks might not be from the same dag, if upstream
+            # dependencies in that dag need rendering, we have to do it
+            # before we render the current task
+            if t.dag is not self:
+                t.dag.render()
+
             t.render()
 
     def build(self):
