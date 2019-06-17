@@ -24,6 +24,7 @@ class DAG:
     # TODO: remove the tasks, and tasks_by_name properties and use the
     # networkx.DiGraph structure directly to avoid having to re-build the
     # graph every time
+
     def __init__(self, name=None):
         self.tasks = []
         self.tasks_by_name = {}
@@ -44,26 +45,40 @@ class DAG:
         if task.name is not None:
             self.tasks_by_name[task.name] = task
 
-    def to_graph(self):
+    def to_graph(self, only_current_dag=False):
         G = nx.DiGraph()
 
         for task in self.tasks:
             G.add_node(task)
-            G.add_edges_from([(up, task) for up in task.upstream])
+
+            if only_current_dag:
+                G.add_edges_from([(up, task) for up
+                                  in task.upstream if up.dag is self])
+            else:
+                G.add_edges_from([(up, task) for up in task.upstream])
 
         return G
 
     def render(self):
         """Render the graph
         """
-        for t in nx.algorithms.topological_sort(self.to_graph()):
+        g = self.to_graph()
 
-            # some upstream tasks might not be from the same dag, if upstream
-            # dependencies in that dag need rendering, we have to do it
-            # before we render the current task
-            if t.dag is not self:
-                t.dag.render()
+        dags = set([t.dag for t in g])
 
+        # first render any other dags involved (this happens when some
+        # upstream parameters come form other dags)
+        for dag in dags:
+            if dag is not self:
+                dag._render_current()
+
+        # then, render this dag
+        self._render_current()
+
+    def _render_current(self):
+        g = self.to_graph(only_current_dag=True)
+
+        for t in nx.algorithms.topological_sort(g):
             t.render()
 
     def build(self):
