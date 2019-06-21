@@ -286,6 +286,20 @@ class Task:
 
         return f'{short(self.name)} -> \n{short(self.product.short_repr())}'
 
+    def plan(self):
+        """Shows a text summary of what this task will execute
+        """
+
+        plan = f"""
+        Input parameters: {self.params}
+        Product: {self.product}
+
+        Source code:
+        {self.source_code}
+        """
+
+        print(plan)
+
 
 class BashCommand(Task):
     """A task that runs bash command
@@ -374,4 +388,4 @@ class PythonCallable(Task):
         pass
 
     def run(self):
-        self.code(**self.params)
+        self.code(params=self.params)
