@@ -19,15 +19,15 @@ def dag():
     t1 = BashCommand('echo a > 1.txt ', File('1.txt'), dag,
                      't1', {}, kwargs, False)
 
-    t2 = BashCommand(Template('cat {{t1}} > {{me}}'
-                     '&& echo b >> {{me}} '),
-                     File(Template('2_{{t1}}')),
+    t2 = BashCommand(Template('cat {{upstream["t1"]}} > {{product}}'
+                     '&& echo b >> {{product}} '),
+                     File(Template('2_{{upstream["t1"]}}')),
                      dag,
                      't2', {}, kwargs, False)
 
-    t3 = BashCommand(Template('cat {{t2}} > {{me}} '
-                     '&& echo c >> {{me}}'),
-                     File(Template('3_{{t2}}')), dag,
+    t3 = BashCommand(Template('cat {{upstream["t2"]}} > {{product}} '
+                     '&& echo c >> {{product}}'),
+                     File(Template('3_{{upstream["t2"]}}')), dag,
                      't3', {}, kwargs, False)
 
     t1 >> t2 >> t3

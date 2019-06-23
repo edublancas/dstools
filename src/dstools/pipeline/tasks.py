@@ -2,6 +2,7 @@
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
+from copy import copy
 import shlex
 import subprocess
 from subprocess import CalledProcessError
@@ -245,35 +246,20 @@ class Task:
         Renders code and product, all upstream tasks must have been rendered
         first
         """
-        up = {n: t.product.identifier for n, t
-              in self.upstream_by_name.items()}
+        # add upstream product identifiers to params
+        self.params['upstream'] = {n: t.product.identifier for n, t
+                                   in self.upstream_by_name.items()}
 
-        # NOTE: we modify self.params so the new parameters are available
-        # after render, this is needed by PythonCallable, which does not
-        # need rendered source code, but it needs this parameters when
-        # the callable is executed
-
-        # NOTE: we are passing all upstream products two times, at first
-        # i thought it was a good idea just to pass then "expanded"
-        # using **up to make templates cleaner, but for some cases we want
-        # to iterate over all upstream dependencies, so having "up" is easier,
-        # I have to decide if it's best to leave these two or just one
-        self.params = {**self.params, **up}
-        self.params['up'] = up
-
-        # first, render the current product
+        # render the current product
         try:
             self.product.render(self.params)
-        except Exception as e:
+        except Exception:
             raise RuntimeError(f'Error rendering product {self.product} from '
                                f'task {self} with params '
                                f'{self.params}. Exception: {e}')
 
-        # then, make it available before rendering code since it might be a
-        # template with a reference to the current product
-        self.params['me'] = self.product.identifier
+        self.params['product'] = self.product.identifier
 
-        # render code
         self._code.render(self.params)
 
     def __repr__(self):
@@ -384,8 +370,6 @@ class PythonCallable(Task):
     def __init__(self, code, product, dag, name, params={}):
         super().__init__(code, product, dag, name, params)
 
-    def compile_source_code(self):
-        pass
-
     def run(self):
-        self.code(params=self.params)
+        # call it with product, upstream and the rest of the parameters
+        self.code(**self.params)
