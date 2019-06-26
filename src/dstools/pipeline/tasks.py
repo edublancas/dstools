@@ -67,12 +67,12 @@ class Task:
     code: callable, Path, str
     """
 
-    def __init__(self, code, product, dag, name, params={}):
+    def __init__(self, code, product, dag, name, params=None):
         self._upstream = []
         self._upstream_by_name = {}
         self._name = name
 
-        self.params = params
+        self.params = params or {}
         self.build_report = None
 
         self._code = CodeIdentifier(code)
@@ -253,9 +253,9 @@ class Task:
         # render the current product
         try:
             self.product.render(self.params)
-        except Exception:
-            raise RuntimeError(f'Error rendering product {self.product} from '
-                               f'task {self} with params '
+        except Exception as e:
+            raise RuntimeError(f'Error rendering product {repr(self.product)} '
+                               f'from task {repr(self)} with params '
                                f'{self.params}. Exception: {e}')
 
         self.params['product'] = self.product.identifier
