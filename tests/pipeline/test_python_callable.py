@@ -2,6 +2,7 @@ from dstools.pipeline import DAG
 from dstools.pipeline.tasks import PythonCallable
 from dstools.pipeline.products import File
 
+
 def fn(product, upstream, a):
     pass
 
