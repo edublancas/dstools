@@ -123,7 +123,9 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         cur.close()
 
     def __repr__(self):
-        id_ = self.identifier
+        # using _identifier since self.identifier will implicitely call
+        # self._identifier() which might fail if this has not been rendered
+        id_ = self._identifier
         return f'PG{id_.kind.capitalize()}: {id_.schema}.{id_.name}'
 
     def __str__(self):
@@ -225,7 +227,10 @@ class PostgresIdentifier:
             return self
 
     def __str__(self):
-        return f'{self.schema}.{self.name}'
+        if self.schema:
+            return f'{self.schema}.{self.name}'
+        else:
+            return self.name
 
     def __repr__(self):
         return f'{self.schema}.{self.name} (PG{self.kind.capitalize()})'
