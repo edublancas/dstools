@@ -2,7 +2,7 @@
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
-from copy import copy
+from copy import deepcopy
 import shlex
 import subprocess
 from subprocess import CalledProcessError
@@ -252,7 +252,7 @@ class Task:
 
         # render the current product
         try:
-            self.product.render(self.params)
+            self.product.render(deepcopy(self.params))
         except Exception as e:
             raise RuntimeError(f'Error rendering product {repr(self.product)} '
                                f'from task {repr(self)} with params '
@@ -260,7 +260,7 @@ class Task:
 
         self.params['product'] = self.product.identifier
 
-        self._code.render(self.params)
+        self._code.render(deepcopy(self.params))
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
