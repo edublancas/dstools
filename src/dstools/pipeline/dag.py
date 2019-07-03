@@ -40,6 +40,11 @@ class DAG:
     def add_task(self, task):
         """Adds a task to the DAG
         """
+        if task.name in self.tasks_by_name.keys():
+            raise ValueError('DAGs cannot have Tasks with repeated names, '
+                             f'there is a Task with name "{task.name}" '
+                             'already')
+
         self.tasks.append(task)
 
         if task.name is not None:
