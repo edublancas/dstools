@@ -245,7 +245,8 @@ class Task:
     def render(self):
         """
         Renders code and product, all upstream tasks must have been rendered
-        first
+        first, for that reason, this method will usually not be called
+        directly but via DAG.render(), which renders in the right order
         """
         # add upstream product identifiers to params
         self.params['upstream'] = {n: t.product.identifier for n, t
