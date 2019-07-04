@@ -2,7 +2,6 @@
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
-from copy import copy
 import shlex
 import subprocess
 from subprocess import CalledProcessError
