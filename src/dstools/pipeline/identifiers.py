@@ -108,7 +108,6 @@ class CodeIdentifier(Identifier):
             # TODO: i think this doesn't work sometime and dill has a function
             # that covers more use cases, check
             return inspect.getsource(self())
-            return self()
         elif isinstance(self.s, Path):
             return self().read_text()
         elif isinstance(self.s, Template) or isinstance(self.s, str):
