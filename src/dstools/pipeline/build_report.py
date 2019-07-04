@@ -1,17 +1,23 @@
 from tabulate import tabulate
 
+# TODO: separate this intro TaskBuildReport and DAGBuildReport
+
 
 class BuildReport:
     """A class to report information after a task is built
     """
 
     def __init__(self, run, elapsed):
+        """Create a build report from a single task
+        """
         self.run = run
         self.elapsed = elapsed
         self.components = None
 
     @classmethod
     def from_components(cls, components):
+        """Create a build report from several tasks
+        """
         names = [t.name for t in components.keys()]
         report = components.values()
         total = sum([s.elapsed or 0 for s in report])
