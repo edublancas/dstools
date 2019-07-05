@@ -72,7 +72,10 @@ setup(
     ],
     install_requires=[
         # FIXME: remove pyyaml
-        'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate', 'pygraphviz'
+        'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate', 'pygraphviz',
+        # used in SQLTemplate
+        'numpydoc'
+
     ],
     extras_require={
         # eg:
