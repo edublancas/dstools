@@ -125,6 +125,25 @@ class Product:
     def pre_save_metadata_hook(self):
         pass
 
+    def render(self, params):
+        """
+        Render Product - this will render contents of Templates used as
+        identifier for this Product, if a regular string was passed, this
+        method has no effect
+        """
+        self._identifier.render(params)
+
+    def __str__(self):
+        return str(self.identifier)
+
+    def __repr__(self):
+        return f'{type(self).__name__}: {self.identifier}'
+
+    def short_repr(self):
+        return f'{self.identifier}'
+
+    # Subclasses must implement the following methods
+
     def fetch_metadata(self):
         raise NotImplementedError('You have to implement this method')
 
@@ -142,20 +161,3 @@ class Product:
         of the metadata, so there is no cached status
         """
         raise NotImplementedError('You have to implement this method')
-
-    def render(self, params):
-        """
-        Render Product - this will render contents of Templates used as
-        identifier for this Product, if a regular string was passed, this
-        method has no effect
-        """
-        self._identifier.render(params)
-
-    def __str__(self):
-        return str(self.identifier)
-
-    def __repr__(self):
-        return f'{type(self).__name__}: {self.identifier}'
-
-    def short_repr(self):
-        return f'{self.identifier}'
