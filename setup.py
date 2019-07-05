@@ -74,7 +74,7 @@ setup(
         # FIXME: remove pyyaml
         'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate', 'pygraphviz',
         # used in SQLTemplate
-        'numpydoc'
+        'numpydoc', 'pyarrow'
 
     ],
     extras_require={
