@@ -1,6 +1,3 @@
-"""
-This module provides subclasses of jinja2 for better integration with SQL
-"""
 import logging
 import shutil
 from datetime import datetime
@@ -12,44 +9,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import jinja2
-from jinja2 import Environment, meta, PackageLoader, FileSystemLoader
-
-# TODO: https://stackoverflow.com/q/3983581
-
-
-class SQLStore:
-    """
-    Utility class for loading SQL files from a folder, supports parametrized
-    SQL templates (jinja2)
-
-    Examples
-    --------
-    >>> from tax_estimator.sql import SQLStore
-    >>> from dstools import Env
-    >>> env = Env()
-    >>> path = env.path.home / 'load' / 'sql'
-    >>> sqlstore = SQLStore(path)
-    """
-
-    def __init__(self, module, path, conn=None):
-        if module is None:
-            loader = FileSystemLoader(path)
-        else:
-            loader = PackageLoader(module, path)
-
-        self.env = Environment(
-            loader=loader,
-            # this will cause jinja2 to raise an exception if a variable
-            # declared in the template is not passed in the render parameters
-            undefined=jinja2.StrictUndefined)
-        self.conn = conn
-
-    def __dir__(self):
-        return [t for t in self.env.list_templates() if t.endswith('.sql')]
-
-    def get_template(self, name):
-        template = self.env.get_template(name)
-        return SQLTemplate(template, self.conn)
+from jinja2 import Environment, meta, Template
 
 
 class SQLTemplate:
@@ -59,8 +19,17 @@ class SQLTemplate:
     """
 
     def __init__(self, template, conn=None):
-        self.template = template
-        self.raw = Path(template.filename).read_text()
+
+        if isinstance(template, str):
+            self.template = Template(template,
+                                     undefined=jinja2.StrictUndefined)
+            self.raw = template
+        else:
+            self.template = template
+            self.raw = Path(template.filename).read_text()
+
+        self.declared = self._get_declared()
+
         self.conn = conn
         self.logger = logging.getLogger(__name__)
 
@@ -72,17 +41,22 @@ class SQLTemplate:
         """
         # [any whitespace] /* [capture] */ [any string]
         regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
-        return re.match(regex, self.raw).group(1)
+        match = re.match(regex, self.raw)
+        return '' if match is None else match.group(1)
 
     def __str__(self):
         return self.raw
 
+    def _get_declared(self):
+        env = Environment()
+        ast = env.parse(self.raw)
+        declared = meta.find_undeclared_variables(ast)
+        return declared
+
     def diagnose(self):
         """Prints some diagnostics
         """
-        env = Environment()
-        ast = env.parse(self.template)
-        found = meta.find_undeclared_variables(ast)
+        found = self.declared
         docstring_np = NumpyDocString(self.docstring())
         documented = set([p[0] for p in docstring_np['Parameters']])
 
@@ -97,6 +71,17 @@ class SQLTemplate:
     def render(self, **kwargs):
         """
         """
+        passed = set(kwargs.keys())
+
+        missing = self.declared - passed
+        extra = passed - self.declared
+
+        if missing:
+            raise TypeError(f'Missing required arguments: {missing}')
+
+        if extra:
+            raise TypeError(f'Got unexpected arguments {extra}')
+
         return self.template.render(**kwargs)
 
     def load(self, **render_kwargs):
