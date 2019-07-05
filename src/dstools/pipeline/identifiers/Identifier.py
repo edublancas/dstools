@@ -7,15 +7,14 @@ passing metadata between products and its upstream tasks possible.
 """
 import warnings
 
-from jinja2 import Template
-
 
 class Identifier:
     """Identifier abstract class
     """
 
     def __init__(self, s):
-        self.needs_render = isinstance(s, Template)
+        # could be jinja2.Template or SQLTemplate
+        self.needs_render = hasattr(s, 'render')
         self.rendered = False
         self.s = s
 
@@ -38,7 +37,7 @@ class Identifier:
     def render(self, params):
         if self.needs_render:
             if not self.rendered:
-                self.s = self.s.render(params)
+                self.s = self.s.render(**params)
                 self.rendered = True
                 self.after_render_hook()
             else:

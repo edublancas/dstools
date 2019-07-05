@@ -207,9 +207,10 @@ class Task:
         first, for that reason, this method will usually not be called
         directly but via DAG.render(), which renders in the right order
         """
-        # add upstream product identifiers to params
-        self.params['upstream'] = {n: t.product.identifier for n, t
-                                   in self.upstream_by_name.items()}
+        # add upstream product identifiers to params, if any
+        if self.upstream:
+            self.params['upstream'] = {n: t.product.identifier for n, t
+                                       in self.upstream_by_name.items()}
 
         # render the current product
         try:

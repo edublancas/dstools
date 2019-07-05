@@ -97,7 +97,12 @@ class DAG(collections.abc.Mapping):
         g = self.to_graph(only_current_dag=True)
 
         for t in nx.algorithms.topological_sort(g):
-            t.render()
+            try:
+                t.render()
+            except Exception as e:
+                class_ = e.__class__
+                raise class_(f'Raised while rendering task "{t}" in DAG '
+                             f'"{self}", {str(e)}')
 
     def build(self):
         """

@@ -57,6 +57,9 @@ class Base64Serializer:
 class PostgresRelation(PostgresConnectionMixin, Product):
     """A Product that represents a postgres relation (table or view)
     """
+    # FIXME: identifier has schema as optional but that introduces ambiguity
+    # when fetching metadata and checking if the table exists so maybe it
+    # should be required
 
     def __init__(self, identifier, conn=None,
                  metadata_serializer=Base64Serializer):
