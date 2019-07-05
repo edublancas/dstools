@@ -20,7 +20,7 @@ def test_upstream_and_me_are_added():
     t = PythonCallable(fn, File('file.txt'), dag, 'callable',
                        params=dict(a=1))
     dag.render()
-    assert t.params == dict(a=1, upstream=dict(), product='file.txt')
+    assert t.params == dict(a=1, product='file.txt')
 
 
 def test_can_execute_python_callable(tmp_directory):
