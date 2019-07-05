@@ -129,8 +129,8 @@ def test_overloaded_operators():
     ta >> tb >> tc
 
     assert not ta.upstream
-    assert tb in tc.upstream
-    assert ta in tb.upstream
+    assert tb in tc.upstream.values()
+    assert ta in tb.upstream.values()
 
 
 def test_adding_tasks():
@@ -166,7 +166,7 @@ def test_adding_tasks_left():
 
     assert not ta.upstream
     assert not tb.upstream
-    assert tc.upstream == [ta, tb]
+    assert list(tc.upstream.values()) == [ta, tb]
 
 
 def test_adding_tasks_right():
@@ -183,5 +183,5 @@ def test_adding_tasks_right():
     ta >> (tb + tc)
 
     assert not ta.upstream
-    assert tb.upstream == [ta]
-    assert tc.upstream == [ta]
+    assert list(tb.upstream.values()) == [ta]
+    assert list(tc.upstream.values()) == [ta]

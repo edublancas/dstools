@@ -64,9 +64,9 @@ class DAG(collections.abc.Mapping):
 
             if only_current_dag:
                 G.add_edges_from([(up, task) for up
-                                  in task.upstream if up.dag is self])
+                                  in task.upstream.values() if up.dag is self])
             else:
-                G.add_edges_from([(up, task) for up in task.upstream])
+                G.add_edges_from([(up, task) for up in task.upstream.values()])
 
         return G
 

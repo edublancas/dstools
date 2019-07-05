@@ -72,7 +72,8 @@ class Product:
                 return ((up_prod.timestamp > self.timestamp)
                         or up_prod.outdated())
 
-        outdated = any([is_outdated(up.product) for up in self.task.upstream])
+        outdated = any([is_outdated(up.product) for up
+                        in self.task.upstream.values()])
 
         return outdated
 

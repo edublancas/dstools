@@ -4,7 +4,7 @@ from dstools.pipeline.tasks import PythonCallable
 from dstools.pipeline.products import File
 
 
-def fn(product, upstream, a):
+def fn(product, a):
     Path(product).write_text('things')
 
 

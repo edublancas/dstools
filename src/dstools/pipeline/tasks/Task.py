@@ -21,8 +21,7 @@ class Task:
     """
 
     def __init__(self, code, product, dag, name=None, params=None):
-        self._upstream = []
-        self._upstream_by_name = {}
+        self._upstream = {}
 
         self.params = params or {}
         self.build_report = None
@@ -61,11 +60,9 @@ class Task:
 
     @property
     def upstream(self):
+        """{'task_name': task} dict
+        """
         return self._upstream
-
-    @property
-    def upstream_by_name(self):
-        return self._upstream_by_name
 
     def run(self):
         raise NotImplementedError('You have to implement this method')
@@ -73,11 +70,9 @@ class Task:
     def set_upstream(self, other):
         if isiterable(other) and not isinstance(other, DAG):
             for o in other:
-                self._upstream.append(o)
-                self._upstream_by_name[o.name] = o
+                self._upstream[o.name] = o
         else:
-            self._upstream.append(other)
-            self._upstream_by_name[other.name] = other
+            self._upstream[other.name] = other
 
     def __rshift__(self, other):
         """ a >> b is the same as b.set_upstream(a)
@@ -210,7 +205,7 @@ class Task:
         # add upstream product identifiers to params, if any
         if self.upstream:
             self.params['upstream'] = {n: t.product.identifier for n, t
-                                       in self.upstream_by_name.items()}
+                                       in self.upstream.items()}
 
         # render the current product
         try:

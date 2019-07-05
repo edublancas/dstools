@@ -25,7 +25,7 @@ def test_can_access_sub_dag():
 
     td.set_upstream(sub_dag)
 
-    assert 'sub_dag' in td.upstream_by_name
+    assert 'sub_dag' in td.upstream
 
 
 def test_can_access_tasks_inside_dag_using_getitem():
