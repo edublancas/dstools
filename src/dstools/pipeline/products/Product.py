@@ -161,3 +161,7 @@ class Product:
         of the metadata, so there is no cached status
         """
         raise NotImplementedError('You have to implement this method')
+
+    @property
+    def name(self):
+        raise NotImplementedError('You have to implement this property')

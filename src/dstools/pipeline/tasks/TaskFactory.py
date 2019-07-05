@@ -9,10 +9,6 @@ class TaskFactory:
 
     def make(self, task_arg, product_arg, name=None, params=None):
         product = self.product_class(product_arg)
-
-        if name is None:
-            name = product.name
-
         return self.task_class(task_arg,
                                product=product,
                                dag=self.dag,

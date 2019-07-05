@@ -16,7 +16,7 @@ class BashCommand(Task):
     """A task that runs bash command
     """
 
-    def __init__(self, code, product, dag, name, params=None,
+    def __init__(self, code, product, dag, name=None, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
                                         'shell': False},
@@ -49,7 +49,7 @@ class ScriptTask(Task):
     """
     _INTERPRETER = None
 
-    def __init__(self, code, product, dag, name, params=None):
+    def __init__(self, code, product, dag, name=None, params=None):
         if not isinstance(code, Path):
             raise ValueError(f'{type(self).__name__} must be called with '
                              'a pathlib.Path object in the code '
@@ -93,7 +93,7 @@ class PythonCallable(Task):
     """A task that runs a Python callabel (i.e.  a function)
     """
 
-    def __init__(self, code, product, dag, name, params=None):
+    def __init__(self, code, product, dag, name=None, params=None):
         super().__init__(code, product, dag, name, params)
 
     def run(self):
