@@ -10,11 +10,12 @@ class TaskFactory:
         self.product_class = product_class
         self.dag = dag
 
-    def make(self, task_arg, product_arg, params=None):
+    def make(self, task_arg, product_arg, name=None, params=None):
         # FIXME: only works for python callables
         # maybe each task class should implement a get_name method?
-        mod = inspect.getmodule(task_arg).__name__
-        name = f'{mod}.{task_arg.__name__}'
+        if name is None:
+            mod = inspect.getmodule(task_arg).__name__
+            name = f'{mod}.{task_arg.__name__}'
 
         return self.task_class(task_arg,
                                product=self.product_class(product_arg),
