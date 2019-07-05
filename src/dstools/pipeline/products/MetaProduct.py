@@ -61,6 +61,10 @@ class MetaProduct:
     def task(self):
         return self.products[0].task
 
+    @property
+    def name(self):
+        return ', '.join([p.name for p in self.products])
+
     @task.setter
     def task(self, value):
         for p in self.products:

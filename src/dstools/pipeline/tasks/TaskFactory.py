@@ -1,6 +1,3 @@
-import inspect
-
-
 class TaskFactory:
     """Utility class for reducing boilerplate code
     """
@@ -10,14 +7,10 @@ class TaskFactory:
         self.product_class = product_class
         self.dag = dag
 
-    def make(self, task_arg, product_arg, params=None):
-        # FIXME: only works for python callables
-        # maybe each task class should implement a get_name method?
-        mod = inspect.getmodule(task_arg).__name__
-        name = f'{mod}.{task_arg.__name__}'
-
+    def make(self, task_arg, product_arg, name=None, params=None):
+        product = self.product_class(product_arg)
         return self.task_class(task_arg,
-                               product=self.product_class(product_arg),
+                               product=product,
                                dag=self.dag,
                                name=name,
                                params=params)

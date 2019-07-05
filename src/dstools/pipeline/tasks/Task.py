@@ -20,10 +20,9 @@ class Task:
 
     """
 
-    def __init__(self, code, product, dag, name, params=None):
+    def __init__(self, code, product, dag, name=None, params=None):
         self._upstream = []
         self._upstream_by_name = {}
-        self._name = name
 
         self.params = params or {}
         self.build_report = None
@@ -34,6 +33,8 @@ class Task:
             self._product = product
         else:
             self._product = MetaProduct(product)
+
+        self._name = name or product.name
 
         self._logger = logging.getLogger(__name__)
 

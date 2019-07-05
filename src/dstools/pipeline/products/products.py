@@ -18,6 +18,10 @@ class File(Product):
     def path_to_stored_source_code(self):
         return Path(str(self.path_to_file) + '.source')
 
+    @property
+    def name(self):
+        return self.path_to_file.with_suffix('').name
+
     def fetch_metadata(self):
         # we can safely do this here since this is only run when the file
         # exists
