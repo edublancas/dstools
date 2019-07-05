@@ -5,7 +5,7 @@ Task abstract class
 from copy import deepcopy
 import logging
 from datetime import datetime
-from dstools.pipeline import util
+from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.identifiers import CodeIdentifier
 from dstools.pipeline.build_report import BuildReport
