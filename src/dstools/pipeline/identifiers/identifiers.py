@@ -53,7 +53,7 @@ class CodeIdentifier(Identifier):
             return self()
         else:
             TypeError('Code must be a callable, str, pathlib.Path or '
-                      f'jinja2.Template, got {type(self.code)}')
+                      f'jinja2.Template, got {type(self)}')
 
     def after_render_hook(self):
         pass
