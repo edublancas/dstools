@@ -3,6 +3,7 @@ import inspect
 import warnings
 
 from dstools.pipeline.identifiers.Identifier import Identifier
+from dstools.templates import SQLTemplate
 
 from jinja2 import Template
 
@@ -36,7 +37,8 @@ class CodeIdentifier(Identifier):
         valid_type = (callable(self.s)
                       or isinstance(self.s, str)
                       or isinstance(self.s, Path)
-                      or isinstance(self.s, Template))
+                      or isinstance(self.s, Template)
+                      or isinstance(self.s, SQLTemplate))
         if not valid_type:
             TypeError('Code must be a callable, str, pathlib.Path or '
                       f'jinja2.Template, got {type(self.s)}')
@@ -49,11 +51,12 @@ class CodeIdentifier(Identifier):
             return inspect.getsource(self())
         elif isinstance(self.s, Path):
             return self().read_text()
-        elif isinstance(self.s, Template) or isinstance(self.s, str):
+        elif (isinstance(self.s, Template) or isinstance(self.s, str)
+              or isinstance(self.s, SQLTemplate)):
             return self()
         else:
-            TypeError('Code must be a callable, str, pathlib.Path or '
-                      f'jinja2.Template, got {type(self)}')
+            raise TypeError('Code must be a callable, str, pathlib.Path or '
+                            f'jinja2.Template, got {type(self)}')
 
     def after_render_hook(self):
         pass
