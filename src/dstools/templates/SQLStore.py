@@ -1,6 +1,8 @@
 """
 This module provides subclasses of jinja2 for better integration with SQL
 """
+from dstools.templates.SQLTemplate import SQLTemplate
+
 import jinja2
 from jinja2 import Environment, PackageLoader, FileSystemLoader
 
