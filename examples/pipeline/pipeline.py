@@ -35,6 +35,7 @@ db = util.load_db_credentials()
 
 dag = DAG()
 
+
 get_data = BashScript(home / 'get_data.sh',
                       File(env.path.input / 'raw' / 'red.csv'),
                       dag, 'get_data')

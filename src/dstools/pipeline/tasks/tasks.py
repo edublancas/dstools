@@ -65,7 +65,8 @@ class ScriptTask(Task):
         res = subprocess.run([self._INTERPRETER,
                               self._code.location],
                              stderr=subprocess.PIPE,
-                             stdout=subprocess.PIPE)
+                             stdout=subprocess.PIPE,
+                             shell=True)
 
         if res.returncode != 0:
             # log source code without expanded params
