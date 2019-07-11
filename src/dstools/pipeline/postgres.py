@@ -253,7 +253,6 @@ class PostgresScript(PostgresConnectionMixin, Task):
         # check if a valid conn is available before moving forward
         self._get_conn()
 
-    # FIXME: move this to code class
     def _validate(self):
         infered_relations = infer.created_relations(self.source_code)
 
@@ -277,6 +276,7 @@ class PostgresScript(PostgresConnectionMixin, Task):
                               f'did not match: "{self.product}"')
 
     def run(self):
+        self._validate()
         cursor = self._get_conn().cursor()
         cursor.execute(self.source_code)
         self._get_conn().commit()
