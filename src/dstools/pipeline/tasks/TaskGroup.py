@@ -7,6 +7,12 @@ class TaskGroup:
 
     (task1 + task2) >> task3
     """
+    # TODO: implement mapping interface, task.upstream should return
+    # a TaskGroup object, make ipython autocomplete work in getitem,
+    # also add logic to verify if all keys were used, to detect tasks
+    # where not all upstream dependencies are used. That means, they should
+    # not be dependencies. Checking should be implemented in getitem,
+    # but possibly in pop, popitem
 
     def __init__(self, tasks):
         self.tasks = tasks

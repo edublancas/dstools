@@ -1,17 +1,17 @@
 """
 Task abstract class
 """
-
-from copy import deepcopy
+import traceback
+from copy import copy
 import logging
 from datetime import datetime
 from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
-from dstools.pipeline.identifiers import CodeIdentifier
 from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
 from dstools.pipeline.exceptions import TaskBuildError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
+from dstools.pipeline.identifiers import ClientCode
 from dstools.util import isiterable
 
 
@@ -19,14 +19,24 @@ class Task:
     """A task represents a unit of work
 
     """
+    CODECLASS = ClientCode
+    PRODUCT_CLASSES_ALLOWED = None
 
     def __init__(self, code, product, dag, name=None, params=None):
+        if self.PRODUCT_CLASSES_ALLOWED is not None:
+            if not isinstance(product, self.PRODUCT_CLASSES_ALLOWED):
+                raise TypeError('{} only supports the following product '
+                                'classes: {}, got {}'
+                                .format(type(self).__name__,
+                                        self.PRODUCT_CLASSES_ALLOWED,
+                                        type(product).__name__))
+
         self._upstream = {}
 
         self.params = params or {}
         self.build_report = None
 
-        self._code = CodeIdentifier(code)
+        self._code = self.CODECLASS(code)
 
         if isinstance(product, Product):
             self._product = product
@@ -48,15 +58,11 @@ class Task:
 
     @property
     def source_code(self):
-        return self._code.source
+        return str(self._code)
 
     @property
     def product(self):
         return self._product
-
-    @property
-    def code(self):
-        return self._code()
 
     @property
     def upstream(self):
@@ -209,15 +215,16 @@ class Task:
 
         # render the current product
         try:
-            self.product.render(deepcopy(self.params))
+            self.product.render(copy(self.params))
         except Exception as e:
+            traceback.print_exc()
             raise RuntimeError(f'Error rendering product {repr(self.product)} '
                                f'from task {repr(self)} with params '
                                f'{self.params}. Exception: {e}')
 
         self.params['product'] = self.product.identifier
 
-        self._code.render(deepcopy(self.params))
+        self._code.render(copy(self.params))
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'

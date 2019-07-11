@@ -12,21 +12,41 @@ import jinja2
 from jinja2 import Environment, meta, Template
 
 
-class SQLTemplate:
+class StrictTemplate:
     """
-    Wrapper for Jinja2 Template object that provides specific features for
-    SQL templating
+    A jinja2 Template-like object that adds the following features:
+
+        * template.raw - Returns the raw template used for initialization
+        * template.location - Returns a path to the Template object if available
+        * strict - will not render if missing or extra parameters
+        * docstring parsing
+
+    Note that this does not implement the full jinja2.Template API
     """
 
-    def __init__(self, template, conn=None):
+    def __init__(self, source, conn=None):
 
-        if isinstance(template, str):
-            self.template = Template(template,
-                                     undefined=jinja2.StrictUndefined)
-            self.raw = template
-        else:
-            self.template = template
-            self.raw = Path(template.filename).read_text()
+        if isinstance(source, str):
+            self.source = Template(source,
+                                   undefined=jinja2.StrictUndefined)
+            self.raw = source
+            self.location = '[Loaded from str]'
+        elif isinstance(source, Template):
+            location = Path(source.filename)
+            if not location.exists():
+                raise ValueError('Could not load raw source from '
+                                 'jinja2.Template, this usually happens '
+                                 'when Templates are initialized directly '
+                                 'from a str, only Templates loaded from '
+                                 'the filesystem are supported, using a '
+                                 'jinja2.Environment will fix this issue, '
+                                 'if you want to create a template from '
+                                 'a string pass it directly to this '
+                                 'constructor')
+
+            self.source = source
+            self.raw = location.read_text()
+            self.location = location
 
         self.declared = self._get_declared()
 
@@ -37,7 +57,7 @@ class SQLTemplate:
         self.__doc__ = self._parse_docstring()
 
     def _parse_docstring(self):
-        """Finds the docstring at the beginning of the template
+        """Finds the docstring at the beginning of the source
         """
         # [any whitespace] /* [capture] */ [any string]
         regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
@@ -68,10 +88,10 @@ class SQLTemplate:
 
         return documented, found
 
-    def render(self, **kwargs):
+    def render(self, params):
         """
         """
-        passed = set(kwargs.keys())
+        passed = set(params.keys())
 
         missing = self.declared - passed
         extra = passed - self.declared
@@ -82,7 +102,7 @@ class SQLTemplate:
         if extra:
             raise TypeError(f'Got unexpected arguments {extra}')
 
-        return self.template.render(**kwargs)
+        return self.source.render(**params)
 
     def load(self, **render_kwargs):
         """Load the query to a pandas.DataFrame

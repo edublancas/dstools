@@ -5,22 +5,21 @@ in the local filesystem or a table in a database
 import os
 from pathlib import Path
 from dstools.pipeline.products.Product import Product
+from dstools.pipeline.identifiers import Placeholder
 
 
 class File(Product):
     """A product representing a file in the local filesystem
     """
-    @property
-    def path_to_file(self):
-        return Path(self.identifier)
+    IDENTIFIERCLASS = Placeholder
 
     @property
-    def path_to_stored_source_code(self):
+    def _path_to_file(self):
+        return Path(str(self.identifier))
+
+    @property
+    def _path_to_stored_source_code(self):
         return Path(str(self.path_to_file) + '.source')
-
-    @property
-    def name(self):
-        return self.path_to_file.with_suffix('').name
 
     def fetch_metadata(self):
         # we can safely do this here since this is only run when the file
@@ -49,5 +48,6 @@ class File(Product):
         self.logger.debug(f'Deleting {self.path_to_file}')
         os.remove(self.path_to_file)
 
-    def __repr__(self):
-        return f'File({repr(self._identifier)})'
+    @property
+    def name(self):
+        return self.path_to_file.with_suffix('').name

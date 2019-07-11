@@ -1,6 +1,6 @@
 import logging
 import warnings
-from dstools.pipeline.identifiers import StringIdentifier
+# from dstools.pipeline.identifiers import StringIdentifier
 
 
 class Product:
@@ -8,9 +8,10 @@ class Product:
     A product is a persistent triggered by a Task, this is an abstract
     class for all products
     """
+    IDENTIFIERCLASS = None
 
     def __init__(self, identifier):
-        self._identifier = StringIdentifier(identifier)
+        self._identifier = self.IDENTIFIERCLASS(identifier)
         self.tests, self.checks = [], []
         self.did_download_metadata = False
         self.task = None
@@ -18,7 +19,7 @@ class Product:
 
     @property
     def identifier(self):
-        return self._identifier()
+        return self._identifier
 
     @property
     def timestamp(self):
@@ -138,7 +139,7 @@ class Product:
         return str(self.identifier)
 
     def __repr__(self):
-        return f'{type(self).__name__}: {self.identifier}'
+        return f'{type(self).__name__}({repr(self.identifier)})'
 
     def short_repr(self):
         return f'{self.identifier}'
@@ -151,15 +152,15 @@ class Product:
     def save_metadata(self):
         raise NotImplementedError('You have to implement this method')
 
-    def delete(self, force=False):
-        """Deletes the product
-        """
-        raise NotImplementedError('You have to implement this method')
-
     def exists(self):
         """
         This method returns True if the product exists, it is not part
         of the metadata, so there is no cached status
+        """
+        raise NotImplementedError('You have to implement this method')
+
+    def delete(self, force=False):
+        """Deletes the product
         """
         raise NotImplementedError('You have to implement this method')
 

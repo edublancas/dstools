@@ -10,6 +10,7 @@ from subprocess import CalledProcessError
 from pathlib import Path
 import logging
 from dstools.pipeline.tasks.Task import Task
+from dstools.pipeline.identifiers import PythonCode
 
 
 class BashCommand(Task):
@@ -92,10 +93,11 @@ class PythonScript(ScriptTask):
 class PythonCallable(Task):
     """A task that runs a Python callabel (i.e.  a function)
     """
+    CODECLASS = PythonCode
 
     def __init__(self, code, product, dag, name=None, params=None):
         super().__init__(code, product, dag, name, params)
 
     def run(self):
         # call it with product, upstream and the rest of the parameters
-        self.code(**self.params)
+        self.code.run(**self.params)

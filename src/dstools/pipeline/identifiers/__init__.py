@@ -1,5 +1,4 @@
-from dstools.pipeline.identifiers.Identifier import Identifier
-from dstools.pipeline.identifiers.identifiers import (CodeIdentifier,
-                                                      StringIdentifier)
+from dstools.pipeline.identifiers.Placeholder import Placeholder
+from dstools.pipeline.identifiers.identifiers import (PythonCode, ClientCode)
 
-__all__ = ['Identifier', 'StringIdentifier', 'CodeIdentifier']
+__all__ = ['Placeholder', 'PythonCode', 'ClientCode']

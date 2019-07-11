@@ -1,7 +1,7 @@
 import pytest
-from dstools.templates import SQLTemplate
+from dstools.templates import StrictTemplate
 
-t = SQLTemplate("""
+t = StrictTemplate("""
 
 SELECT * FROM {{table}}
 

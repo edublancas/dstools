@@ -123,14 +123,11 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         cur.close()
 
     def __repr__(self):
+        # FIXME: delete, inherit from superclass
         # using _identifier since self.identifier will implicitely call
         # self._identifier() which might fail if this has not been rendered
         id_ = self._identifier
         return f'PG{id_.kind.capitalize()}: {id_.schema}.{id_.name}'
-
-    def __str__(self):
-        id_ = self.identifier
-        return f'{id_.schema}.{id_.name}'
 
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975
@@ -246,6 +243,7 @@ class PostgresIdentifier:
 class PostgresScript(PostgresConnectionMixin, Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, )
 
     def __init__(self, code, product, dag, name, conn=None, params={}):
         super().__init__(code, product, dag, name, params)
@@ -255,10 +253,7 @@ class PostgresScript(PostgresConnectionMixin, Task):
         # check if a valid conn is available before moving forward
         self._get_conn()
 
-        if not self._code.needs_render:
-            # FIXME: should also validate after render
-            self._validate()
-
+    # FIXME: move this to code class
     def _validate(self):
         infered_relations = infer.created_relations(self.source_code)
 

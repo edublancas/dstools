@@ -1,4 +1,4 @@
 from dstools.templates.SQLStore import SQLStore
-from dstools.templates.SQLTemplate import SQLTemplate
+from dstools.templates.StrictTemplate import StrictTemplate
 
-__all__ = ['SQLStore', 'SQLTemplate']
+__all__ = ['SQLStore', 'StrictTemplate']
