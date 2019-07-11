@@ -48,11 +48,11 @@ class Placeholder:
         raise NotImplementedError('Missing implementation')
         # return self._content_raw
 
-    def render(self, params):
+    def render(self, params, **kwargs):
         # FIXME: raise error if initialized with str but passed
         # render params?
         if hasattr(self.content, 'render'):
-            self._content_rendered = self.content.render(params)
+            self._content_rendered = self.content.render(params, **kwargs)
 
         return self
 

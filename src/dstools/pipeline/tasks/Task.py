@@ -208,6 +208,8 @@ class Task:
         first, for that reason, this method will usually not be called
         directly but via DAG.render(), which renders in the right order
         """
+        params_names = list(self.params)
+
         # add upstream product identifiers to params, if any
         if self.upstream:
             self.params['upstream'] = {n: t.product.identifier for n, t
@@ -215,7 +217,11 @@ class Task:
 
         # render the current product
         try:
-            self.product.render(copy(self.params))
+            # using the upstream products to define the current product
+            # is optional, using the parameters passed in params is also
+            # optional
+            self.product.render(copy(self.params),
+                                optional=set(params_names + ['upstream']))
         except Exception as e:
             traceback.print_exc()
             raise RuntimeError(f'Error rendering product {repr(self.product)} '
@@ -224,6 +230,9 @@ class Task:
 
         self.params['product'] = self.product.identifier
 
+        # all parameters are required, if upstream is not used, it should not
+        # have any dependencies, if any param is not used, it should not
+        # exist and the product should exist
         self._code.render(copy(self.params))
 
     def __repr__(self):

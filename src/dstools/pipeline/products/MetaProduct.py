@@ -9,7 +9,12 @@ class MetaProduct:
 
     def __init__(self, products):
         self.products = products
-        self.metadata = {p: p.metadata for p in self.products}
+
+    @property
+    def metadata(self):
+        # this has to happen dynamically since it depends on
+        # the tasks being rendered already
+        return {p: p.metadata for p in self.products}
 
     @property
     def identifier(self):
@@ -84,9 +89,9 @@ class MetaProduct:
         for p in self.products:
             p.save_metadata()
 
-    def render(self, params):
+    def render(self, params, **kwargs):
         for p in self.products:
-            p.render(params)
+            p.render(params, **kwargs)
 
     def pre_save_metadata_hook(self):
         pass
@@ -97,3 +102,6 @@ class MetaProduct:
     def __repr__(self):
         reprs = ', '.join([repr(p) for p in self.products])
         return f'{type(self).__name__}: {reprs}'
+
+    def __getitem__(self, key):
+        return self.products[key]

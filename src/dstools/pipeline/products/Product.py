@@ -127,13 +127,13 @@ class Product:
     def pre_save_metadata_hook(self):
         pass
 
-    def render(self, params):
+    def render(self, params, **kwargs):
         """
         Render Product - this will render contents of Templates used as
         identifier for this Product, if a regular string was passed, this
         method has no effect
         """
-        self._identifier.render(params)
+        self._identifier.render(params, **kwargs)
 
     def __str__(self):
         return str(self.identifier)

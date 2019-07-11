@@ -67,6 +67,9 @@ class StrictTemplate:
     def __str__(self):
         return self.raw
 
+    def __repr__(self):
+        return '{}("{}")'.format(type(self).__name__, str(self))
+
     def _get_declared(self):
         env = Environment()
         ast = env.parse(self.raw)
@@ -88,16 +91,21 @@ class StrictTemplate:
 
         return documented, found
 
-    def render(self, params):
+    def render(self, params, optional=None):
         """
         """
+        optional = optional or {}
+        optional = set(optional)
+
         passed = set(params.keys())
 
         missing = self.declared - passed
-        extra = passed - self.declared
+        extra = passed - self.declared - optional
 
         if missing:
-            raise TypeError(f'Missing required arguments: {missing}')
+            raise TypeError('Error rendering template {}, missing required '
+                            'arguments: {}, got params {}'
+                            .format(repr(self), missing, params))
 
         if extra:
             raise TypeError(f'Got unexpected arguments {extra}')

@@ -99,5 +99,4 @@ class PythonCallable(Task):
         super().__init__(code, product, dag, name, params)
 
     def run(self):
-        # call it with product, upstream and the rest of the parameters
-        self.code.run(**self.params)
+        self._code.run()

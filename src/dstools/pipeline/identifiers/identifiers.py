@@ -56,7 +56,9 @@ class PythonCode:
     def locaion(self):
         return self._locaion
 
-    def render(self, params):
+    def render(self, params, **kwargs):
+        # FIXME: we need **kwargs for compatibility, but they are not used,
+        # think what's the best thing to do
         # TODO: verify that params match function signature
         self._params = params
 
@@ -90,8 +92,8 @@ class ClientCode:
     def run(self, executor):
         executor(self.content_rendered)
 
-    def render(self, params):
-        self._placeholder.render(params)
+    def render(self, params, **kwargs):
+        self._placeholder.render(params, **kwargs)
 
     def __str__(self):
         return str(self._placeholder)

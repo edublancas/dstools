@@ -19,17 +19,17 @@ class File(Product):
 
     @property
     def _path_to_stored_source_code(self):
-        return Path(str(self.path_to_file) + '.source')
+        return Path(str(self._path_to_file) + '.source')
 
     def fetch_metadata(self):
         # we can safely do this here since this is only run when the file
         # exists
-        timestamp = self.path_to_file.stat().st_mtime
+        timestamp = self._path_to_file.stat().st_mtime
 
         # but we have no control over the stored code, it might be missing
         # so we check
-        if self.path_to_stored_source_code.exists():
-            stored_source_code = self.path_to_stored_source_code.read_text()
+        if self._path_to_stored_source_code.exists():
+            stored_source_code = self._path_to_stored_source_code.read_text()
         else:
             stored_source_code = None
 
@@ -37,17 +37,17 @@ class File(Product):
 
     def save_metadata(self):
         # timestamp automatically updates when the file is saved...
-        self.path_to_stored_source_code.write_text(self.stored_source_code)
+        self._path_to_stored_source_code.write_text(self.stored_source_code)
 
     def exists(self):
-        return self.path_to_file.exists()
+        return self._path_to_file.exists()
 
     def delete(self, force=False):
         # force is not used for this product but it is left for API
         # compatibility
-        self.logger.debug(f'Deleting {self.path_to_file}')
-        os.remove(self.path_to_file)
+        self.logger.debug(f'Deleting {self._path_to_file}')
+        os.remove(self._path_to_file)
 
     @property
     def name(self):
-        return self.path_to_file.with_suffix('').name
+        return self._path_to_file.with_suffix('').name

@@ -1,3 +1,12 @@
+from dstools.templates import StrictTemplate
+
+st = StrictTemplate('SELECT * FROM {{name}}')
+
+repr(st)
+
+str(st)
+
+
 import pytest
 from dstools.templates import StrictTemplate
 

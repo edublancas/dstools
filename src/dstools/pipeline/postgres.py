@@ -199,10 +199,10 @@ class PostgresIdentifier:
                              f' (length is {len(self.name)}), '
                              f'see: {url}')
 
-    def render(self, params):
+    def render(self, params, **kwargs):
         if self.needs_render:
             if not self.rendered:
-                self.name = self.name.render(params)
+                self.name = self.name.render(params, **kwargs)
                 self.rendered = True
             else:
                 warnings.warn(f'Trying to render {repr(self)}, with was'

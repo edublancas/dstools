@@ -5,7 +5,7 @@ from dstools.pipeline.products import File
 
 
 def fn(product, a):
-    Path(product).write_text('things')
+    Path(str(product)).write_text('things')
 
 
 def test_params_are_accesible_after_init():
@@ -20,7 +20,10 @@ def test_upstream_and_me_are_added():
     t = PythonCallable(fn, File('file.txt'), dag, 'callable',
                        params=dict(a=1))
     dag.render()
-    assert t.params == dict(a=1, product='file.txt')
+
+    p = t.params.copy()
+    p['product'] = str(p['product'])
+    assert p == dict(a=1, product='file.txt')
 
 
 def test_can_execute_python_callable(tmp_directory):

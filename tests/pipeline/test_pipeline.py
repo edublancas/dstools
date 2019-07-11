@@ -1,14 +1,20 @@
+import subprocess
 from pathlib import Path
 
 from dstools.pipeline.dag import DAG
 from dstools.pipeline.tasks import Task, BashCommand
 from dstools.pipeline.products import File
 
+kwargs = {'stderr': subprocess.PIPE,
+          'stdout': subprocess.PIPE,
+          'shell': True}
+
 
 def test_non_existent_file():
     dag = DAG()
     f = File('file.txt')
-    ta = Task('echo hi', f, dag, 'ta')
+    ta = Task('echo hi > {{product}}', f, dag, 'ta')
+    ta.render()
 
     assert not f.exists()
     assert f.outdated()
@@ -24,10 +30,15 @@ def test_outdated_data_simple_dependency(tmp_directory):
     fa = Path('a.txt')
     fb = Path('b.txt')
 
-    ta = BashCommand('touch a.txt', File(fa), dag, 'ta')
-    tb = BashCommand('touch b.txt', File(fb), dag, 'tb')
+    ta = BashCommand('touch {{product}}', File(fa), dag, 'ta', {}, kwargs,
+                     False)
+    tb = BashCommand('cat {{upstream["ta"]}} > {{product}}', File(fb), dag,
+                     'tb', {}, kwargs, False)
 
-    tb.set_upstream(ta)
+    ta >> tb
+
+    ta.render()
+    tb.render()
 
     assert not ta.product.exists()
     assert not tb.product.exists()
@@ -60,12 +71,14 @@ def test_many_upstream(tmp_directory):
     fb = Path('b.txt')
     fc = Path('c.txt')
 
-    ta = BashCommand('touch a.txt', File(fa), dag, 'ta')
-    tb = BashCommand('touch b.txt', File(fb), dag, 'tb')
-    tc = BashCommand('touch c.txt', File(fc), dag, 'tc')
+    ta = BashCommand('touch {{product}}', File(fa),
+                     dag, 'ta', {}, kwargs, False)
+    tb = BashCommand('touch {{product}} > {{product}}', File(fb),
+                     dag, 'tb', {}, kwargs, False)
+    tc = BashCommand('cat {{upstream["ta"]}} {{upstream["tb"]}} >  {{product}}',
+                     File(fc), dag, 'tc', {}, kwargs, False)
 
-    tc.set_upstream(ta)
-    tc.set_upstream(tb)
+    (ta + tb) >> tc
 
     dag.build()
 
@@ -107,7 +120,8 @@ def test_can_create_task_with_many_products():
     dag = DAG()
     fa1 = File('a1.txt')
     fa2 = File('a2.txt')
-    ta = Task('echo hi', [fa1, fa2], dag, 'ta')
+    ta = Task('echo {{product}}', [fa1, fa2], dag, 'ta')
+    ta.render()
 
     assert not ta.product.exists()
     assert ta.product.outdated()
