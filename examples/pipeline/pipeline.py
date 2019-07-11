@@ -28,6 +28,7 @@ env = Env()
 home = env.path.home
 path_to_sample = env.path.input / 'sample'
 
+(env.path.input / 'raw').mkdir(exist_ok=True, parents=True)
 path_to_sample.mkdir(exist_ok=True)
 
 pg.CONN = util.open_db_conn()
