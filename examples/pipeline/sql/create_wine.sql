@@ -1,10 +1,10 @@
 BEGIN;
 
-DROP TABLE IF EXISTS wine;
+DROP TABLE IF EXISTS {{product}};
 
-CREATE TABLE wine AS
-SELECT *, 'red' AS color FROM red
+CREATE TABLE {{product}} AS
+SELECT *, 'red' AS color FROM {{upstream['red']}}
 UNION ALL
-SELECT *, 'white' AS color FROM white
+SELECT *, 'white' AS color FROM {{upstream['white']}}
 
 COMMIT;

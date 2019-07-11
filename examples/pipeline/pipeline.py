@@ -7,8 +7,7 @@ from pathlib import Path
 from jinja2 import Template
 
 from dstools.pipeline.products import File
-from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable,
-                                    PythonScript)
+from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable)
 from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG
 from dstools import testing
@@ -18,6 +17,7 @@ from dstools import mkfilename
 from train import train_and_save_report
 import util
 from download_dataset import download_dataset
+from sample import sample
 
 
 logging.basicConfig(level=logging.INFO)
@@ -39,13 +39,14 @@ get_data = BashScript(home / 'get_data.sh',
                       File(env.path.input / 'raw' / 'red.csv'),
                       dag, 'get_data')
 
-sample = PythonScript(home / 'sample.py',
-                      File(env.path.input / 'sample' / 'red.csv'),
-                      dag, 'sample')
+sample = PythonCallable(sample,
+                        (File(env.path.input / 'sample' / 'red.csv'),
+                         File(env.path.input / 'sample' / 'white.csv')),
+                        dag, 'sample')
 get_data >> sample
 
 red_path = path_to_sample / 'red.csv'
-red_task = BashCommand(Template('csvsql --db {{db}} --tables red --insert {{path}} '
+red_task = BashCommand(Template('csvsql --db {{db}} --tables {{product}} --insert {{path}} '
                                 '--overwrite'),
                        pg.PostgresRelation(('public', 'red', 'table')),
                        dag, 'red',
@@ -53,7 +54,7 @@ red_task = BashCommand(Template('csvsql --db {{db}} --tables red --insert {{path
 sample >> red_task
 
 white_path = Path(path_to_sample / 'white.csv')
-white_task = BashCommand(Template('csvsql --db {{db}} --tables white --insert {{path}} '
+white_task = BashCommand(Template('csvsql --db {{db}} --tables {{product}} --insert {{path}} '
                                   '--overwrite'),
                          pg.PostgresRelation(('public', 'white', 'table')),
                          dag, 'white',
