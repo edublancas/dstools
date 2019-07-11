@@ -20,7 +20,7 @@ from download_dataset import download_dataset
 from sample import sample
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -36,9 +36,12 @@ db = util.load_db_credentials()
 dag = DAG()
 
 
-get_data = BashScript(home / 'get_data.sh',
-                      File(env.path.input / 'raw' / 'red.csv'),
-                      dag, 'get_data')
+get_data = BashCommand((home / 'get_data.sh').read_text(),
+                       (File(env.path.input / 'raw' / 'red.csv'),
+                        File(env.path.input / 'raw' / 'white.csv'),
+                        File(env.path.input / 'raw' / 'names')),
+                       dag, 'get_data',
+                       split_source_code=False)
 
 sample = PythonCallable(sample,
                         (File(env.path.input / 'sample' / 'red.csv'),
@@ -47,19 +50,21 @@ sample = PythonCallable(sample,
 get_data >> sample
 
 red_path = path_to_sample / 'red.csv'
-red_task = BashCommand(Template('csvsql --db {{db}} --tables {{product}} --insert {{path}} '
+red_task = BashCommand(Template('csvsql --db {{db}} --tables {{product.name}} --insert {{path}} '
                                 '--overwrite'),
                        pg.PostgresRelation(('public', 'red', 'table')),
                        dag, 'red',
-                       params=dict(db=db['uri'], path=red_path))
+                       params=dict(db=db['uri'], path=red_path),
+                       split_source_code=False)
 sample >> red_task
 
 white_path = Path(path_to_sample / 'white.csv')
-white_task = BashCommand(Template('csvsql --db {{db}} --tables {{product}} --insert {{path}} '
+white_task = BashCommand(Template('csvsql --db {{db}} --tables {{product.name}} --insert {{path}} '
                                   '--overwrite'),
                          pg.PostgresRelation(('public', 'white', 'table')),
                          dag, 'white',
-                         params=dict(db=db['uri'], path=white_path))
+                         params=dict(db=db['uri'], path=white_path),
+                         split_source_code=False)
 sample >> white_task
 
 

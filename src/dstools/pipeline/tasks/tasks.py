@@ -20,7 +20,7 @@ class BashCommand(Task):
     def __init__(self, code, product, dag, name=None, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
-                                        'shell': False},
+                                        'shell': True},
                  split_source_code=True):
         super().__init__(code, product, dag, name, params)
         self.split_source_code = split_source_code
@@ -44,7 +44,7 @@ class BashCommand(Task):
             self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
                               f' stderr: {res.stderr}')
 
-
+# FIXME: this no longer works since it will try to run the template
 class ScriptTask(Task):
     """A task that runs a generic script
     """

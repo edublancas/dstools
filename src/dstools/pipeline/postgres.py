@@ -9,6 +9,7 @@ from functools import total_ordering
 import json
 from dstools.pipeline.products import Product
 from dstools.pipeline.tasks import Task
+from dstools.pipeline.sql import SQLRelation
 from dstools.sql import infer
 
 from psycopg2 import sql
@@ -110,7 +111,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
     def save_metadata(self):
         metadata = self.metadata_serializer.serialize(self.metadata)
 
-        if self.identifier.kind == PostgresIdentifier.TABLE:
+        if self.identifier.kind == SQLRelation.table:
             query = (sql.SQL("COMMENT ON TABLE {} IS %(metadata)s;"
                      .format(self.identifier)))
         else:
@@ -172,15 +173,13 @@ class PostgresRelation(PostgresConnectionMixin, Product):
 class PostgresIdentifier:
     """An identifier that represents a database relation (table or view)
     """
-    TABLE = 'table'
-    VIEW = 'view'
     # FIXME: make this a subclass of Identifier, and add hooks
 
     def __init__(self, schema, name, kind):
         self.needs_render = isinstance(name, Template)
         self.rendered = False
 
-        if kind not in [self.TABLE, self.VIEW]:
+        if kind not in (SQLRelation.view, SQLRelation.table):
             raise ValueError('kind must be one of ["view", "table"] '
                              f'got "{kind}"')
 
