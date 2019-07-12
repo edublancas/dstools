@@ -17,21 +17,6 @@ from psycopg2 import sql
 CONN = None
 
 
-class PostgresConnectionMixin:
-    def _set_conn(self, conn):
-        self._conn = conn
-
-    def _get_conn(self):
-        if self._conn is not None:
-            return self._conn
-        elif CONN is not None:
-            return CONN
-        else:
-            ValueError('You have to either pass a connection object '
-                       'in the constructor or set postgres.CONN to '
-                       'a connection to be used by all postgres objects')
-
-
 class JSONSerializer:
     @staticmethod
     def serialize(metadata):
@@ -55,7 +40,7 @@ class Base64Serializer:
         return metadata
 
 
-class PostgresRelation(PostgresConnectionMixin, Product):
+class PostgresRelation(Product):
     """A Product that represents a postgres relation (table or view)
     """
     # FIXME: identifier has schema as optional but that introduces ambiguity
@@ -68,10 +53,11 @@ class PostgresRelation(PostgresConnectionMixin, Product):
             raise ValueError('identifier must have 3 elements, '
                              f'got: {len(identifier)}')
 
-        self._set_conn(conn)
+        self.conn = conn or CONN
 
-        # check if a valid conn is available before moving forward
-        self._get_conn()
+        if self.conn is None:
+            raise ValueError('{} must be initialized with a connection'
+                             .format(type(self).__name__))
 
         self.metadata_serializer = metadata_serializer
 
@@ -93,7 +79,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         WHERE nspname = %(schema)s
         AND relname = %(name)s
         """
-        cur = self._get_conn().cursor()
+        cur = self.conn.cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         metadata = cur.fetchone()
@@ -118,9 +104,9 @@ class PostgresRelation(PostgresConnectionMixin, Product):
             query = (sql.SQL("COMMENT ON VIEW {} IS %(metadata)s;"
                      .format(self.identifier)))
 
-        cur = self._get_conn().cursor()
+        cur = self.conn.cursor()
         cur.execute(query, dict(metadata=metadata))
-        self._get_conn().commit()
+        self.conn.commit()
         cur.close()
 
     def __repr__(self):
@@ -142,7 +128,7 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         );
         """
 
-        cur = self._get_conn().cursor()
+        cur = self.conn.cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         exists = cur.fetchone()[0]
@@ -155,10 +141,10 @@ class PostgresRelation(PostgresConnectionMixin, Product):
         cascade = 'CASCADE' if force else ''
         query = f"DROP {self.identifier.kind} IF EXISTS {self} {cascade}"
         self.logger.debug(f'Running "{query}" on the databse...')
-        cur = self._get_conn().cursor()
+        cur = self.conn.cursor()
         cur.execute(query)
         cur.close()
-        self._get_conn().commit()
+        self.conn.commit()
 
     @property
     def name(self):
@@ -239,7 +225,7 @@ class PostgresIdentifier:
         return str(self) < str(other)
 
 
-class PostgresScript(PostgresConnectionMixin, Task):
+class PostgresScript(Task):
     """A tasks represented by a SQL script run agains a Postgres database
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, )
@@ -247,10 +233,11 @@ class PostgresScript(PostgresConnectionMixin, Task):
     def __init__(self, code, product, dag, name, conn=None, params={}):
         super().__init__(code, product, dag, name, params)
 
-        self._set_conn(conn)
+        self.conn = conn or CONN
 
-        # check if a valid conn is available before moving forward
-        self._get_conn()
+        if self.conn is None:
+            raise ValueError('{} must be initialized with a connection'
+                             .format(type(self).__name__))
 
     def _validate(self):
         infered_relations = infer.created_relations(self.source_code)
@@ -276,9 +263,9 @@ class PostgresScript(PostgresConnectionMixin, Task):
 
     def run(self):
         self._validate()
-        cursor = self._get_conn().cursor()
+        cursor = self.conn.cursor()
         cursor.execute(self.source_code)
-        self._get_conn().commit()
+        self.conn.commit()
 
         self.product.check()
         self.product.test()

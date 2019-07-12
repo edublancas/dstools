@@ -18,7 +18,7 @@ class Postgres:
                         .format(col=col, schema=schema, name=name))
 
             # FIXME: probably abstract this cursor, execute, try thing...
-            conn = pg_product._get_conn()
+            conn = pg_product.conn
             cur = conn.cursor()
 
             try:
@@ -47,7 +47,7 @@ class Postgres:
                         .format(col=col, schema=schema, name=name))
 
             # FIXME: probably abstract this cursor, execute, try thing...
-            conn = pg_product._get_conn()
+            conn = pg_product.conn
             cur = conn.cursor()
 
             try:
@@ -82,7 +82,7 @@ class Postgres:
                         .format(col=col, schema=schema, name=name))
 
             # FIXME: probably abstract this cursor, execute, try thing...
-            conn = pg_product._get_conn()
+            conn = pg_product.conn
             cur = conn.cursor()
 
             try:
