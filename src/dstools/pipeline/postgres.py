@@ -8,7 +8,7 @@ import json
 from dstools.pipeline.products import Product
 from dstools.pipeline.tasks import Task
 from dstools.pipeline.sql import SQLRelationKind
-from dstools.pipeline.sql.identifiers import SQLIdentifier
+from dstools.pipeline.placeholders import SQLIdentifier
 from dstools.sql import infer
 
 from psycopg2 import sql

@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from dstools.pipeline.identifiers import ClientCode
+from dstools.pipeline.placeholders import ClientCode
 
 
 def test_client_code_init_with_str():

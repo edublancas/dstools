@@ -10,7 +10,7 @@ from subprocess import CalledProcessError
 from pathlib import Path
 import logging
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.identifiers import PythonCode
+from dstools.pipeline.placeholders import PythonCode
 
 
 class BashCommand(Task):

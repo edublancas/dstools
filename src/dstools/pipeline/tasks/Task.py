@@ -11,7 +11,7 @@ from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
 from dstools.pipeline.exceptions import TaskBuildError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
-from dstools.pipeline.identifiers import ClientCode
+from dstools.pipeline.placeholders import ClientCode
 from dstools.util import isiterable
 
 

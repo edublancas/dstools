@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.identifiers import ClientCode
+from dstools.pipeline.placeholders import ClientCode
 from dstools.pipeline.products import File
 from dstools.pipeline.postgres import PostgresRelation
 

@@ -2,7 +2,7 @@ import tempfile
 
 import pytest
 from pathlib import Path
-from dstools.templates import Placeholder
+from dstools.pipeline.placeholders import Placeholder
 from jinja2 import Template, Environment, FileSystemLoader
 
 
