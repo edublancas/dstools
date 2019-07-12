@@ -46,8 +46,10 @@ class Placeholder:
     @property
     def rendered(self):
         if self._rendered is None:
-            raise RuntimeError('Tried to read Placeholder {} without '
-                               'rendering first'.format(repr(self)))
+            raise RuntimeError('Tried to read {} {} without '
+                               'rendering first'
+                               .format(type(self).__name__,
+                                       repr(self)))
 
         return self._rendered
 
@@ -94,10 +96,11 @@ class PythonCode:
         self._params = params
 
     def run(self):
+        # FIXME: move this to the corresponding task
         self.code_init_obj(**self._params)
 
 
-class ClientCode:
+class ClientCode(Placeholder):
     """An object that represents client code
 
     Notes
@@ -107,26 +110,10 @@ class ClientCode:
     """
 
     def __init__(self, template):
+        # the only difference between this and the original placeholder
+        # is how they treat pathlib.Path
         self._template = StrictTemplate(template)
         self._rendered = None
-
-    @property
-    def rendered(self):
-        if self._rendered is None:
-            raise RuntimeError('Tried to read Placeholder {} without '
-                               'rendering first'.format(repr(self)))
-
-        return self._rendered
-
-    def render(self, params, **kwargs):
-        self._rendered = self._template.render(params, **kwargs)
-        return self
-
-    def __repr__(self):
-        return '{}({})'.format(type(self).__name__, self._template.raw)
-
-    def __str__(self):
-        return self.rendered
 
 
 class SQLIdentifier:
