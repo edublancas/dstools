@@ -67,6 +67,13 @@ class PythonCode:
 
 
 class ClientCode:
+    """An object that represents client code
+
+    Notes
+    -----
+    This is really just a StrictTemplate object that stores its rendered
+    version in the same object and raises an Exception if attempted
+    """
     def __init__(self, code_init_obj):
         if isinstance(code_init_obj, Path):
             self._location = code_init_obj
@@ -88,9 +95,6 @@ class ClientCode:
     @property
     def location(self):
         return self._location
-
-    def run(self, executor):
-        executor(self.content_rendered)
 
     def render(self, params, **kwargs):
         self._placeholder.render(params, **kwargs)
