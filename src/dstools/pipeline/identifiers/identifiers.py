@@ -25,8 +25,7 @@ from pathlib import Path
 import inspect
 
 
-from dstools.pipeline.identifiers.Placeholder import Placeholder
-from dstools.templates import StrictTemplate
+from dstools.templates import StrictTemplate, Placeholder
 
 from jinja2 import Template
 
