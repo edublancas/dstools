@@ -1,4 +1,3 @@
-from jinja2 import Template
 from pathlib import Path
 from dstools.pipeline.products import File
 
@@ -15,7 +14,7 @@ def test_file_initialized_with_path():
     assert str(f) == '/path/to/file'
 
 
-def test_file_initialized_with_template():
-    f = File(Template('/path/to/{{name}}'))
+def test_file_is_rendered_correctly():
+    f = File('/path/to/{{name}}')
     f.render(params=dict(name='file'))
     assert str(f) == '/path/to/file'

@@ -73,33 +73,24 @@ class ClientCode:
     This is really just a StrictTemplate object that stores its rendered
     version in the same object and raises an Exception if attempted
     """
-    def __init__(self, code_init_obj):
-        if isinstance(code_init_obj, Path):
-            self._location = code_init_obj
-            self._placeholder = Placeholder(code_init_obj.read_text())
-        elif isinstance(code_init_obj, str):
-            self._location = '[Loaded from str]'
-            self._placeholder = Placeholder(code_init_obj)
-        elif isinstance(code_init_obj, (Template, StrictTemplate)):
-            self._location = None
-            self._placeholder = Placeholder(code_init_obj)
-        else:
-            raise TypeError('Invalid type, initializer must be '
-                            'pathlib.Path, str or a Template-like object')
+    def __init__(self, template):
+        self._template = StrictTemplate(template)
+        self._rendered = None
 
     @property
-    def code_init_obj(self):
-        return self._placeholder.content
+    def rendered(self):
+        if self._rendered is None:
+            raise RuntimeError('Tried to read Placeholder {} without '
+                               'rendering first'.format(repr(self)))
 
-    @property
-    def location(self):
-        return self._location
+        return self._rendered
 
     def render(self, params, **kwargs):
-        self._placeholder.render(params, **kwargs)
-
-    def __str__(self):
-        return str(self._placeholder)
+        self._rendered = self._template.render(params, **kwargs)
+        return self
 
     def __repr__(self):
-        return '{}({})'.format(type(self).__name__, repr(self._placeholder))
+        return '{}({})'.format(type(self).__name__, self._template.raw)
+
+    def __str__(self):
+        return self.rendered

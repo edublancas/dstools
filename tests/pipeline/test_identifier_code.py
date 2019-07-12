@@ -1,6 +1,5 @@
 import tempfile
 from pathlib import Path
-from jinja2 import Template
 
 from dstools.pipeline.identifiers import ClientCode
 
@@ -26,8 +25,8 @@ def test_client_code_init_with_path():
     assert str(ci) == 'SELECT * FROM table'
 
 
-def test_client_code_init_with_template():
-    ci = ClientCode(Template('SELECT * FROM {{name}}'))
+def test_client_code_renders():
+    ci = ClientCode('SELECT * FROM {{name}}')
     ci.render(dict(name='table'))
 
     # repr(ci)

@@ -1,6 +1,9 @@
+import tempfile
+
+import pytest
 from pathlib import Path
-from dstools.pipeline.identifiers import Placeholder
-from jinja2 import Template
+from dstools.templates import Placeholder
+from jinja2 import Template, Environment, FileSystemLoader
 
 
 def test_string_identifier_initialized_with_path():
@@ -26,7 +29,22 @@ def test_string_identifier_initialized_with_str_with_tags():
     assert str(si) == 'things'
 
 
-def test_string_identifier_initialized_with_template_rendered():
-    si = Placeholder(Template('{{key}}')).render(params=dict(key='things'))
+def test_string_identifier_initialized_with_template_raises_error():
+
+    with pytest.raises(ValueError):
+        Placeholder(Template('{{key}}')).render(params=dict(key='things'))
+
+
+def test_string_identifier_initialized_with_template_from_env():
+
+    tmp = tempfile.mkdtemp()
+
+    Path(tmp, 'template.sql').write_text('{{key}}')
+
+    env = Environment(loader=FileSystemLoader(tmp))
+
+    template = env.get_template('template.sql')
+
+    si = Placeholder(template).render(params=dict(key='things'))
 
     assert str(si) == 'things'

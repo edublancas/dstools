@@ -5,7 +5,7 @@ in the local filesystem or a table in a database
 import os
 from pathlib import Path
 from dstools.pipeline.products.Product import Product
-from dstools.pipeline.identifiers import Placeholder
+from dstools.templates import Placeholder
 
 
 class File(Product):

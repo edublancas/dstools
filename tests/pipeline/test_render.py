@@ -4,7 +4,6 @@ from dstools.pipeline.dag import DAG
 from dstools.pipeline.tasks import BashCommand
 from dstools.pipeline.products import File
 
-from jinja2 import Template
 import pytest
 
 
@@ -19,15 +18,15 @@ def dag():
     t1 = BashCommand('echo a > {{product}} ', File('1.txt'), dag,
                      't1', {}, kwargs, False)
 
-    t2 = BashCommand(Template('cat {{upstream["t1"]}} > {{product}}'
-                              '&& echo b >> {{product}} '),
-                     File(Template('2_{{upstream["t1"]}}')),
+    t2 = BashCommand(('cat {{upstream["t1"]}} > {{product}}'
+                      '&& echo b >> {{product}} '),
+                     File(('2_{{upstream["t1"]}}')),
                      dag,
                      't2', {}, kwargs, False)
 
-    t3 = BashCommand(Template('cat {{upstream["t2"]}} > {{product}} '
-                              '&& echo c >> {{product}}'),
-                     File(Template('3_{{upstream["t2"]}}')), dag,
+    t3 = BashCommand(('cat {{upstream["t2"]}} > {{product}} '
+                      '&& echo c >> {{product}}'),
+                     File(('3_{{upstream["t2"]}}')), dag,
                      't3', {}, kwargs, False)
 
     t1 >> t2 >> t3

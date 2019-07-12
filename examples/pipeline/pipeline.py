@@ -4,7 +4,6 @@
 """
 import logging
 from pathlib import Path
-from jinja2 import Template
 
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable)
@@ -50,21 +49,19 @@ sample = PythonCallable(sample,
                         dag, 'sample')
 get_data >> sample
 
-red_path = path_to_sample / 'red.csv'
-red_task = BashCommand(Template('csvsql --db {{db}} --tables {{product.name}} --insert {{path}} '
-                                '--overwrite'),
+red_task = BashCommand(('csvsql --db {{db}} --tables {{product.name}} --insert {{upstream["sample"][0]}} '
+                        '--overwrite'),
                        pg.PostgresRelation(('public', 'red', 'table')),
                        dag, 'red',
-                       params=dict(db=db['uri'], path=red_path),
+                       params=dict(db=db['uri']),
                        split_source_code=False)
 sample >> red_task
 
-white_path = Path(path_to_sample / 'white.csv')
-white_task = BashCommand(Template('csvsql --db {{db}} --tables {{product.name}} --insert {{path}} '
-                                  '--overwrite'),
+white_task = BashCommand(('csvsql --db {{db}} --tables {{product.name}} --insert {{upstream["sample"][1]}} '
+                          '--overwrite'),
                          pg.PostgresRelation(('public', 'white', 'table')),
                          dag, 'white',
-                         params=dict(db=db['uri'], path=white_path),
+                         params=dict(db=db['uri']),
                          split_source_code=False)
 sample >> white_task
 
