@@ -1,6 +1,6 @@
 import enum
 
 
-class SQLRelation:#(enum.Enum):
+class SQLRelationKind:#(enum.Enum):
     view = 'view'
     table = 'table'

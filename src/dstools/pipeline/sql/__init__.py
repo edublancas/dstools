@@ -1,3 +1,3 @@
-from dstools.pipeline.sql.enum import SQLRelation
+from dstools.pipeline.sql.enum import SQLRelationKind
 
-__all__ = ['SQLRelation']
+__all__ = ['SQLRelationKind']
