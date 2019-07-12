@@ -25,11 +25,9 @@ import inspect
 
 
 from dstools.templates import StrictTemplate
-from functools import total_ordering
 import warnings
 
 from dstools.pipeline.sql import SQLRelationKind
-from jinja2 import Template
 
 
 class Placeholder:
@@ -62,7 +60,6 @@ class Placeholder:
 
     def __str__(self):
         return self.rendered
-
 
 
 class PythonCode:
@@ -132,30 +129,31 @@ class ClientCode:
         return self.rendered
 
 
-@total_ordering
 class SQLIdentifier:
     """An identifier that represents a database relation (table or view)
     """
-    # FIXME: make this a subclass of Identifier, and add hooks
-
     def __init__(self, schema, name, kind):
-        self.needs_render = isinstance(name, Template)
-        self.rendered = False
-
         if kind not in (SQLRelationKind.view, SQLRelationKind.table):
             raise ValueError('kind must be one of ["view", "table"] '
                              f'got "{kind}"')
 
+        self._template = StrictTemplate(name)
+        self._rendered = None
+
         self.kind = kind
         self.schema = schema
-        self.name = name
 
-        if not self.needs_render:
-            self._validate_name()
+    @property
+    def name(self):
+        if self._rendered is None:
+            raise RuntimeError('Tried to read Placeholder {} without '
+                               'rendering first'.format(repr(self)))
+
+        return self._rendered
 
     # FIXME: THIS SHOULD ONLY BE HERE IF POSTGRES
-    def _validate_name(self):
-        if len(self.name) > 63:
+    def _validate_rendered(self):
+        if len(self.rendered) > 63:
             url = ('https://www.postgresql.org/docs/current/'
                    'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
             raise ValueError(f'"{self.name}" exceeds maximum length of 63 '
@@ -163,28 +161,23 @@ class SQLIdentifier:
                              f'see: {url}')
 
     def render(self, params, **kwargs):
-        if self.needs_render:
-            if not self.rendered:
-                self.name = self.name.render(params, **kwargs)
-                self.rendered = True
-            else:
-                warnings.warn(f'Trying to render {repr(self)}, with was'
-                              ' already rendered, skipping render...')
-
+        self._rendered = self._template.render(params, **kwargs)
+        self._validate_rendered()
         return self
 
-    def __str__(self):
+    @property
+    def rendered(self):
+        if self._rendered is None:
+            raise RuntimeError('Tried to read Placeholder {} without '
+                               'rendering first'.format(repr(self)))
+
         if self.schema:
-            return f'"{self.schema}"."{self.name}"'
+            return f'"{self.schema}"."{self._rendered}"'
         else:
-            return f'"{self.name}"'
+            return f'"{self._rendered}"'
+
+    def __str__(self):
+        return self.rendered
 
     def __repr__(self):
-        return f'"{self.schema}"."{self.name}" (PG{self.kind.capitalize()})'
-
-    def __eq__(self, other):
-        """Compare schema.name to set order"""
-        return str(self) == str(other)
-
-    def __lt__(self, other):
-        return str(self) < str(other)
+        return f'"{self.schema}"."{self._template.raw}" (PG{self.kind.capitalize()})'

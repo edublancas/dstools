@@ -4,8 +4,6 @@ Testing that upstream tasks metadata is available
 import subprocess
 from pathlib import Path
 
-from jinja2 import Template
-
 from dstools.pipeline.dag import DAG
 from dstools.pipeline.tasks import BashCommand
 from dstools.pipeline.products import File
