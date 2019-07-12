@@ -112,6 +112,8 @@ class StrictTemplate:
 
         return self.source.render(**params)
 
+    # FIXME: delete below, here, make dstools.pipeline.Tasks instead
+
     def load(self, **render_kwargs):
         """Load the query to a pandas.DataFrame
         """
