@@ -8,3 +8,4 @@ pytest-flake8
 # dstools.pipeline.sql (SQLDump task)
 numpy
 pandas
+pyarrow

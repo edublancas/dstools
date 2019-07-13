@@ -10,6 +10,23 @@ from dstools.pipeline.postgres import PostgresRelation
 from dstools.pipeline.sql.products import SQLiteRelation
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+
+def to_parquet(df, path):
+    """
+    Notes
+    -----
+    going from pandas.DataFrame to parquet has an intermediate
+    apache arrow conversion (since arrow has the actual implementation
+    for writing parquet). using the shortcut pandas.DataFrame.to_parquet
+    gives this error with timestamps:
+    ArrowInvalid: Casting from timestamp[ns] to timestamp[ms] would lose data
+    so we are using taking the long way
+    """
+    table = pa.Table.from_pandas(df)
+    return pq.write_table(table, str(path))
 
 
 class SQLDump(Task):
@@ -60,7 +77,7 @@ class SQLDump(Task):
             if chunk:
                 chunk_df = pd.DataFrame.from_records(chunk)
                 chunk_df.columns = [row[0] for row in cursor.description]
-                chunk_df.to_parquet(path / f'{i}.parquet', index=False)
+                to_parquet(chunk_df, path / f'{i}.parquet')
                 self._logger.info('Done saving chunk...')
             else:
                 self._logger.info('Got empty chunk...')
