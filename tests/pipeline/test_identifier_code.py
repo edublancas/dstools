@@ -1,12 +1,12 @@
 import tempfile
 from pathlib import Path
 
-from dstools.pipeline.placeholders import ClientCode
+from dstools.pipeline.placeholders import ClientCodePlaceholder
 
 
 def test_client_code_init_with_str():
 
-    ci = ClientCode('SELECT * FROM {{name}}')
+    ci = ClientCodePlaceholder('SELECT * FROM {{name}}')
     ci.render(dict(name='table'))
 
     # repr(ci)
@@ -18,7 +18,7 @@ def test_client_code_init_with_path():
     filename = Path(filename)
     filename.write_text('SELECT * FROM {{name}}')
 
-    ci = ClientCode(filename)
+    ci = ClientCodePlaceholder(filename)
     ci.render(dict(name='table'))
 
     # repr(ci)
@@ -26,7 +26,7 @@ def test_client_code_init_with_path():
 
 
 def test_client_code_renders():
-    ci = ClientCode('SELECT * FROM {{name}}')
+    ci = ClientCodePlaceholder('SELECT * FROM {{name}}')
     ci.render(dict(name='table'))
 
     # repr(ci)

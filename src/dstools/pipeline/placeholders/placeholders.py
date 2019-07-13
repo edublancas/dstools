@@ -4,7 +4,10 @@ Product of A should be used by B in some way (e.g. Task A produces a table
 and Task B pivots it), placeholders help avoid redundancy when building tasks,
 if you declare that Product A is "schema"."table", the use of placeholders
 prevents "schema"."table" to be explicitely declared in B, since B depends
-on A, information from A is passed to B
+on A, information from A is passed to B.
+
+They are not intended to be used by the user, since Task and Product objects
+implicitely initialize them from strings
 """
 from pathlib import Path
 import inspect
@@ -22,68 +25,32 @@ class StringPlaceholder:
     in the same object so it can later be accesed
     """
 
-    def __init__(self, template):
-        if isinstance(template, Path):
-            template = str(template)
+    def __init__(self, source):
+        if isinstance(source, Path):
+            source = str(source)
 
-        self._template = StrictTemplate(template)
-        self._rendered = None
+        self._source = StrictTemplate(source)
+        self._rendered_value = None
 
     @property
-    def rendered(self):
-        if self._rendered is None:
+    def _rendered(self):
+        if self._rendered_value is None:
             raise RuntimeError('Tried to read {} {} without '
                                'rendering first'
                                .format(type(self).__name__,
                                        repr(self)))
 
-        return self._rendered
+        return self._rendered_value
 
     def render(self, params, **kwargs):
-        self._rendered = self._template.render(params, **kwargs)
+        self._rendered_value = self._source.render(params, **kwargs)
         return self
 
     def __repr__(self):
-        return '{}({})'.format(type(self).__name__, self._template.raw)
+        return '{}({})'.format(type(self).__name__, self._source.raw)
 
     def __str__(self):
-        return self.rendered
-
-
-class PythonCodePlaceholder:
-
-    def __init__(self, code_init_obj):
-        if not callable(code_init_obj):
-            raise TypeError(f'{type(self).__name__} must be initialized'
-                            'with a Python callable, got '
-                            f'"{type(code_init_obj).__name__}"')
-
-        self._code_init_obj = code_init_obj
-        self._code_init_obj_as_str = inspect.getsource(code_init_obj)
-        self._location = None
-
-        self._params = None
-
-    @property
-    def code_init_obj(self):
-        return self._code_init_obj
-
-    def __str__(self):
-        return self._code_init_obj_as_str
-
-    @property
-    def locaion(self):
-        return self._locaion
-
-    def render(self, params, **kwargs):
-        # FIXME: we need **kwargs for compatibility, but they are not used,
-        # think what's the best thing to do
-        # TODO: verify that params match function signature
-        self._params = params
-
-    def run(self):
-        # FIXME: move this to the corresponding task
-        self.code_init_obj(**self._params)
+        return self._rendered
 
 
 class ClientCodePlaceholder(StringPlaceholder):
@@ -95,64 +62,92 @@ class ClientCodePlaceholder(StringPlaceholder):
     version in the same object and raises an Exception if attempted
     """
 
-    def __init__(self, template):
+    def __init__(self, source):
         # the only difference between this and the original placeholder
         # is how they treat pathlib.Path
-        self._template = StrictTemplate(template)
-        self._rendered = None
+        self._source = StrictTemplate(source)
+        self._rendered_value = None
+
+
+class PythonCodePlaceholder:
+
+    def __init__(self, source):
+        if not callable(source):
+            raise TypeError(f'{type(self).__name__} must be initialized'
+                            'with a Python callable, got '
+                            f'"{type(source).__name__}"')
+
+        self._source = source
+        self._source_as_str = inspect.getsource(source)
+
+        self._params = None
+
+    def render(self, params, **kwargs):
+        # FIXME: we need **kwargs for compatibility, but they are not used,
+        # think what's the best thing to do
+        # TODO: verify that params match function signature
+        self._params = params
+
+    def __repr__(self):
+        return '{}({})'.format(type(self).__name__, self.source.__name__)
+
+    def __str__(self):
+        return self._source_as_str
 
 
 class SQLRelationPlaceholder:
     """An identifier that represents a database relation (table or view)
     """
+
     def __init__(self, schema, name, kind):
         if kind not in (SQLRelationKind.view, SQLRelationKind.table):
             raise ValueError('kind must be one of ["view", "table"] '
                              f'got "{kind}"')
 
-        self._template = StrictTemplate(name)
-        self._rendered = None
+        self._source = StrictTemplate(name)
+        self._rendered_value = None
 
         self.kind = kind
         self.schema = schema
 
     @property
     def name(self):
-        if self._rendered is None:
+        if self._rendered_value is None:
             raise RuntimeError('Tried to read {} {} without '
                                'rendering first'
                                .format(type(self).__name__, repr(self)))
 
-        return self._rendered
+        return self._rendered_value
 
     # FIXME: THIS SHOULD ONLY BE HERE IF POSTGRES
-    def _validate_rendered(self):
-        if len(self.rendered) > 63:
+    def _validate_rendered_value(self):
+        value = self._rendered_value
+        if len(value) > 63:
             url = ('https://www.postgresql.org/docs/current/'
                    'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
-            raise ValueError(f'"{self.name}" exceeds maximum length of 63 '
-                             f' (length is {len(self.name)}), '
+            raise ValueError(f'"{value}" exceeds maximum length of 63 '
+                             f' (length is {len(value)}), '
                              f'see: {url}')
 
-    def render(self, params, **kwargs):
-        self._rendered = self._template.render(params, **kwargs)
-        self._validate_rendered()
-        return self
-
     @property
-    def rendered(self):
-        if self._rendered is None:
+    def _rendered(self):
+        if self._rendered_value is None:
             raise RuntimeError('Tried to read {} {} without '
                                'rendering first'
                                .format(type(self).__name__, repr(self)))
 
         if self.schema:
-            return f'"{self.schema}"."{self._rendered}"'
+            return f'"{self.schema}"."{self._rendered_value}"'
         else:
-            return f'"{self._rendered}"'
+            return f'"{self._rendered_value}"'
+
+    def render(self, params, **kwargs):
+        self._rendered_value = self._source.render(params, **kwargs)
+        self._validate_rendered_value()
+        return self
 
     def __str__(self):
-        return self.rendered
+        return self._rendered
 
     def __repr__(self):
-        return f'"{self.schema}"."{self._template.raw}" (PG{self.kind.capitalize()})'
+        return f'SQL {self.kind.capitalize()}: "{self.schema}"."{self._source.raw}"'

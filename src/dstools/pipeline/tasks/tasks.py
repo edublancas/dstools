@@ -100,4 +100,4 @@ class PythonCallable(Task):
         super().__init__(code, product, dag, name, params)
 
     def run(self):
-        self._code.run()
+        self._code._source(**self.params)
