@@ -12,6 +12,10 @@ import pytest
 # TODO: provide a way to manage locations in products, so a relation
 # is fulle specified
 
+class Dummy:
+    pass
+
+
 def my_fn(product, upstream):
     pass
 
@@ -52,10 +56,12 @@ def test_python_callable_with_file():
 def test_postgresscript_with_relation():
     dag = DAG()
     t = PostgresScript('CREATE TABLE {{product}} AS SELECT * FROM {{name}}',
-                       PostgresRelation(('user', 'table', 'table')),
+                       PostgresRelation(('user', 'table', 'table'),
+                                        conn=Dummy()),
                        dag,
                        name='name',
-                       params=dict(name='some_table'))
+                       params=dict(name='some_table'),
+                       conn=Dummy())
 
     t.render()
 

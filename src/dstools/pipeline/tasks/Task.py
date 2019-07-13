@@ -53,6 +53,10 @@ class Task:
             self._name = name
         # otherwise, try to infer it from the product
         else:
+            # temporary assign a Name, since repr depends on it and will
+            # be needed if render fails
+            self._name = None
+
             # at this point the product has not been rendered but we can do
             # so if it only depends on params and not on upstream, try it
             try:
@@ -239,9 +243,9 @@ class Task:
                                 optional=set(params_names + ['upstream']))
         except Exception as e:
             traceback.print_exc()
-            raise e(f'Error rendering product {repr(self.product)} '
-                    f'from task {repr(self)} with params '
-                    f'{self.params}. Exception: {e}')
+            raise type(e)(f'Error rendering product {repr(self.product)} '
+                          f'from task {repr(self)} with params '
+                          f'{self.params}. Exception: {e}')
 
     def render(self):
         """
