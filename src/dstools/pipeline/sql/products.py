@@ -1,7 +1,17 @@
 from dstools.pipeline.products import Product
+from dstools.pipeline.placeholders import SQLRelationPlaceholder
 
 
 class SQLiteRelation(Product):
+    IDENTIFIERCLASS = SQLRelationPlaceholder
+
+    def __init__(self, identifier, conn=None):
+        if self.conn is None:
+            raise ValueError('{} must be initialized with a connection'
+                             .format(type(self).__name__))
+
+        super().__init__(identifier)
+
     def _create_metadata_relation(self):
 
         create_metadata = """

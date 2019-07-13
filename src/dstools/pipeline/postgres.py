@@ -45,28 +45,16 @@ class PostgresRelation(Product):
     # FIXME: identifier has schema as optional but that introduces ambiguity
     # when fetching metadata and checking if the table exists so maybe it
     # should be required
+    IDENTIFIERCLASS = SQLRelationPlaceholder
 
-    def __init__(self, identifier, conn=None,
-                 metadata_serializer=Base64Serializer):
-        if len(identifier) != 3:
-            raise ValueError('identifier must have 3 elements, '
-                             f'got: {len(identifier)}')
-
+    def __init__(self, identifier, conn=None):
         self.conn = conn or CONN
 
         if self.conn is None:
             raise ValueError('{} must be initialized with a connection'
                              .format(type(self).__name__))
 
-        self.metadata_serializer = metadata_serializer
-
-        # overriding superclass init since we need a SQLRelationPlaceholder here
-        self._identifier = SQLRelationPlaceholder(*identifier)
-        self.tests, self.checks = [], []
-        self.did_download_metadata = False
-        self.task = None
-
-        self.logger = logging.getLogger(__name__)
+        super().__init__(identifier)
 
     def fetch_metadata(self):
         # https://stackoverflow.com/a/11494353/709975
@@ -88,13 +76,13 @@ class PostgresRelation(Product):
         if metadata is None:
             return None
         else:
-            return self.metadata_serializer.deserialize(metadata[0])
+            return Base64Serializer.deserialize(metadata[0])
 
         # TODO: also check if metadata  does not give any parsing errors,
         # if yes, also return a dict with None values, and maybe emit a warn
 
     def save_metadata(self):
-        metadata = self.metadata_serializer.serialize(self.metadata)
+        metadata = Base64Serializer.serialize(self.metadata)
 
         if self.identifier.kind == SQLRelationKind.table:
             query = (sql.SQL("COMMENT ON TABLE {} IS %(metadata)s;"
@@ -107,13 +95,6 @@ class PostgresRelation(Product):
         cur.execute(query, dict(metadata=metadata))
         self.conn.commit()
         cur.close()
-
-    def __repr__(self):
-        # FIXME: delete, inherit from superclass
-        # using _identifier since self.identifier will implicitely call
-        # self._identifier() which might fail if this has not been rendered
-        id_ = self._identifier
-        return f'PG{id_.kind.capitalize()}: {id_.schema}.{id_.name}'
 
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975

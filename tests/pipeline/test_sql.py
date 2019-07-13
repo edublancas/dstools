@@ -39,6 +39,10 @@ def test_can_dump_sql(tmp_directory):
 
 
 # def test_can_transfer_sql(tmp_directory):
+#     """
+#     >>> import tempfile
+#     >>> tmp_directory = tempfile.mkdtemp()
+#     """
 #     tmp = Path(tmp_directory)
 
 #     # create connections to 2 dbs

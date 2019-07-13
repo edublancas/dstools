@@ -99,7 +99,13 @@ class SQLRelationPlaceholder:
     """An identifier that represents a database relation (table or view)
     """
 
-    def __init__(self, schema, name, kind):
+    def __init__(self, source):
+        if len(source) != 3:
+            raise ValueError('identifier must have 3 elements, '
+                             f'got: {len(identifier)}')
+
+        schema, name, kind = source
+
         if kind not in (SQLRelationKind.view, SQLRelationKind.table):
             raise ValueError('kind must be one of ["view", "table"] '
                              f'got "{kind}"')
