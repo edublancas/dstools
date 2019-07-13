@@ -23,7 +23,8 @@ class StrictTemplate:
         if isinstance(source, Path):
             self._path = source
             self._raw = source.read_text()
-            self._source = Template(self._raw)
+            self._source = Template(self._raw,
+                                    undefined=jinja2.StrictUndefined)
         elif isinstance(source, str):
             self._path = None
             self._raw = source
@@ -46,7 +47,8 @@ class StrictTemplate:
 
             self._path = path
             self._raw = path.read_text()
-            self._source = source
+            self._source = Template(self._raw,
+                                    undefined=jinja2.StrictUndefined)
         elif isinstance(source, StrictTemplate):
             self._path = source.path
             self._raw = source.raw
