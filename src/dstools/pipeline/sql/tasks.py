@@ -36,8 +36,9 @@ class SQLDump(Task):
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
 
-    def __init__(self, code, product, dag, name, conn=None, params={},
+    def __init__(self, code, product, dag, name=None, conn=None, params=None,
                  chunksize=10000):
+        params = params or {}
         super().__init__(code, product, dag, name, params)
 
         self._logger = logging.getLogger(__name__)
@@ -91,8 +92,9 @@ class SQLTransfer(Task):
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
-    def __init__(self, code, product, dag, name, conn=None, params={},
+    def __init__(self, code, product, dag, name=None, conn=None, params=None,
                  chunksize=10000):
+        params = params or {}
         super().__init__(code, product, dag, name, params)
 
         self._logger = logging.getLogger(__name__)
