@@ -12,10 +12,7 @@ implicitely initialize them from strings
 from pathlib import Path
 import inspect
 
-
 from dstools.templates import StrictTemplate
-import warnings
-
 from dstools.pipeline.sql import SQLRelationKind
 
 
@@ -101,14 +98,15 @@ class SQLRelationPlaceholder:
 
     def __init__(self, source):
         if len(source) != 3:
-            raise ValueError('identifier must have 3 elements, '
-                             f'got: {len(identifier)}')
+            raise ValueError('{} must be initialized with 3 elements, '
+                             'got: {}'
+                             .format(type(self).__name__, len(source)))
 
         schema, name, kind = source
 
         if kind not in (SQLRelationKind.view, SQLRelationKind.table):
             raise ValueError('kind must be one of ["view", "table"] '
-                             f'got "{kind}"')
+                             'got "{}"'.format(kind))
 
         self._source = StrictTemplate(name)
         self._rendered_value = None
