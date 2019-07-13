@@ -2,37 +2,37 @@ import tempfile
 
 import pytest
 from pathlib import Path
-from dstools.pipeline.placeholders import Placeholder
+from dstools.pipeline.placeholders import StringPlaceholder
 from jinja2 import Template, Environment, FileSystemLoader
 
 
 def test_string_identifier_initialized_with_path():
 
-    si = Placeholder(Path('/path/to/file')).render({})
+    si = StringPlaceholder(Path('/path/to/file')).render({})
 
     assert str(si) == '/path/to/file'
 
 
 def test_string_identifier_initialized_with_str():
 
-    si = Placeholder('things').render({})
+    si = StringPlaceholder('things').render({})
 
-    # assert repr(si) == "Placeholder('things')"
+    # assert repr(si) == "StringPlaceholder('things')"
     assert str(si) == 'things'
 
 
 def test_string_identifier_initialized_with_str_with_tags():
 
-    si = Placeholder('{{key}}').render(params=dict(key='things'))
+    si = StringPlaceholder('{{key}}').render(params=dict(key='things'))
 
-    # assert repr(si) == "Placeholder('things')"
+    # assert repr(si) == "StringPlaceholder('things')"
     assert str(si) == 'things'
 
 
 def test_string_identifier_initialized_with_template_raises_error():
 
     with pytest.raises(ValueError):
-        Placeholder(Template('{{key}}')).render(params=dict(key='things'))
+        StringPlaceholder(Template('{{key}}')).render(params=dict(key='things'))
 
 
 def test_string_identifier_initialized_with_template_from_env():
@@ -45,6 +45,6 @@ def test_string_identifier_initialized_with_template_from_env():
 
     template = env.get_template('template.sql')
 
-    si = Placeholder(template).render(params=dict(key='things'))
+    si = StringPlaceholder(template).render(params=dict(key='things'))
 
     assert str(si) == 'things'
