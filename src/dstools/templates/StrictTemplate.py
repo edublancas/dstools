@@ -47,9 +47,14 @@ class StrictTemplate:
             self._path = path
             self._raw = path.read_text()
             self._source = source
+        elif isinstance(source, StrictTemplate):
+            self._path = source.path
+            self._raw = source.raw
+            self._source = source.source
         else:
-            raise TypeError('{} must be initialized with a Template a '
-                            'pathlib.Path or str, got {} instead'
+            raise TypeError('{} must be initialized with a Template, '
+                            'StrictTemplate, pathlib.Path or str, '
+                            'got {} instead'
                             .format(type(self).__name__,
                                     type(source).__name__))
 
