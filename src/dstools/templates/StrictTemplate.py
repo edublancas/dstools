@@ -2,6 +2,8 @@
 from pathlib import Path
 import re
 
+from dstools.pipeline.exceptions import RenderError
+
 from numpydoc.docscrape import NumpyDocString
 import jinja2
 from jinja2 import Environment, meta, Template
@@ -140,13 +142,13 @@ class StrictTemplate:
         extra = passed - self.declared - optional
 
         if missing:
-            raise TypeError('Error rendering template {}, missing required '
-                            'arguments: {}, got params {}'
-                            .format(repr(self), missing, params))
+            raise RenderError('Error rendering template {}, missing required '
+                              'arguments: {}, got params {}'
+                              .format(repr(self), missing, params))
 
         if extra:
-            raise TypeError('Got unexpected arguments {}, '
-                            'declared arguments are {}'
-                            .format(extra, self.declared))
+            raise RenderError('Got unexpected arguments {}, '
+                              'declared arguments are {}'
+                              .format(extra, self.declared))
 
         return self.source.render(**params)

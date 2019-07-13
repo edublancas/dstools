@@ -14,7 +14,7 @@ from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.exceptions import TaskBuildError
+from dstools.pipeline.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.util import isiterable
@@ -48,7 +48,22 @@ class Task:
         else:
             self._product = MetaProduct(product)
 
-        self._name = name or product.name
+        # if passed a name, just use it
+        if name is not None:
+            self._name = name
+        # otherwise, try to infer it from the product
+        else:
+            # at this point the product has not been rendered but we can do
+            # so if it only depends on params and not on upstream, try it
+            try:
+                product.render(self.params)
+            except RenderError:
+                raise RenderError('name can only be None if the Product '
+                                  'does not depend on upstream parameters, '
+                                  'in which case, the Task gets assigned '
+                                  'the same name as the Product')
+            else:
+                self._name = product.name
 
         self._logger = logging.getLogger(__name__)
 

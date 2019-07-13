@@ -1,7 +1,10 @@
+from dstools.pipeline.exceptions import RenderError
 from dstools.pipeline import DAG
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks import PythonCallable
 from dstools.pipeline.postgres import PostgresScript, PostgresRelation
+
+import pytest
 
 
 # TODO: if there is only one product class supported, infer from a tuple?
@@ -11,6 +14,29 @@ from dstools.pipeline.postgres import PostgresScript, PostgresRelation
 
 def my_fn(product, upstream):
     pass
+
+
+def test_task_can_infer_name_from_product():
+    dag = DAG()
+    t = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
+                       params=dict(name='file'))
+    assert t.name == 'file'
+
+
+def test_task_raises_error_if_name_cannot_be_infered():
+    dag = DAG()
+
+    with pytest.raises(RenderError):
+        PythonCallable(my_fn, File('/path/to/{{upstream["t1"]}}_2'), dag)
+
+
+def test_task_can_infer_name_if_product_does_not_depend_on_upstream():
+    dag = DAG()
+    t1 = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
+                        params=dict(name='file'))
+    t2 = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
+                        params=dict(name='file2'))
+    assert t1.name == 'file' and t2.name == 'file2'
 
 
 def test_python_callable_with_file():
