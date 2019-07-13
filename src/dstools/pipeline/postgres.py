@@ -8,7 +8,7 @@ import json
 from dstools.pipeline.products import Product
 from dstools.pipeline.tasks import Task
 from dstools.pipeline.sql import SQLRelationKind
-from dstools.pipeline.placeholders import SQLIdentifier
+from dstools.pipeline.placeholders import SQLRelationPlaceholder
 from dstools.sql import infer
 
 from psycopg2 import sql
@@ -60,8 +60,8 @@ class PostgresRelation(Product):
 
         self.metadata_serializer = metadata_serializer
 
-        # overriding superclass init since we need a SQLIdentifier here
-        self._identifier = SQLIdentifier(*identifier)
+        # overriding superclass init since we need a SQLRelationPlaceholder here
+        self._identifier = SQLRelationPlaceholder(*identifier)
         self.tests, self.checks = [], []
         self.did_download_metadata = False
         self.task = None

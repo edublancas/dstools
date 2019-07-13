@@ -1,5 +1,10 @@
 """
 Task abstract class
+
+A Task is a unit of work, it has associated source code and
+a product (a persistent object such as a table in a database),
+it has a name (which can be infered from the source code filename)
+and lives in a DAG
 """
 import traceback
 from copy import copy
@@ -11,7 +16,7 @@ from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
 from dstools.pipeline.exceptions import TaskBuildError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
-from dstools.pipeline.placeholders import ClientCode
+from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.util import isiterable
 
 
@@ -19,7 +24,7 @@ class Task:
     """A task represents a unit of work
 
     """
-    CODECLASS = ClientCode
+    CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = None
 
     def __init__(self, code, product, dag, name=None, params=None):

@@ -5,13 +5,13 @@ in the local filesystem or a table in a database
 import os
 from pathlib import Path
 from dstools.pipeline.products.Product import Product
-from dstools.pipeline.placeholders import Placeholder
+from dstools.pipeline.placeholders import StringPlaceholder
 
 
 class File(Product):
     """A product representing a file in the local filesystem
     """
-    IDENTIFIERCLASS = Placeholder
+    IDENTIFIERCLASS = StringPlaceholder
 
     @property
     def _path_to_file(self):

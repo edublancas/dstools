@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import ClientCode
+from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.pipeline.products import File
 from dstools.pipeline.postgres import PostgresRelation
 
@@ -14,7 +14,7 @@ import pandas as pd
 class SQLDump(Task):
     """Dumps data from a SQL SELECT statement to a local parquet file
     """
-    CODECLASS = ClientCode
+    CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
 
     def __init__(self, code, product, dag, name, conn=None, params={}):
@@ -74,7 +74,7 @@ class SQLDump(Task):
 class SQLTransfer(Task):
     """Transfers data from a SQL statement to a SQL relation
     """
-    CODECLASS = ClientCode
+    CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, )
 
     def __init__(self, code, product, dag, name, conn=None, params={}):

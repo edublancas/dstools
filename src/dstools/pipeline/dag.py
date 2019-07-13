@@ -1,5 +1,8 @@
 """
 DAG module
+
+A DAG is collection of tasks that makes sure they are executed in
+the right order
 """
 import logging
 from collections import OrderedDict

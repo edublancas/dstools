@@ -1,3 +1,10 @@
+"""
+A Product specifies a persistent object in disk such as a file in the local
+filesystem or an table in a database. Each Product is uniquely identified,
+for example a file can be specified using a absolute path, a table can be
+fully specified by specifying a database, a schema and a name. Names
+are lazy evaluated, they can be built from templates
+"""
 import logging
 import warnings
 # from dstools.pipeline.identifiers import StringIdentifier

@@ -1,24 +1,10 @@
 """
-User only have to know about DAG, Task and Product, the rest are used
-internally
-
-DAG: collection of tasks - makes sure tasks are executed in order
-Task: unit of work, it has associated code and product, has a name
-    which can be infered from the code and lives in a DAG, it also
-    specifies runtime parameters for the code, injected at the right
-    time, it also specifies how to run the code
-Product: spefies a persistent object in disk such as a File or an
-object in a database, they are lazy evaluated so they can be templates
-that are rendered and passed to its corresponding task
-
----
-
-Code: there is only two types of code PythonCode and ClientCode.
-    they use the function specified from the Task to execute itself,
-    they have an intermediate "rendered" state where they fill their
-    parameters but wait execution until it is the right time,
-    they also provide other things such as finding its source code,
-    validation, normalization, etc
+If a Task B is said to have Task A as a dependencies, it means that the
+Product of A should be used by B in some way (e.g. Task A produces a table
+and Task B pivots it), placeholders help avoid redundancy when building tasks,
+if you declare that Product A is "schema"."table", the use of placeholders
+prevents "schema"."table" to be explicitely declared in B, since B depends
+on A, information from A is passed to B
 """
 from pathlib import Path
 import inspect
@@ -30,7 +16,7 @@ import warnings
 from dstools.pipeline.sql import SQLRelationKind
 
 
-class Placeholder:
+class StringPlaceholder:
     """
     StringPlaceholders are StrictTemplates that store its rendered version
     in the same object so it can later be accesed
@@ -64,7 +50,7 @@ class Placeholder:
         return self.rendered
 
 
-class PythonCode:
+class PythonCodePlaceholder:
 
     def __init__(self, code_init_obj):
         if not callable(code_init_obj):
@@ -100,7 +86,7 @@ class PythonCode:
         self.code_init_obj(**self._params)
 
 
-class ClientCode(Placeholder):
+class ClientCodePlaceholder(StringPlaceholder):
     """An object that represents client code
 
     Notes
@@ -116,7 +102,7 @@ class ClientCode(Placeholder):
         self._rendered = None
 
 
-class SQLIdentifier:
+class SQLRelationPlaceholder:
     """An identifier that represents a database relation (table or view)
     """
     def __init__(self, schema, name, kind):
@@ -133,8 +119,9 @@ class SQLIdentifier:
     @property
     def name(self):
         if self._rendered is None:
-            raise RuntimeError('Tried to read Placeholder {} without '
-                               'rendering first'.format(repr(self)))
+            raise RuntimeError('Tried to read {} {} without '
+                               'rendering first'
+                               .format(type(self).__name__, repr(self)))
 
         return self._rendered
 
@@ -155,8 +142,9 @@ class SQLIdentifier:
     @property
     def rendered(self):
         if self._rendered is None:
-            raise RuntimeError('Tried to read Placeholder {} without '
-                               'rendering first'.format(repr(self)))
+            raise RuntimeError('Tried to read {} {} without '
+                               'rendering first'
+                               .format(type(self).__name__, repr(self)))
 
         if self.schema:
             return f'"{self.schema}"."{self._rendered}"'
