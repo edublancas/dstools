@@ -1,3 +1,4 @@
+import sqlite3
 import json
 
 from dstools.pipeline.products import Product
@@ -8,20 +9,23 @@ class SQLiteRelation(Product):
     IDENTIFIERCLASS = SQLRelationPlaceholder
 
     def __init__(self, identifier, conn=None):
+        super().__init__(identifier)
+
         self.conn = conn
 
         if self.conn is None:
             raise ValueError('{} must be initialized with a connection'
                              .format(type(self).__name__))
 
-        super().__init__(identifier)
+        if self.identifier.schema is not None:
+            raise ValueError('SQLite does not support schemas, you should '
+                             'pass None')
 
     def _create_metadata_relation(self):
 
         create_metadata = """
         CREATE TABLE IF NOT EXISTS _metadata (
-            schema TEXT NOT NULL,
-            name TEXT NOT NULL,
+            name TEXT PRIMARY KEY,
             metadata BLOB
         )
         """
@@ -35,38 +39,33 @@ class SQLiteRelation(Product):
         self._create_metadata_relation()
 
         query = """
-
         SELECT metadata FROM _metadata
-        WHERE schema = '{schema}'
-        AND name = '{name}'
-        """.format(schema=self.identifier.schema,
-                   name=self.identifier.name)
+        WHERE name = '{name}'
+        """.format(name=self.identifier.name)
 
         cur = self.conn.cursor()
         cur.execute(query)
-        metadata = cur.fetchone()
+        records = cur.fetchone()
         cur.close()
 
-        if metadata is None:
-            return None
+        if records:
+            metadata_bin = records[0]
+            return json.loads(metadata_bin.decode("utf-8"))
         else:
-            return metadata
+            return None
 
     def save_metadata(self):
+        self._create_metadata_relation()
+
         metadata_bin = json.dumps(self.metadata).encode('utf-8')
-        metadata_bin_str = "{:08b}".format(int(metadata_bin.hex(), 16))
 
         query = """
-            UPDATE _metadata
-            SET metadata = {metadata}
-            WHERE schema = '{schema}'
-            AND name = '{name}'
-        """.format(schema=self.identifier.schema,
-                   name=self.identifier.name,
-                   metadata=metadata_bin_str)
-
+            REPLACE INTO _metadata(metadata, name)
+            VALUES(?, ?)
+        """
         cur = self.conn.cursor()
-        cur.execute(query)
+        cur.execute(query, (sqlite3.Binary(metadata_bin),
+                            self.identifier.name))
         self.conn.commit()
         cur.close()
 
@@ -88,10 +87,11 @@ class SQLiteRelation(Product):
     def delete(self):
         """Deletes the product
         """
-        # cascade = 'CASCADE' if force else ''
-        cascade = ''
-        query = f"DROP {self.identifier.kind} IF EXISTS {self} {cascade}"
-        self.logger.debug(f'Running "{query}" on the databse...')
+        query = ("DROP {kind} IF EXISTS {relation}"
+                 .format(kind=self.identifier.kind,
+                         relation=str(self)))
+        self.logger.debug('Running "{query}" on the databse...'
+                          .format(query=query))
         cur = self.conn.cursor()
         cur.execute(query)
         cur.close()

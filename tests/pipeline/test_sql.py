@@ -56,7 +56,7 @@ def test_can_transfer_sql(tmp_directory):
     # create the task and run it
     dag = DAG()
     SQLTransfer('SELECT * FROM numbers -- {{product}}',
-                SQLiteRelation(('public', 'numbers2', 'table'), conn=conn_out),
+                SQLiteRelation((None, 'numbers2', 'table'), conn=conn_out),
                 dag,
                 name='transfer',
                 conn=conn_in)
