@@ -7,6 +7,7 @@ from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.pipeline.products import File
 from dstools.pipeline.postgres import PostgresRelation
+from dstools.pipeline.sql.products import SQLiteRelation
 
 import pandas as pd
 
@@ -60,7 +61,7 @@ class SQLDump(Task):
                               'saving...')
 
             if chunk:
-                # NOTE: might faster to use pandas.read_sql?
+                # NOTE: might faster to use pandas.read_sql?,
                 chunk_df = pd.DataFrame.from_records(chunk)
                 chunk_df.columns = [row[0] for row in cursor.description]
                 chunk_df.to_parquet(path / f'{i}.parquet', index=False)
@@ -75,7 +76,7 @@ class SQLTransfer(Task):
     """Transfers data from a SQL statement to a SQL relation
     """
     CODECLASS = ClientCodePlaceholder
-    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, )
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
     def __init__(self, code, product, dag, name, conn=None, params={}):
         super().__init__(code, product, dag, name, params)
@@ -89,12 +90,12 @@ class SQLTransfer(Task):
                              .format(type(self).__name__))
 
     def run(self):
+        # FIXME: use chunk implementation from dump
         source_code = str(self._code)
-        chunksize = self.params.get('chunksize') or 20000
         conn = self.conn
 
         # read from source_code, use connection from the Task
-        df = pd.read_sql(source_code, conn, chunksize=chunksize)
+        df = pd.read_sql_query(source_code, conn)
 
         product = self.params['product']
 
@@ -102,4 +103,5 @@ class SQLTransfer(Task):
         df.to_sql(name=product.name,
                   con=product.conn,
                   schema=product.schema,
-                  if_exists='replace')
+                  if_exists='replace',
+                  index=False)
