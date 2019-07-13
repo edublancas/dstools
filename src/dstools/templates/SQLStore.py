@@ -21,7 +21,7 @@ class SQLStore:
     >>> sqlstore = SQLStore(path)
     """
 
-    def __init__(self, module, path, conn=None):
+    def __init__(self, module, path):
         if module is None:
             loader = FileSystemLoader(path)
         else:
@@ -32,11 +32,10 @@ class SQLStore:
             # this will cause jinja2 to raise an exception if a variable
             # declared in the template is not passed in the render parameters
             undefined=jinja2.StrictUndefined)
-        self.conn = conn
 
     def __dir__(self):
         return [t for t in self.env.list_templates() if t.endswith('.sql')]
 
     def get_template(self, name):
         template = self.env.get_template(name)
-        return StrictTemplate(template, self.conn)
+        return StrictTemplate(template)
