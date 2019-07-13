@@ -107,8 +107,12 @@ class SQLRelationPlaceholder:
         self._source = StrictTemplate(name)
         self._rendered_value = None
 
-        self.kind = kind
-        self.schema = schema
+        self._kind = kind
+        self._schema = schema
+
+    @property
+    def schema(self):
+        return self._schema
 
     @property
     def name(self):
@@ -119,7 +123,12 @@ class SQLRelationPlaceholder:
 
         return self._rendered_value
 
+    @property
+    def kind(self):
+        return self._kind
+
     # FIXME: THIS SHOULD ONLY BE HERE IF POSTGRES
+
     def _validate_rendered_value(self):
         value = self._rendered_value
         if len(value) > 63:

@@ -217,7 +217,7 @@ class Task:
 
         # add upstream product identifiers to params, if any
         if self.upstream:
-            self.params['upstream'] = {n: t.product.identifier for n, t
+            self.params['upstream'] = {n: t.product for n, t
                                        in self.upstream.items()}
 
         # render the current product
@@ -233,7 +233,7 @@ class Task:
                                f'from task {repr(self)} with params '
                                f'{self.params}. Exception: {e}')
 
-        self.params['product'] = self.product.identifier
+        self.params['product'] = self.product
 
         # all parameters are required, if upstream is not used, it should not
         # have any dependencies, if any param is not used, it should not
