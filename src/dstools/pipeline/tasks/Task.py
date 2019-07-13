@@ -56,7 +56,7 @@ class Task:
             # at this point the product has not been rendered but we can do
             # so if it only depends on params and not on upstream, try it
             try:
-                product.render(self.params)
+                self._render_product()
             except RenderError:
                 raise RenderError('name can only be None if the Product '
                                   'does not depend on upstream parameters, '
@@ -222,12 +222,7 @@ class Task:
         print(out)
         return out
 
-    def render(self):
-        """
-        Renders code and product, all upstream tasks must have been rendered
-        first, for that reason, this method will usually not be called
-        directly but via DAG.render(), which renders in the right order
-        """
+    def _render_product(self):
         params_names = list(self.params)
 
         # add upstream product identifiers to params, if any
@@ -244,9 +239,17 @@ class Task:
                                 optional=set(params_names + ['upstream']))
         except Exception as e:
             traceback.print_exc()
-            raise RuntimeError(f'Error rendering product {repr(self.product)} '
-                               f'from task {repr(self)} with params '
-                               f'{self.params}. Exception: {e}')
+            raise e(f'Error rendering product {repr(self.product)} '
+                    f'from task {repr(self)} with params '
+                    f'{self.params}. Exception: {e}')
+
+    def render(self):
+        """
+        Renders code and product, all upstream tasks must have been rendered
+        first, for that reason, this method will usually not be called
+        directly but via DAG.render(), which renders in the right order
+        """
+        self._render_product()
 
         self.params['product'] = self.product
 
