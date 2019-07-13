@@ -16,7 +16,7 @@ def test_can_dump_sql(tmp_directory):
     # create a db
     conn = sqlite3.connect(str(tmp / 'database.db'))
     # dump output path
-    out = tmp / 'dump.parquet'
+    out = tmp / 'dump'
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
@@ -24,8 +24,12 @@ def test_can_dump_sql(tmp_directory):
 
     # create the task and run it
     dag = DAG()
-    SQLDump('SELECT * FROM numbers -- {{product}}', File(out),
-            dag, name='dump', conn=conn)
+    SQLDump('SELECT * FROM numbers -- {{product}}',
+            File(out),
+            dag,
+            name='dump',
+            conn=conn,
+            chunksize=10)
     dag.build()
 
     # load dumped data and data from the db
@@ -59,7 +63,8 @@ def test_can_transfer_sql(tmp_directory):
                 SQLiteRelation((None, 'numbers2', 'table'), conn=conn_out),
                 dag,
                 name='transfer',
-                conn=conn_in)
+                conn=conn_in,
+                chunksize=10)
     dag.build()
 
     # load dumped data and data from the db

@@ -13,17 +13,20 @@ import pandas as pd
 
 
 class SQLDump(Task):
-    """Dumps data from a SQL SELECT statement to a local parquet file
+    """
+    Dumps data from a SQL SELECT statement to parquet files (one per chunk)
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
 
-    def __init__(self, code, product, dag, name, conn=None, params={}):
+    def __init__(self, code, product, dag, name, conn=None, params={},
+                 chunksize=10000):
         super().__init__(code, product, dag, name, params)
 
         self._logger = logging.getLogger(__name__)
 
         self.conn = conn
+        self.chunksize = chunksize
 
         if self.conn is None:
             raise ValueError('{} must be initialized with a connection'
@@ -31,10 +34,8 @@ class SQLDump(Task):
 
     def run(self):
         source_code = str(self._code)
-        chunksize = self.params.get('chunksize') or 20000
+        chunksize = self.chunksize
 
-        # NOTE: parquet might be a better option since saving is faster
-        # https://stackoverflow.com/a/48097717
         path = Path(str(self.params['product']))
 
         if path.exists():
@@ -45,10 +46,7 @@ class SQLDump(Task):
         cursor = self.conn.cursor()
         cursor.execute(source_code)
 
-        # TODO: add option to determine initial i to resume a download,
-        # but warn the user that this only works in ordered  queries
         i = 0
-        times = []
         chunk = True
 
         while chunk:
@@ -56,12 +54,10 @@ class SQLDump(Task):
             self._logger.info(f'Fetching chunk {i}...')
             chunk = cursor.fetchmany(chunksize)
             elapsed = datetime.now() - now
-            times.append(elapsed)
             self._logger.info(f'Done fetching chunk, elapsed: {elapsed} '
                               'saving...')
 
             if chunk:
-                # NOTE: might faster to use pandas.read_sql?,
                 chunk_df = pd.DataFrame.from_records(chunk)
                 chunk_df.columns = [row[0] for row in cursor.description]
                 chunk_df.to_parquet(path / f'{i}.parquet', index=False)
@@ -78,7 +74,8 @@ class SQLTransfer(Task):
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
-    def __init__(self, code, product, dag, name, conn=None, params={}):
+    def __init__(self, code, product, dag, name, conn=None, params={},
+                 chunksize=10000):
         super().__init__(code, product, dag, name, params)
 
         self._logger = logging.getLogger(__name__)
@@ -89,19 +86,20 @@ class SQLTransfer(Task):
             raise ValueError('{} must be initialized with a connection'
                              .format(type(self).__name__))
 
+        self.chunksize = chunksize
+
     def run(self):
-        # FIXME: use chunk implementation from dump
         source_code = str(self._code)
         conn = self.conn
-
-        # read from source_code, use connection from the Task
-        df = pd.read_sql_query(source_code, conn)
-
         product = self.params['product']
 
-        # dump to the product object, use product.conn
-        df.to_sql(name=product.name,
-                  con=product.conn,
-                  schema=product.schema,
-                  if_exists='replace',
-                  index=False)
+        # read from source_code, use connection from the Task
+        dfs = pd.read_sql_query(source_code, conn, chunksize=self.chunksize)
+
+        for i, df in enumerate(dfs):
+            # dump to the product object, use product.conn
+            df.to_sql(name=product.name,
+                      con=product.conn,
+                      schema=product.schema,
+                      if_exists='replace' if i == 0 else 'append',
+                      index=False)
