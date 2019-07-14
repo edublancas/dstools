@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 
-def test_can_dump_sql(tmp_directory):
+def test_can_dump_sqlite(tmp_directory):
     tmp = Path(tmp_directory)
 
     # create a db
@@ -42,7 +42,35 @@ def test_can_dump_sql(tmp_directory):
     assert dump.equals(db)
 
 
-def test_can_transfer_sql(tmp_directory):
+# def test_can_dump_postgres(tmp_directory, open_conn):
+#     tmp = Path(tmp_directory)
+
+#     # dump output path
+#     out = tmp / 'dump'
+
+#     # make some data and save it in the db
+#     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
+#     df.to_sql('numbers', open_conn)
+
+#     # create the task and run it
+#     dag = DAG()
+#     SQLDump('SELECT * FROM numbers -- {{product}}',
+#             File(out),
+#             dag,
+#             name='dump',
+#             conn=open_conn,
+#             chunksize=10)
+#     dag.build()
+
+#     # load dumped data and data from the db
+#     dump = pd.read_parquet(out)
+#     db = pd.read_sql_query('SELECT * FROM numbers', open_conn)
+
+#     # make sure they are the same
+#     assert dump.equals(db)
+
+
+def test_can_transfer_sqlite(tmp_directory):
     """
     >>> import tempfile
     >>> tmp_directory = tempfile.mkdtemp()

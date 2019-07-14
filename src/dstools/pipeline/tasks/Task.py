@@ -46,6 +46,7 @@ class Task:
         if isinstance(product, Product):
             self._product = product
         else:
+            # if assigned a tuple/list of products, create a MetaProduct
             self._product = MetaProduct(product)
 
         # if passed a name, just use it
