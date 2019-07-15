@@ -61,7 +61,7 @@ class SQLDump(Task):
 
         path.mkdir()
 
-        cursor = self.conn.cursor()
+        cursor = self.conn.raw_connection().cursor()
         cursor.execute(source_code)
 
         i = 0
@@ -113,12 +113,13 @@ class SQLTransfer(Task):
         product = self.params['product']
 
         # read from source_code, use connection from the Task
-        dfs = pd.read_sql_query(source_code, conn, chunksize=self.chunksize)
+        dfs = pd.read_sql_query(source_code, conn.engine,
+                                chunksize=self.chunksize)
 
         for i, df in enumerate(dfs):
             # dump to the product object, use product.conn
             df.to_sql(name=product.name,
-                      con=product.conn,
+                      con=product.conn.engine,
                       schema=product.schema,
                       if_exists='replace' if i == 0 else 'append',
                       index=False)

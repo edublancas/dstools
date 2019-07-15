@@ -1,10 +1,10 @@
-import sqlite3
 from pathlib import Path
 
 from dstools.pipeline import DAG
 from dstools.pipeline.sql.tasks import SQLDump, SQLTransfer
 from dstools.pipeline.products import File
 from dstools.pipeline.sql.products import SQLiteRelation
+from dstools.pipeline.clients import SQLAlchemyClient
 
 import pandas as pd
 import numpy as np
@@ -14,13 +14,13 @@ def test_can_dump_sqlite(tmp_directory):
     tmp = Path(tmp_directory)
 
     # create a db
-    conn = sqlite3.connect(str(tmp / 'database.db'))
+    conn = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
     # dump output path
     out = tmp / 'dump'
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', conn)
+    df.to_sql('numbers', conn.engine)
 
     # create the task and run it
     dag = DAG()
@@ -34,7 +34,7 @@ def test_can_dump_sqlite(tmp_directory):
 
     # load dumped data and data from the db
     dump = pd.read_parquet(out)
-    db = pd.read_sql_query('SELECT * FROM numbers', conn)
+    db = pd.read_sql_query('SELECT * FROM numbers', conn.engine)
 
     conn.close()
 
@@ -78,12 +78,12 @@ def test_can_transfer_sqlite(tmp_directory):
     tmp = Path(tmp_directory)
 
     # create connections to 2 dbs
-    conn_in = sqlite3.connect(str(tmp / 'database_in.db'))
-    conn_out = sqlite3.connect(str(tmp / 'database_out.db'))
+    conn_in = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database_in.db"))
+    conn_out = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database_out.db"))
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', conn_in, index=False)
+    df.to_sql('numbers', conn_in.engine, index=False)
 
     # create the task and run it
     dag = DAG()
@@ -96,8 +96,8 @@ def test_can_transfer_sqlite(tmp_directory):
     dag.build()
 
     # load dumped data and data from the db
-    original = pd.read_sql_query('SELECT * FROM numbers', conn_in)
-    transfer = pd.read_sql_query('SELECT * FROM numbers2', conn_out)
+    original = pd.read_sql_query('SELECT * FROM numbers', conn_in.engine)
+    transfer = pd.read_sql_query('SELECT * FROM numbers2', conn_out.engine)
 
     conn_in.close()
     conn_out.close()

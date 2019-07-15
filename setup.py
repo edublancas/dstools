@@ -74,7 +74,9 @@ setup(
         # FIXME: remove pyyaml
         'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate', 'pygraphviz',
         # used in SQLTemplate
-        'numpydoc', 'pyarrow'
+        'numpydoc', 'pyarrow',
+        # for pipeline.sql
+        'sqlalchemy'
 
     ],
     extras_require={

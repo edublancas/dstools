@@ -18,7 +18,7 @@ class Postgres:
                         .format(col=col, schema=schema, name=name))
 
             # FIXME: probably abstract this cursor, execute, try thing...
-            conn = pg_product.conn
+            conn = pg_product.conn.raw_connection()
             cur = conn.cursor()
 
             try:
@@ -28,7 +28,7 @@ class Postgres:
                 raise e
 
             result = cur.fetchone()[0]
-            cur.close()
+            conn.close()
             return result
 
         return _no_nas_in_column
@@ -47,7 +47,7 @@ class Postgres:
                         .format(col=col, schema=schema, name=name))
 
             # FIXME: probably abstract this cursor, execute, try thing...
-            conn = pg_product.conn
+            conn = pg_product.conn.raw_connection()
             cur = conn.cursor()
 
             try:
@@ -57,7 +57,7 @@ class Postgres:
                 raise e
 
             result = [row[0] for row in cur.fetchall()]
-            cur.close()
+            conn.close()
             return set(result) == set(values)
 
         return _distinct_values_in_column
@@ -82,7 +82,7 @@ class Postgres:
                         .format(col=col, schema=schema, name=name))
 
             # FIXME: probably abstract this cursor, execute, try thing...
-            conn = pg_product.conn
+            conn = pg_product.conn.raw_connection()
             cur = conn.cursor()
 
             try:
@@ -92,7 +92,7 @@ class Postgres:
                 raise e
 
             result = cur.fetchone()[0]
-            cur.close()
+            conn.close()
             return result
 
         return _no_duplicates_in_column

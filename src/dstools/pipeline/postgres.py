@@ -66,7 +66,8 @@ class PostgresRelation(Product):
         WHERE nspname = %(schema)s
         AND relname = %(name)s
         """
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         metadata = cur.fetchone()
@@ -91,10 +92,11 @@ class PostgresRelation(Product):
             query = (sql.SQL("COMMENT ON VIEW {} IS %(metadata)s;"
                      .format(self.identifier)))
 
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query, dict(metadata=metadata))
-        self.conn.commit()
-        cur.close()
+        conn.commit()
+        conn.close()
 
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975
@@ -108,7 +110,8 @@ class PostgresRelation(Product):
         );
         """
 
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         exists = cur.fetchone()[0]
@@ -121,10 +124,11 @@ class PostgresRelation(Product):
         cascade = 'CASCADE' if force else ''
         query = f"DROP {self.identifier.kind} IF EXISTS {self} {cascade}"
         self.logger.debug(f'Running "{query}" on the databse...')
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query)
-        cur.close()
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
     @property
     def name(self):
@@ -173,9 +177,11 @@ class PostgresScript(Task):
 
     def run(self):
         self._validate()
-        cursor = self.conn.cursor()
-        cursor.execute(self.source_code)
-        self.conn.commit()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
+        cur.execute(self.source_code)
+        conn.commit()
+        conn.close()
 
         self.product.check()
         self.product.test()

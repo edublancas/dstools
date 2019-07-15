@@ -9,6 +9,7 @@ from dstools.pipeline.products import File
 from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable)
 from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG
+from dstools.pipeline.clients import SQLAlchemyClient
 from dstools import testing
 from dstools import Env
 from dstools import mkfilename
@@ -30,8 +31,8 @@ path_to_sample = env.path.input / 'sample'
 (env.path.input / 'raw').mkdir(exist_ok=True, parents=True)
 path_to_sample.mkdir(exist_ok=True)
 
-pg.CONN = util.open_db_conn()
-db = util.load_db_credentials()
+uri = util.load_db_uri()
+pg.CONN = SQLAlchemyClient(uri)
 
 dag = DAG()
 
@@ -49,19 +50,19 @@ sample = PythonCallable(sample,
                         dag, 'sample')
 get_data >> sample
 
-red_task = BashCommand(('csvsql --db {{db}} --tables {{product.name}} --insert {{upstream["sample"][0]}} '
+red_task = BashCommand(('csvsql --db {{uri}} --tables {{product.name}} --insert {{upstream["sample"][0]}} '
                         '--overwrite'),
                        pg.PostgresRelation(('public', 'red', 'table')),
                        dag, 'red',
-                       params=dict(db=db['uri']),
+                       params=dict(uri=uri),
                        split_source_code=False)
 sample >> red_task
 
-white_task = BashCommand(('csvsql --db {{db}} --tables {{product.name}} --insert {{upstream["sample"][1]}} '
+white_task = BashCommand(('csvsql --db {{uri}} --tables {{product.name}} --insert {{upstream["sample"][1]}} '
                           '--overwrite'),
                          pg.PostgresRelation(('public', 'white', 'table')),
                          dag, 'white',
-                         params=dict(db=db['uri']),
+                         params=dict(uri=uri),
                          split_source_code=False)
 sample >> white_task
 

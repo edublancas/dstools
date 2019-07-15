@@ -1,8 +1,8 @@
 from datetime import datetime
-import sqlite3
 from pathlib import Path
 
 from dstools.pipeline.sql.products import SQLiteRelation
+from dstools.pipeline.clients import SQLAlchemyClient
 
 import pandas as pd
 import numpy as np
@@ -17,7 +17,7 @@ def test_sqlite_product_exists(tmp_directory):
     tmp = Path(tmp_directory)
 
     # create a db
-    conn = sqlite3.connect(str(tmp / 'database.db'))
+    conn = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
 
     numbers = SQLiteRelation((None, 'numbers', 'table'), conn)
     numbers.render({})
@@ -25,7 +25,7 @@ def test_sqlite_product_exists(tmp_directory):
     assert not numbers.exists()
 
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', conn)
+    df.to_sql('numbers', conn.engine)
 
     assert numbers.exists()
 
@@ -36,10 +36,10 @@ def test_sqlite_product_delete(tmp_directory):
     >>> tmp_directory = tempfile.mkdtemp()
     """
     tmp = Path(tmp_directory)
-    conn = sqlite3.connect(str(tmp / 'database.db'))
+    conn = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
 
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', conn)
+    df.to_sql('numbers', conn.engine)
 
     numbers = SQLiteRelation((None, 'numbers', 'table'), conn)
     numbers.render({})
@@ -50,7 +50,7 @@ def test_sqlite_product_delete(tmp_directory):
 
 def test_sqlite_product_fetch_metadata_none_if_not_exists(tmp_directory):
     tmp = Path(tmp_directory)
-    conn = sqlite3.connect(str(tmp / 'database.db'))
+    conn = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
 
     numbers = SQLiteRelation((None, 'numbers', 'table'), conn)
     numbers.render({})
@@ -60,10 +60,10 @@ def test_sqlite_product_fetch_metadata_none_if_not_exists(tmp_directory):
 
 def test_sqlite_product_fetch_metadata_none_if_empty_metadata(tmp_directory):
     tmp = Path(tmp_directory)
-    conn = sqlite3.connect(str(tmp / 'database.db'))
+    conn = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
 
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', conn)
+    df.to_sql('numbers', conn.engine)
 
     numbers = SQLiteRelation((None, 'numbers', 'table'), conn)
     numbers.render({})
@@ -73,7 +73,7 @@ def test_sqlite_product_fetch_metadata_none_if_empty_metadata(tmp_directory):
 
 def test_sqlite_product_save_metadata(tmp_directory):
     tmp = Path(tmp_directory)
-    conn = sqlite3.connect(str(tmp / 'database.db'))
+    conn = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
 
     numbers = SQLiteRelation((None, 'numbers', 'table'), conn)
     numbers.render({})

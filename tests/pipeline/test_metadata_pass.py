@@ -37,13 +37,14 @@ def test_passing_upstream_and_product_in_bashcommand(tmp_directory):
     assert fc.read_text() == 'a\nb\nc\n'
 
 
-def test_passing_upstream_and_product_in_postgres(open_conn):
+def test_passing_upstream_and_product_in_postgres(pg_client):
     dag = DAG()
 
-    cur = open_conn.cursor()
+    conn = pg_client.raw_connection()
+    cur = conn.cursor()
     cur.execute('drop table if exists public.series;')
-    open_conn.commit()
-    cur.close()
+    conn.commit()
+    conn.close()
 
     ta_t = """begin;
               drop table if exists {{product}};

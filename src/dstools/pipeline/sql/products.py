@@ -30,10 +30,11 @@ class SQLiteRelation(Product):
         )
         """
 
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(create_metadata)
-        self.conn.commit()
-        cur.close()
+        conn.commit()
+        conn.close()
 
     def fetch_metadata(self):
         self._create_metadata_relation()
@@ -43,10 +44,11 @@ class SQLiteRelation(Product):
         WHERE name = '{name}'
         """.format(name=self.identifier.name)
 
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query)
         records = cur.fetchone()
-        cur.close()
+        conn.close()
 
         if records:
             metadata_bin = records[0]
@@ -63,11 +65,12 @@ class SQLiteRelation(Product):
             REPLACE INTO _metadata(metadata, name)
             VALUES(?, ?)
         """
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query, (sqlite3.Binary(metadata_bin),
                             self.identifier.name))
-        self.conn.commit()
-        cur.close()
+        conn.commit()
+        conn.close()
 
     def exists(self):
         query = """
@@ -78,10 +81,11 @@ class SQLiteRelation(Product):
         """.format(kind=self.identifier.kind,
                    name=self.identifier.name)
 
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query)
         exists = cur.fetchone() is not None
-        cur.close()
+        conn.close()
         return exists
 
     def delete(self):
@@ -92,10 +96,11 @@ class SQLiteRelation(Product):
                          relation=str(self)))
         self.logger.debug('Running "{query}" on the databse...'
                           .format(query=query))
-        cur = self.conn.cursor()
+        conn = self.conn.raw_connection()
+        cur = conn.cursor()
         cur.execute(query)
-        cur.close()
-        self.conn.commit()
+        conn.commit()
+        conn.close()
 
     @property
     def name(self):

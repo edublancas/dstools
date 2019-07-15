@@ -7,6 +7,7 @@ import pytest
 from pathlib import Path
 import tempfile
 from dstools.pipeline import postgres as pg
+from dstools.pipeline.clients import SQLAlchemyClient
 
 
 def _path_to_tests():
@@ -92,21 +93,18 @@ def _load_db_credentials():
 
 
 @pytest.fixture(scope='session')
-def open_conn():
+def pg_client():
     db = _load_db_credentials()
 
-    conn = psycopg2.connect(dbname=db['dbname'],
-                            host=db['host'],
-                            user=db['user'],
-                            password=db['password'])
+    client = SQLAlchemyClient(db['uri'])
 
-    pg.CONN = conn
+    pg.CONN = client
 
-    yield conn
+    yield client
 
     pg.CONN = None
 
-    conn.close()
+    client.close()
 
 
 @pytest.fixture(scope='session')
