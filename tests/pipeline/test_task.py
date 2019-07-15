@@ -57,11 +57,11 @@ def test_postgresscript_with_relation():
     dag = DAG()
     t = PostgresScript('CREATE TABLE {{product}} AS SELECT * FROM {{name}}',
                        PostgresRelation(('user', 'table', 'table'),
-                                        conn=Dummy()),
+                                        client=Dummy()),
                        dag,
                        name='name',
                        params=dict(name='some_table'),
-                       conn=Dummy())
+                       client=Dummy())
 
     t.render()
 

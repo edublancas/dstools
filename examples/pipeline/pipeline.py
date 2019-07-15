@@ -32,7 +32,7 @@ path_to_sample = env.path.input / 'sample'
 path_to_sample.mkdir(exist_ok=True)
 
 uri = util.load_db_uri()
-pg.CONN = SQLAlchemyClient(uri)
+pg.CLIENT = SQLAlchemyClient(uri)
 
 dag = DAG()
 
@@ -117,4 +117,4 @@ stats = dag.build()
 
 # print(str(stats))
 
-pg.CONN.close()
+pg.CLIENT.close()

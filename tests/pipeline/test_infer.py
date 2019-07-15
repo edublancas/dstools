@@ -1,4 +1,3 @@
-from jinja2 import Template
 import pytest
 from dstools.pipeline import postgres as pg
 from dstools.pipeline.dag import DAG

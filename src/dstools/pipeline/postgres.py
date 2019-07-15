@@ -1,7 +1,6 @@
 """
 Module for using PostgresSQL
 """
-import logging
 import warnings
 import base64
 import json
@@ -13,7 +12,7 @@ from dstools.sql import infer
 
 from psycopg2 import sql
 
-CONN = None
+CLIENT = None
 
 
 class JSONSerializer:
@@ -47,11 +46,11 @@ class PostgresRelation(Product):
     # should be required
     IDENTIFIERCLASS = SQLRelationPlaceholder
 
-    def __init__(self, identifier, conn=None):
-        self.conn = conn or CONN
+    def __init__(self, identifier, client=None):
+        self.client = client or CLIENT
 
-        if self.conn is None:
-            raise ValueError('{} must be initialized with a connection'
+        if self.client is None:
+            raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
         super().__init__(identifier)
@@ -66,7 +65,7 @@ class PostgresRelation(Product):
         WHERE nspname = %(schema)s
         AND relname = %(name)s
         """
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
@@ -92,7 +91,7 @@ class PostgresRelation(Product):
             query = (sql.SQL("COMMENT ON VIEW {} IS %(metadata)s;"
                      .format(self.identifier)))
 
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query, dict(metadata=metadata))
         conn.commit()
@@ -110,7 +109,7 @@ class PostgresRelation(Product):
         );
         """
 
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
@@ -124,7 +123,7 @@ class PostgresRelation(Product):
         cascade = 'CASCADE' if force else ''
         query = f"DROP {self.identifier.kind} IF EXISTS {self} {cascade}"
         self.logger.debug(f'Running "{query}" on the databse...')
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query)
         conn.commit()
@@ -144,13 +143,13 @@ class PostgresScript(Task):
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, )
 
-    def __init__(self, code, product, dag, name, conn=None, params={}):
+    def __init__(self, code, product, dag, name, client=None, params={}):
         super().__init__(code, product, dag, name, params)
 
-        self.conn = conn or CONN
+        self.client = client or CLIENT
 
-        if self.conn is None:
-            raise ValueError('{} must be initialized with a connection'
+        if self.client is None:
+            raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
     def _validate(self):
@@ -177,7 +176,7 @@ class PostgresScript(Task):
 
     def run(self):
         self._validate()
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(self.source_code)
         conn.commit()

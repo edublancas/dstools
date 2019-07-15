@@ -98,11 +98,11 @@ def pg_client():
 
     client = SQLAlchemyClient(db['uri'])
 
-    pg.CONN = client
+    pg.CLIENT = client
 
     yield client
 
-    pg.CONN = None
+    pg.CLIENT = None
 
     client.close()
 
@@ -111,8 +111,8 @@ def pg_client():
 def fake_conn():
     o = object()
 
-    pg.CONN = o
+    pg.CLIENT = o
 
     yield o
 
-    pg.CONN = None
+    pg.CLIENT = None

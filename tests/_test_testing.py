@@ -8,8 +8,8 @@ env = Env()
 
 dag = DAG()
 
-pg.CONN = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
-                           user=env.db.user, password=env.db.password)
+pg.CLIENT = psycopg2.connect(dbname=env.db.dbname, host=env.db.host,
+                             user=env.db.user, password=env.db.password)
 
 # script does not create anything
 p = pg.PostgresRelation(('public', 'wine', 'table'))
@@ -21,4 +21,4 @@ colors = testing.Postgres.distinct_values_in_column('color', {'red', 'white'})
 assert no_nas(p)
 assert colors(p)
 
-pg.CONN.close()
+pg.CLIENT.close()
