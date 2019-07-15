@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from dstools.pipeline.sql.products import SQLiteRelation
+from dstools.pipeline.products import SQLiteRelation
 from dstools.pipeline.clients import SQLAlchemyClient
 
 import pandas as pd

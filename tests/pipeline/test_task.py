@@ -1,8 +1,7 @@
 from dstools.pipeline.exceptions import RenderError
 from dstools.pipeline import DAG
-from dstools.pipeline.products import File
-from dstools.pipeline.tasks import PythonCallable
-from dstools.pipeline.postgres import PostgresScript, PostgresRelation
+from dstools.pipeline.products import File, PostgresRelation
+from dstools.pipeline.tasks import PythonCallable, SQLScript
 
 import pytest
 
@@ -55,13 +54,13 @@ def test_python_callable_with_file():
 
 def test_postgresscript_with_relation():
     dag = DAG()
-    t = PostgresScript('CREATE TABLE {{product}} AS SELECT * FROM {{name}}',
-                       PostgresRelation(('user', 'table', 'table'),
-                                        client=Dummy()),
-                       dag,
-                       name='name',
-                       params=dict(name='some_table'),
-                       client=Dummy())
+    t = SQLScript('CREATE TABLE {{product}} AS SELECT * FROM {{name}}',
+                  PostgresRelation(('user', 'table', 'table'),
+                                   client=Dummy()),
+                  dag,
+                  name='name',
+                  params=dict(name='some_table'),
+                  client=Dummy())
 
     t.render()
 

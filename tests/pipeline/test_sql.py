@@ -1,9 +1,8 @@
 from pathlib import Path
 
 from dstools.pipeline import DAG
-from dstools.pipeline.sql.tasks import SQLDump, SQLTransfer
-from dstools.pipeline.products import File
-from dstools.pipeline.sql.products import SQLiteRelation
+from dstools.pipeline.tasks import SQLDump, SQLTransfer
+from dstools.pipeline.products import File, SQLiteRelation
 from dstools.pipeline.clients import SQLAlchemyClient
 
 import pandas as pd

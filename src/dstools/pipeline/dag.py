@@ -29,16 +29,22 @@ class DAG(collections.abc.Mapping):
     # networkx.DiGraph structure directly to avoid having to re-build the
     # graph every time
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, clients=None):
         self._dict = {}
         self.name = name
         self.logger = logging.getLogger(__name__)
         self.build_report = None
 
+        self._clients = clients or {}
+
     @property
     def product(self):
         # We have to rebuild it since tasks might have been added
         return MetaProduct([t.product for t in self.values()])
+
+    @property
+    def clients(self):
+        return self._clients
 
     def add_task(self, task):
         """Adds a task to the DAG

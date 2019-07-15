@@ -1,17 +1,76 @@
+import warnings
 import logging
 from datetime import datetime
 import shutil
 from pathlib import Path
 
+from dstools.sql import infer
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.placeholders import ClientCodePlaceholder
-from dstools.pipeline.products import File
-from dstools.pipeline.postgres import PostgresRelation
-from dstools.pipeline.sql.products import SQLiteRelation
+from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+
+
+class SQLScript(Task):
+    """
+    A tasks represented by a SQL script run agains a database this Task
+    does not make any assumptions about the underlying SQL engine, it should
+    work witn all DBs supported by SQLAlchemy
+    """
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
+
+    def __init__(self, code, product, dag, name, client=None, params=None):
+        params = params or {}
+
+        super().__init__(code, product, dag, name, params)
+
+        self.client = client or self.dag.clients.get(type(self))
+
+        if self.client is None:
+            raise ValueError('{} must be initialized with a client'
+                             .format(type(self).__name__))
+
+    def _validate(self):
+        infered_relations = infer.created_relations(self.source_code)
+
+        if not infered_relations:
+            warnings.warn('It seems like your task "{self}" will not create '
+                          'any tables or views but the task has product '
+                          '"{product}"'
+                          .format(self=self,
+                                  product=self.product))
+        # FIXME: check when product is metaproduct
+        elif len(infered_relations) > 1:
+            warnings.warn('It seems like your task "{self}" will create '
+                          'more than one table or view but you only declared '
+                          ' one product: "{self.product}"'
+                          .format(self=self,
+                                  product=self.product))
+        else:
+            schema, name, kind = infered_relations[0]
+            id_ = self.product.identifier
+
+            if ((schema != id_.schema) or (name != id_.name)
+                    or (kind != id_.kind)):
+                warnings.warn('It seems like your task "{self}" create '
+                              'a {kind} "{schema}.{name}" but your product '
+                              'did not match: "{product}"'
+                              .format(self=self, kind=kind, schema=schema,
+                                      name=name, product=self.product))
+
+    def run(self):
+        self._validate()
+        conn = self.client.raw_connection()
+        cur = conn.cursor()
+        cur.execute(self.source_code)
+        conn.commit()
+        conn.close()
+
+        self.product.check()
+        self.product.test()
 
 
 def to_parquet(df, path):
@@ -43,7 +102,7 @@ class SQLDump(Task):
 
         self._logger = logging.getLogger(__name__)
 
-        self.client = client
+        self.client = client or self.dag.clients.get(type(self))
         self.chunksize = chunksize
 
         if self.client is None:
@@ -99,7 +158,7 @@ class SQLTransfer(Task):
 
         self._logger = logging.getLogger(__name__)
 
-        self.client = client
+        self.client = client or self.dag.clients.get(type(self))
 
         if self.client is None:
             raise ValueError('{} must be initialized with a connection'

@@ -13,7 +13,6 @@ from pathlib import Path
 import inspect
 
 from dstools.templates import StrictTemplate
-from dstools.pipeline.sql import SQLRelationKind
 
 
 class StringPlaceholder:
@@ -104,7 +103,7 @@ class SQLRelationPlaceholder:
 
         schema, name, kind = source
 
-        if kind not in (SQLRelationKind.view, SQLRelationKind.table):
+        if kind not in ('view', 'table'):
             raise ValueError('kind must be one of ["view", "table"] '
                              'got "{}"'.format(kind))
 

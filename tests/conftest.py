@@ -1,13 +1,14 @@
 import json
 from os import environ
-import psycopg2
 import shutil
 import os
 import pytest
 from pathlib import Path
 import tempfile
-from dstools.pipeline import postgres as pg
 from dstools.pipeline.clients import SQLAlchemyClient
+from dstools.pipeline.tasks import SQLScript
+from dstools.pipeline.products import PostgresRelation
+from dstools.pipeline.dag import DAG
 
 
 def _path_to_tests():
@@ -98,11 +99,7 @@ def pg_client():
 
     client = SQLAlchemyClient(db['uri'])
 
-    pg.CLIENT = client
-
     yield client
-
-    pg.CLIENT = None
 
     client.close()
 
@@ -111,8 +108,20 @@ def pg_client():
 def fake_conn():
     o = object()
 
-    pg.CLIENT = o
-
     yield o
 
-    pg.CLIENT = None
+
+@pytest.fixture()
+def dag():
+    dag = DAG()
+
+    db = _load_db_credentials()
+
+    client = SQLAlchemyClient(db['uri'])
+
+    dag.clients[SQLScript] = client
+    dag.clients[PostgresRelation] = client
+
+    yield dag
+
+    client.close()

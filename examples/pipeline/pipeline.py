@@ -3,11 +3,10 @@
 %autoreload 2
 """
 import logging
-from pathlib import Path
 
-from dstools.pipeline.products import File
-from dstools.pipeline.tasks import (BashCommand, BashScript, PythonCallable)
-from dstools.pipeline import postgres as pg
+from dstools.pipeline.products import File, PostgresRelation
+from dstools.pipeline.tasks import (BashCommand, PythonCallable,
+                                    SQLScript)
 from dstools.pipeline.dag import DAG
 from dstools.pipeline.clients import SQLAlchemyClient
 from dstools import testing
@@ -32,7 +31,7 @@ path_to_sample = env.path.input / 'sample'
 path_to_sample.mkdir(exist_ok=True)
 
 uri = util.load_db_uri()
-pg.CLIENT = SQLAlchemyClient(uri)
+pg_client = SQLAlchemyClient(uri)
 
 dag = DAG()
 
@@ -52,7 +51,8 @@ get_data >> sample
 
 red_task = BashCommand(('csvsql --db {{uri}} --tables {{product.name}} --insert {{upstream["sample"][0]}} '
                         '--overwrite'),
-                       pg.PostgresRelation(('public', 'red', 'table')),
+                       PostgresRelation(
+                           ('public', 'red', 'table'), client=pg_client),
                        dag, 'red',
                        params=dict(uri=uri),
                        split_source_code=False)
@@ -60,37 +60,43 @@ sample >> red_task
 
 white_task = BashCommand(('csvsql --db {{uri}} --tables {{product.name}} --insert {{upstream["sample"][1]}} '
                           '--overwrite'),
-                         pg.PostgresRelation(('public', 'white', 'table')),
+                         PostgresRelation(
+                             ('public', 'white', 'table'), client=pg_client),
                          dag, 'white',
                          params=dict(uri=uri),
                          split_source_code=False)
 sample >> white_task
 
 
-wine_task = pg.PostgresScript(home / 'sql' / 'create_wine.sql',
-                              pg.PostgresRelation(('public', 'wine', 'table')),
-                              dag, 'wine')
+wine_task = SQLScript(home / 'sql' / 'create_wine.sql',
+                      PostgresRelation(
+                          ('public', 'wine', 'table'), client=pg_client),
+                      dag, 'wine',
+                      client=pg_client)
 (red_task + white_task) >> wine_task
 
 
-dataset_task = pg.PostgresScript(home / 'sql' / 'create_dataset.sql',
-                                 pg.PostgresRelation(
-                                     ('public', 'dataset', 'table')),
-                                 dag, 'dataset')
+dataset_task = SQLScript(home / 'sql' / 'create_dataset.sql',
+                         PostgresRelation(
+                             ('public', 'dataset', 'table'), client=pg_client),
+                         dag, 'dataset',
+                         client=pg_client)
 wine_task >> dataset_task
 
 
-training_task = pg.PostgresScript(home / 'sql' / 'create_training.sql',
-                                  pg.PostgresRelation(
-                                      ('public', 'training', 'table')),
-                                  dag, 'training')
+training_task = SQLScript(home / 'sql' / 'create_training.sql',
+                          PostgresRelation(
+                              ('public', 'training', 'table'), client=pg_client),
+                          dag, 'training',
+                          client=pg_client)
 dataset_task >> training_task
 
 
-testing_table = pg.PostgresRelation(('public', 'testing', 'table'))
+testing_table = PostgresRelation(
+    ('public', 'testing', 'table'), client=pg_client)
 testing_table.tests = [testing.Postgres.no_nas_in_column('label')]
-testing_task = pg.PostgresScript(home / 'sql' / 'create_testing.sql',
-                                 testing_table, dag, 'testing')
+testing_task = SQLScript(home / 'sql' / 'create_testing.sql',
+                         testing_table, dag, 'testing', client=pg_client)
 
 dataset_task >> testing_task
 
@@ -116,5 +122,3 @@ download_task >> train_task
 stats = dag.build()
 
 # print(str(stats))
-
-pg.CLIENT.close()
