@@ -14,13 +14,13 @@ def test_can_dump_sqlite(tmp_directory):
     tmp = Path(tmp_directory)
 
     # create a db
-    conn = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
+    client = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
     # dump output path
     out = tmp / 'dump'
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', conn.engine)
+    df.to_sql('numbers', client.engine)
 
     # create the task and run it
     dag = DAG()
@@ -28,21 +28,21 @@ def test_can_dump_sqlite(tmp_directory):
             File(out),
             dag,
             name='dump',
-            conn=conn,
+            client=client,
             chunksize=10)
     dag.build()
 
     # load dumped data and data from the db
     dump = pd.read_parquet(out)
-    db = pd.read_sql_query('SELECT * FROM numbers', conn.engine)
+    db = pd.read_sql_query('SELECT * FROM numbers', client.engine)
 
-    conn.close()
+    client.close()
 
     # make sure they are the same
     assert dump.equals(db)
 
 
-# def test_can_dump_postgres(tmp_directory, open_conn):
+# def test_can_dump_postgres(tmp_directory, open_client):
 #     tmp = Path(tmp_directory)
 
 #     # dump output path
@@ -50,7 +50,7 @@ def test_can_dump_sqlite(tmp_directory):
 
 #     # make some data and save it in the db
 #     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-#     df.to_sql('numbers', open_conn)
+#     df.to_sql('numbers', open_client)
 
 #     # create the task and run it
 #     dag = DAG()
@@ -58,13 +58,13 @@ def test_can_dump_sqlite(tmp_directory):
 #             File(out),
 #             dag,
 #             name='dump',
-#             conn=open_conn,
+#             client=open_client,
 #             chunksize=10)
 #     dag.build()
 
 #     # load dumped data and data from the db
 #     dump = pd.read_parquet(out)
-#     db = pd.read_sql_query('SELECT * FROM numbers', open_conn)
+#     db = pd.read_sql_query('SELECT * FROM numbers', open_client)
 
 #     # make sure they are the same
 #     assert dump.equals(db)
@@ -77,30 +77,30 @@ def test_can_transfer_sqlite(tmp_directory):
     """
     tmp = Path(tmp_directory)
 
-    # create connections to 2 dbs
-    conn_in = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database_in.db"))
-    conn_out = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database_out.db"))
+    # create clientections to 2 dbs
+    client_in = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database_in.db"))
+    client_out = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database_out.db"))
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', conn_in.engine, index=False)
+    df.to_sql('numbers', client_in.engine, index=False)
 
     # create the task and run it
     dag = DAG()
     SQLTransfer('SELECT * FROM numbers -- {{product}}',
-                SQLiteRelation((None, 'numbers2', 'table'), conn=conn_out),
+                SQLiteRelation((None, 'numbers2', 'table'), client=client_out),
                 dag,
                 name='transfer',
-                conn=conn_in,
+                client=client_in,
                 chunksize=10)
     dag.build()
 
     # load dumped data and data from the db
-    original = pd.read_sql_query('SELECT * FROM numbers', conn_in.engine)
-    transfer = pd.read_sql_query('SELECT * FROM numbers2', conn_out.engine)
+    original = pd.read_sql_query('SELECT * FROM numbers', client_in.engine)
+    transfer = pd.read_sql_query('SELECT * FROM numbers2', client_out.engine)
 
-    conn_in.close()
-    conn_out.close()
+    client_in.close()
+    client_out.close()
 
     # make sure they are the same
     assert original.equals(transfer)

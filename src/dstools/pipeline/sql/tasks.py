@@ -36,18 +36,18 @@ class SQLDump(Task):
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
 
-    def __init__(self, code, product, dag, name=None, conn=None, params=None,
+    def __init__(self, code, product, dag, name=None, client=None, params=None,
                  chunksize=10000):
         params = params or {}
         super().__init__(code, product, dag, name, params)
 
         self._logger = logging.getLogger(__name__)
 
-        self.conn = conn
+        self.client = client
         self.chunksize = chunksize
 
-        if self.conn is None:
-            raise ValueError('{} must be initialized with a connection'
+        if self.client is None:
+            raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
     def run(self):
@@ -61,7 +61,7 @@ class SQLDump(Task):
 
         path.mkdir()
 
-        cursor = self.conn.raw_connection().cursor()
+        cursor = self.client.raw_connection().cursor()
         cursor.execute(source_code)
 
         i = 0
@@ -92,16 +92,16 @@ class SQLTransfer(Task):
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
-    def __init__(self, code, product, dag, name=None, conn=None, params=None,
+    def __init__(self, code, product, dag, name=None, client=None, params=None,
                  chunksize=10000):
         params = params or {}
         super().__init__(code, product, dag, name, params)
 
         self._logger = logging.getLogger(__name__)
 
-        self.conn = conn
+        self.client = client
 
-        if self.conn is None:
+        if self.client is None:
             raise ValueError('{} must be initialized with a connection'
                              .format(type(self).__name__))
 
@@ -109,20 +109,18 @@ class SQLTransfer(Task):
 
     def run(self):
         source_code = str(self._code)
-        conn = self.conn
         product = self.params['product']
 
         # read from source_code, use connection from the Task
         self._logger.info('Fetching data...')
-        dfs = pd.read_sql_query(source_code, conn.engine,
+        dfs = pd.read_sql_query(source_code, self.client.engine,
                                 chunksize=self.chunksize)
         self._logger.info('Done fetching data...')
 
         for i, df in enumerate(dfs):
-            # dump to the product object, use product.conn
             self._logger.info('Storing chunk {i}...'.format(i=i))
             df.to_sql(name=product.name,
-                      con=product.conn.engine,
+                      con=product.client.engine,
                       schema=product.schema,
                       if_exists='replace' if i == 0 else 'append',
                       index=False)

@@ -8,13 +8,13 @@ from dstools.pipeline.placeholders import SQLRelationPlaceholder
 class SQLiteRelation(Product):
     IDENTIFIERCLASS = SQLRelationPlaceholder
 
-    def __init__(self, identifier, conn=None):
+    def __init__(self, identifier, client=None):
         super().__init__(identifier)
 
-        self.conn = conn
+        self.client = client
 
-        if self.conn is None:
-            raise ValueError('{} must be initialized with a connection'
+        if self.client is None:
+            raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
         if self.identifier.schema is not None:
@@ -30,7 +30,7 @@ class SQLiteRelation(Product):
         )
         """
 
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(create_metadata)
         conn.commit()
@@ -44,7 +44,7 @@ class SQLiteRelation(Product):
         WHERE name = '{name}'
         """.format(name=self.identifier.name)
 
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query)
         records = cur.fetchone()
@@ -65,7 +65,7 @@ class SQLiteRelation(Product):
             REPLACE INTO _metadata(metadata, name)
             VALUES(?, ?)
         """
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query, (sqlite3.Binary(metadata_bin),
                             self.identifier.name))
@@ -81,7 +81,7 @@ class SQLiteRelation(Product):
         """.format(kind=self.identifier.kind,
                    name=self.identifier.name)
 
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query)
         exists = cur.fetchone() is not None
@@ -96,7 +96,7 @@ class SQLiteRelation(Product):
                          relation=str(self)))
         self.logger.debug('Running "{query}" on the databse...'
                           .format(query=query))
-        conn = self.conn.raw_connection()
+        conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query)
         conn.commit()
