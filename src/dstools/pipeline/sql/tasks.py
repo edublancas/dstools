@@ -69,16 +69,16 @@ class SQLDump(Task):
 
         while chunk:
             now = datetime.now()
-            self._logger.info(f'Fetching chunk {i}...')
+            self._logger.info('Fetching chunk {i}...'.format(i=i))
             chunk = cursor.fetchmany(chunksize)
             elapsed = datetime.now() - now
-            self._logger.info(f'Done fetching chunk, elapsed: {elapsed} '
-                              'saving...')
+            self._logger.info('Done fetching chunk, elapsed: {elapsed} '
+                              'saving....'.format(elapsed=elapsed))
 
             if chunk:
                 chunk_df = pd.DataFrame.from_records(chunk)
                 chunk_df.columns = [row[0] for row in cursor.description]
-                to_parquet(chunk_df, path / f'{i}.parquet')
+                to_parquet(chunk_df, path / '{i}.parquet'.format(i=i))
                 self._logger.info('Done saving chunk...')
             else:
                 self._logger.info('Got empty chunk...')
@@ -113,11 +113,14 @@ class SQLTransfer(Task):
         product = self.params['product']
 
         # read from source_code, use connection from the Task
+        self._logger.info('Fetching data...')
         dfs = pd.read_sql_query(source_code, conn.engine,
                                 chunksize=self.chunksize)
+        self._logger.info('Done fetching data...')
 
         for i, df in enumerate(dfs):
             # dump to the product object, use product.conn
+            self._logger.info('Storing chunk {i}...'.format(i=i))
             df.to_sql(name=product.name,
                       con=product.conn.engine,
                       schema=product.schema,
