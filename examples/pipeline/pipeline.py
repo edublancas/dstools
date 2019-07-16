@@ -53,7 +53,7 @@ red_task = BashCommand(('csvsql --db {{uri}} --tables {{product.name}} --insert 
                         '--overwrite'),
                        PostgresRelation(
                            ('public', 'red', 'table'), client=pg_client),
-                       dag, 'red',
+                       dag,
                        params=dict(uri=uri),
                        split_source_code=False)
 sample >> red_task
@@ -62,7 +62,7 @@ white_task = BashCommand(('csvsql --db {{uri}} --tables {{product.name}} --inser
                           '--overwrite'),
                          PostgresRelation(
                              ('public', 'white', 'table'), client=pg_client),
-                         dag, 'white',
+                         dag,
                          params=dict(uri=uri),
                          split_source_code=False)
 sample >> white_task
@@ -71,7 +71,7 @@ sample >> white_task
 wine_task = SQLScript(home / 'sql' / 'create_wine.sql',
                       PostgresRelation(
                           ('public', 'wine', 'table'), client=pg_client),
-                      dag, 'wine',
+                      dag,
                       client=pg_client)
 (red_task + white_task) >> wine_task
 
@@ -79,7 +79,7 @@ wine_task = SQLScript(home / 'sql' / 'create_wine.sql',
 dataset_task = SQLScript(home / 'sql' / 'create_dataset.sql',
                          PostgresRelation(
                              ('public', 'dataset', 'table'), client=pg_client),
-                         dag, 'dataset',
+                         dag,
                          client=pg_client)
 wine_task >> dataset_task
 
@@ -87,7 +87,7 @@ wine_task >> dataset_task
 training_task = SQLScript(home / 'sql' / 'create_training.sql',
                           PostgresRelation(
                               ('public', 'training', 'table'), client=pg_client),
-                          dag, 'training',
+                          dag,
                           client=pg_client)
 dataset_task >> training_task
 
@@ -96,7 +96,7 @@ testing_table = PostgresRelation(
     ('public', 'testing', 'table'), client=pg_client)
 testing_table.tests = [testing.Postgres.no_nas_in_column('label')]
 testing_task = SQLScript(home / 'sql' / 'create_testing.sql',
-                         testing_table, dag, 'testing', client=pg_client)
+                         testing_table, dag, client=pg_client)
 
 dataset_task >> testing_task
 
@@ -104,8 +104,9 @@ dataset_task >> testing_task
 path_to_dataset = env.path.input / 'datasets'
 params = dict(path_to_dataset=path_to_dataset)
 download_task = PythonCallable(download_dataset,
-                               File(path_to_dataset / 'training.csv'),
-                               dag, 'download', params=params)
+                               (File(path_to_dataset / 'training.csv'),
+                                File(path_to_dataset / 'testing.csv')),
+                               dag, params=params)
 training_task >> download_task
 testing_task >> download_task
 
@@ -114,7 +115,7 @@ path_to_report = env.path.input / 'reports' / mkfilename('report.txt')
 params = dict(path_to_dataset=path_to_dataset,
               path_to_report=path_to_report)
 train_task = PythonCallable(train_and_save_report, File(
-    path_to_report), dag, 'train', params=params)
+    path_to_report), dag, params=params)
 download_task >> train_task
 
 # dag.plot()

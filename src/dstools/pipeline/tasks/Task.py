@@ -68,7 +68,7 @@ class Task:
                                   'in which case, the Task gets assigned '
                                   'the same name as the Product')
             else:
-                self._name = product.name
+                self._name = self.product.name
 
         self._logger = logging.getLogger(__name__)
 

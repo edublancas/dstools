@@ -22,7 +22,8 @@ class SQLScript(Task):
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
-    def __init__(self, code, product, dag, name, client=None, params=None):
+    def __init__(self, code, product, dag, name=None, client=None,
+                 params=None):
         params = params or {}
 
         super().__init__(code, product, dag, name, params)
