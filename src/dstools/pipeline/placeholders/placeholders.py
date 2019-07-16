@@ -12,7 +12,7 @@ implicitely initialize them from strings
 from pathlib import Path
 import inspect
 
-from dstools.templates import StrictTemplate
+from dstools.templates.StrictTemplate import StrictTemplate
 
 
 class StringPlaceholder:

@@ -1,4 +1,4 @@
-from dstools.pipeline.exceptions import RenderError
+from dstools.exceptions import RenderError
 from dstools.pipeline import DAG
 from dstools.pipeline.products import File, PostgresRelation
 from dstools.pipeline.tasks import PythonCallable, SQLScript

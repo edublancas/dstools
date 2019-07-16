@@ -1,4 +1,4 @@
-from dstools.templates import StrictTemplate
+from dstools.templates.StrictTemplate import StrictTemplate
 
 st = StrictTemplate('SELECT * FROM {{name}}')
 

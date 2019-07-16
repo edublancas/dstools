@@ -6,7 +6,8 @@ from pathlib import Path
 
 from dstools.sql import infer
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import ClientCodePlaceholder
+from dstools.pipeline.placeholders import (ClientCodePlaceholder,
+                                           StringPlaceholder)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 
 import pandas as pd
@@ -95,6 +96,7 @@ class SQLDump(Task):
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
+    PRODUCT_IN_CODE = False
 
     def __init__(self, code, product, dag, name=None, client=None, params=None,
                  chunksize=10000):
@@ -151,6 +153,7 @@ class SQLTransfer(Task):
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
+    PRODUCT_IN_CODE = False
 
     def __init__(self, code, product, dag, name=None, client=None, params=None,
                  chunksize=10000):
@@ -184,3 +187,37 @@ class SQLTransfer(Task):
                       schema=product.schema,
                       if_exists='replace' if i == 0 else 'append',
                       index=False)
+
+
+class SQLUpload(Task):
+    """Upload data to a database from a parquet file
+    """
+    CODECLASS = StringPlaceholder
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
+    PRODUCT_IN_CODE = False
+
+    def __init__(self, code, product, dag, name=None, client=None,
+                 params=None):
+        params = params or {}
+        super().__init__(code, product, dag, name, params)
+
+        self._logger = logging.getLogger(__name__)
+
+        self.client = client or self.dag.clients.get(type(self))
+
+        if self.client is None:
+            raise ValueError('{} must be initialized with a connection'
+                             .format(type(self).__name__))
+
+    def run(self):
+        product = self.params['product']
+
+        self._logger.info('Reading data...')
+        df = pd.read_parquet(str(self._code))
+        self._logger.info('Done reading data...')
+
+        df.to_sql(name=product.name,
+                  con=product.client.engine,
+                  schema=product.schema,
+                  if_exists='replace',
+                  index=False)

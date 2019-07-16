@@ -2,7 +2,7 @@
 from pathlib import Path
 import re
 
-from dstools.pipeline.exceptions import RenderError
+from dstools.exceptions import RenderError
 
 from numpydoc.docscrape import NumpyDocString
 import jinja2

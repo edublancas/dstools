@@ -14,7 +14,7 @@ from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.exceptions import TaskBuildError, RenderError
+from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.util import isiterable
@@ -26,6 +26,7 @@ class Task:
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = None
+    PRODUCT_IN_CODE = True
 
     def __init__(self, code, product, dag, name=None, params=None):
         if self.PRODUCT_CLASSES_ALLOWED is not None:
@@ -258,10 +259,13 @@ class Task:
 
         self.params['product'] = self.product
 
-        # all parameters are required, if upstream is not used, it should not
+        # most parameters are required, if upstream is not used, it should not
         # have any dependencies, if any param is not used, it should not
-        # exist and the product should exist
-        self._code.render(copy(self.params))
+        # exist, the product should exist only for specific cases
+        self._code.render(copy(self.params),
+                          optional=set(('product',))
+                          if not self.PRODUCT_IN_CODE
+                          else set())
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
@@ -269,7 +273,7 @@ class Task:
     def short_repr(self):
         def short(s):
             max_l = 30
-            return s if len(s) <= max_l else s[:max_l-3]+'...'
+            return s if len(s) <= max_l else s[:max_l - 3] + '...'
 
         return f'{short(self.name)} -> \n{short(self.product.short_repr())}'
 
