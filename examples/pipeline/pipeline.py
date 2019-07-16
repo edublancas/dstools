@@ -37,12 +37,15 @@ dag = DAG()
 dag.clients[PostgresRelation] = pg_client
 dag.clients[SQLScript] = pg_client
 
+dag.product.delete()
+
 
 get_data = BashCommand((home / 'get_data.sh').read_text(),
                        (File(env.path.input / 'raw' / 'red.csv'),
                         File(env.path.input / 'raw' / 'white.csv'),
                         File(env.path.input / 'raw' / 'names')),
                        dag,
+                       name='get_data',
                        split_source_code=False)
 
 sample = PythonCallable(sample,
