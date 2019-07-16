@@ -48,7 +48,8 @@ get_data = BashCommand((home / 'get_data.sh').read_text(),
 sample = PythonCallable(sample,
                         (File(env.path.input / 'sample' / 'red.csv'),
                          File(env.path.input / 'sample' / 'white.csv')),
-                        dag)
+                        name='sample',
+                        dag=dag)
 get_data >> sample
 
 red_task = BashCommand(('csvsql --db {{uri}} --tables {{product.name}} --insert {{upstream["sample"][0]}} '
