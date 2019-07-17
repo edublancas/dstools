@@ -1,7 +1,8 @@
 from dstools.exceptions import RenderError
 from dstools.pipeline import DAG
 from dstools.pipeline.products import File, PostgresRelation
-from dstools.pipeline.tasks import PythonCallable, SQLScript
+from dstools.pipeline.tasks import PythonCallable, SQLScript, BashCommand
+from dstools.pipeline.tasks.TaskStatus import TaskStatus
 
 import pytest
 
@@ -67,3 +68,39 @@ def test_postgresscript_with_relation():
     assert str(t.product) == '"user"."table"'
     assert (str(t._code)
             == 'CREATE TABLE "user"."table" AS SELECT * FROM some_table')
+
+
+def test_task_change_in_status():
+    dag = DAG('dag')
+
+    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag, 'ta')
+    tb = BashCommand('cat {{upstream["ta"]}} > {{product}}',
+                     File('b.txt'), dag, 'tb')
+    tc = BashCommand('cat {{upstream["tb"]}} > {{product}}',
+                     File('c.txt'), dag, 'tc')
+
+    assert all([t._status == TaskStatus.WaitingRender for t in [ta, tb, tc]])
+
+    ta >> tb >> tc
+
+    dag.render()
+
+    assert (ta._status == TaskStatus.WaitingExecution
+            and tb._status == TaskStatus.WaitingUpstream
+            and tc._status == TaskStatus.WaitingUpstream)
+
+    ta.build()
+
+    assert (ta._status == TaskStatus.Executed
+            and tb._status == TaskStatus.WaitingExecution
+            and tc._status == TaskStatus.WaitingUpstream)
+
+    tb.build()
+
+    assert (ta._status == TaskStatus.Executed
+            and tb._status == TaskStatus.Executed
+            and tc._status == TaskStatus.WaitingExecution)
+
+    tc.build()
+
+    assert all([t._status == TaskStatus.Executed for t in [ta, tb, tc]])

@@ -16,6 +16,7 @@ from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
 from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
+from dstools.pipeline.tasks.TaskStatus import TaskStatus
 from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.util import isiterable
 
@@ -77,6 +78,15 @@ class Task:
 
         dag.add_task(self)
         self.dag = dag
+
+        self._status = TaskStatus.WaitingRender
+
+    def _get_downstream(self):
+        downstream = []
+        for t in self.dag.values():
+            if self in t.upstream.values():
+                downstream.append(t)
+        return downstream
 
     @property
     def name(self):
@@ -197,9 +207,22 @@ class Task:
 
         self._logger.info('-----\n')
 
+        self._status = TaskStatus.Executed
+
+        for t in self._get_downstream():
+            t._update_status()
+
         self.build_report = BuildReport(run=run, elapsed=elapsed)
 
         return self
+
+    def _update_status(self):
+        if self._status == TaskStatus.WaitingUpstream:
+            all_upstream_executed = all([t._status == TaskStatus.Executed
+                                         for t in self.upstream.values()])
+
+            if all_upstream_executed:
+                self._status = TaskStatus.WaitingExecution
 
     def status(self):
         """Prints the current task status
@@ -266,6 +289,9 @@ class Task:
                           optional=set(('product',))
                           if not self.PRODUCT_IN_CODE
                           else set())
+
+        self._status = (TaskStatus.WaitingExecution if not self.upstream
+                        else TaskStatus.WaitingUpstream)
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'

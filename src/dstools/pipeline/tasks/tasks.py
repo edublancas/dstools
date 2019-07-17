@@ -21,7 +21,7 @@ class BashCommand(Task):
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
                                         'shell': True},
-                 split_source_code=True):
+                 split_source_code=False):
         super().__init__(code, product, dag, name, params)
         self.split_source_code = split_source_code
         self.subprocess_run_kwargs = subprocess_run_kwargs
