@@ -36,6 +36,14 @@ class StrictTemplate:
         elif isinstance(source, Template):
             path = Path(source.filename)
 
+            if source.environment.undefined != jinja2.StrictUndefined:
+                raise ValueError('StrictTemplate can only be initialized '
+                                 'from jinja2.Templates whose undefined '
+                                 'parameter is set to '
+                                 'jinja2.StrictUndefined, set it explicitely '
+                                 'either in the Template or Environment '
+                                 'constructors')
+
             if not path.exists():
                 raise ValueError('Could not load raw source from '
                                  'jinja2.Template, this usually happens '
@@ -49,13 +57,11 @@ class StrictTemplate:
 
             self._path = path
             self._raw = path.read_text()
-            self._source = Template(self._raw,
-                                    undefined=jinja2.StrictUndefined)
+            self._source = source
         elif isinstance(source, StrictTemplate):
             self._path = source.path
             self._raw = source.raw
-            self._source = Template(source.raw,
-                                    undefined=jinja2.StrictUndefined)
+            self._source = source.source
         else:
             raise TypeError('{} must be initialized with a Template, '
                             'StrictTemplate, pathlib.Path or str, '

@@ -81,6 +81,11 @@ def path_to_env():
     return _path_to_tests() / 'assets' / 'sample' / 'env.yaml'
 
 
+@pytest.fixture(scope='session')
+def path_to_assets():
+    return _path_to_tests() / 'assets'
+
+
 def _load_db_credentials():
     try:
         p = Path('~', '.auth', 'postgres-dstools.json').expanduser()
