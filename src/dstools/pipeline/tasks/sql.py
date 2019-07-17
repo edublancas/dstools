@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 import shutil
 from pathlib import Path
+from io import StringIO
 
 from dstools.sql import infer
 from dstools.pipeline.tasks.Task import Task
@@ -221,3 +222,63 @@ class SQLUpload(Task):
                   schema=product.schema,
                   if_exists='replace',
                   index=False)
+
+
+class PostgresCopy(Task):
+    """Efficiently copy data to a postgres database using COPY
+    """
+    CODECLASS = StringPlaceholder
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)
+    PRODUCT_IN_CODE = False
+
+    def __init__(self, code, product, dag, name=None, client=None,
+                 params=None, sep='\t', null='\\N', columns=None):
+        params = params or {}
+        super().__init__(code, product, dag, name, params)
+
+        self._logger = logging.getLogger(__name__)
+
+        self.client = client or self.dag.clients.get(type(self))
+
+        if self.client is None:
+            raise ValueError('{} must be initialized with a connection'
+                             .format(type(self).__name__))
+
+        self.sep = sep
+        self.null = null
+        self.columns = columns
+
+    def run(self):
+        product = self.params['product']
+        df = pd.read_parquet(str(self._code))
+
+        # create the table
+        self._logger.info('Creating table...')
+        df.head(0).to_sql(name=product.name,
+                          con=product.client.engine,
+                          schema=product.schema,
+                          if_exists='replace',
+                          index=False)
+        self._logger.info('Done creating table.')
+
+        # if product.kind != 'table':
+        #     raise ValueError('COPY is only supportted in tables')
+
+        # create file-like object
+        f = StringIO()
+        df.to_csv(f, sep='\t', na_rep='\\N', header=False, index=False)
+        f.seek(0)
+
+        # upload using copy
+        conn = self.client.raw_connection()
+        cur = conn.cursor()
+
+        self._logger.info('Copying data...')
+        cur.copy_from(f,
+                      table=str(product),
+                      sep='\t',
+                      null='\\N')
+
+        f.close()
+        conn.commit()
+        conn.close()

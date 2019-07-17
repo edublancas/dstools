@@ -163,7 +163,7 @@ class PostgresRelation(Product):
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         metadata = cur.fetchone()
-        cur.close()
+        conn.close()
 
         # no metadata saved
         if metadata is None:
@@ -207,7 +207,7 @@ class PostgresRelation(Product):
         cur.execute(query, dict(schema=self.identifier.schema,
                                 name=self.identifier.name))
         exists = cur.fetchone()[0]
-        cur.close()
+        conn.close()
         return exists
 
     def delete(self, force=False):

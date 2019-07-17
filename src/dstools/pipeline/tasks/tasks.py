@@ -63,7 +63,7 @@ class ScriptTask(Task):
             raise ValueError(f'{type(self).__name__}: subclasses must '
                              'declare an interpreter')
         res = subprocess.run([self._INTERPRETER,
-                              self._code.location],
+                              self._code._source.path],
                              stderr=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              shell=True)

@@ -103,6 +103,12 @@ class SQLRelationPlaceholder:
 
         schema, name, kind = source
 
+        if schema is None:
+            raise ValueError('schema cannot be None')
+
+        if name is None:
+            raise ValueError('name cannot be None')
+
         if kind not in ('view', 'table'):
             raise ValueError('kind must be one of ["view", "table"] '
                              'got "{}"'.format(kind))

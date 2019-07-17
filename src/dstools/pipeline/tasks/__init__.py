@@ -4,8 +4,8 @@ from dstools.pipeline.tasks.tasks import (BashCommand, ScriptTask,
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.tasks.TaskFactory import TaskFactory
 from dstools.pipeline.tasks.sql import (SQLScript, SQLDump, SQLTransfer,
-                                        SQLUpload)
+                                        SQLUpload, PostgresCopy)
 
 __all__ = ['BashCommand', 'ScriptTask', 'BashScript', 'PythonScript',
            'PythonCallable', 'TaskFactory', 'Task', 'SQLScript',
-           'SQLDump', 'SQLTransfer', 'SQLUpload']
+           'SQLDump', 'SQLTransfer', 'SQLUpload', 'PostgresCopy']
