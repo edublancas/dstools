@@ -41,32 +41,32 @@ def test_can_dump_sqlite(tmp_directory):
     assert dump.equals(db)
 
 
-# def test_can_dump_postgres(tmp_directory, open_client):
-#     tmp = Path(tmp_directory)
+def test_can_dump_postgres(tmp_directory, pg_client):
+    tmp = Path(tmp_directory)
 
-#     # dump output path
-#     out = tmp / 'dump'
+    # dump output path
+    out = tmp / 'dump'
 
-#     # make some data and save it in the db
-#     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-#     df.to_sql('numbers', open_client)
+    # make some data and save it in the db
+    df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
+    df.to_sql('numbers', pg_client.engine)
 
-#     # create the task and run it
-#     dag = DAG()
-#     SQLDump('SELECT * FROM numbers -- {{product}}',
-#             File(out),
-#             dag,
-#             name='dump',
-#             client=open_client,
-#             chunksize=10)
-#     dag.build()
+    # create the task and run it
+    dag = DAG()
+    SQLDump('SELECT * FROM numbers -- {{product}}',
+            File(out),
+            dag,
+            name='dump',
+            client=pg_client,
+            chunksize=10)
+    dag.build()
 
-#     # load dumped data and data from the db
-#     dump = pd.read_parquet(out)
-#     db = pd.read_sql_query('SELECT * FROM numbers', open_client)
+    # load dumped data and data from the db
+    dump = pd.read_parquet(out)
+    db = pd.read_sql_query('SELECT * FROM numbers', pg_client.engine)
 
-#     # make sure they are the same
-#     assert dump.equals(db)
+    # make sure they are the same
+    assert dump.equals(db)
 
 
 def test_can_transfer_sqlite(tmp_directory):
