@@ -54,7 +54,8 @@ class StrictTemplate:
         elif isinstance(source, StrictTemplate):
             self._path = source.path
             self._raw = source.raw
-            self._source = source.source
+            self._source = Template(source.raw,
+                                    undefined=jinja2.StrictUndefined)
         else:
             raise TypeError('{} must be initialized with a Template, '
                             'StrictTemplate, pathlib.Path or str, '
@@ -88,7 +89,7 @@ class StrictTemplate:
         None if initialized with a str or with a jinja2.Template created
         from a str
         """
-        return self._raw
+        return self._path
 
     def _parse_docstring(self):
         """Finds the docstring at the beginning of the source
