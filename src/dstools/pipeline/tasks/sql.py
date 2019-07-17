@@ -1,5 +1,4 @@
 import warnings
-import logging
 from datetime import datetime
 import shutil
 from pathlib import Path
@@ -27,7 +26,6 @@ class SQLScript(Task):
     def __init__(self, code, product, dag, name=None, client=None,
                  params=None):
         params = params or {}
-
         super().__init__(code, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
@@ -104,8 +102,6 @@ class SQLDump(Task):
         params = params or {}
         super().__init__(code, product, dag, name, params)
 
-        self._logger = logging.getLogger(__name__)
-
         self.client = client or self.dag.clients.get(type(self))
         self.chunksize = chunksize
 
@@ -115,8 +111,6 @@ class SQLDump(Task):
 
     def run(self):
         source_code = str(self._code)
-        chunksize = self.chunksize
-
         path = Path(str(self.params['product']))
 
         if path.exists():
@@ -124,29 +118,15 @@ class SQLDump(Task):
 
         path.mkdir()
 
-        cursor = self.client.raw_connection().cursor()
-        cursor.execute(source_code)
+        self._logger.debug('Code: %s', source_code)
 
-        i = 0
-        chunk = True
+        self._logger.debug('Fetcthing first chunk...')
 
-        while chunk:
-            now = datetime.now()
-            self._logger.info('Fetching chunk {i}...'.format(i=i))
-            chunk = cursor.fetchmany(chunksize)
-            elapsed = datetime.now() - now
-            self._logger.info('Done fetching chunk, elapsed: {elapsed} '
-                              'saving....'.format(elapsed=elapsed))
-
-            if chunk:
-                chunk_df = pd.DataFrame.from_records(chunk)
-                chunk_df.columns = [row[0] for row in cursor.description]
-                to_parquet(chunk_df, path / '{i}.parquet'.format(i=i))
-                self._logger.info('Done saving chunk...')
-            else:
-                self._logger.info('Got empty chunk...')
-
-            i = i + 1
+        for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
+                               chunksize=self.chunksize)):
+            self._logger.info('Fetched chunk {i}'.format(i=i))
+            to_parquet(df, path / '{i}.parquet'.format(i=i))
+            self._logger.info('Fetching chunk {j}...'.format(j=i+1))
 
 
 class SQLTransfer(Task):
@@ -160,8 +140,6 @@ class SQLTransfer(Task):
                  chunksize=10000):
         params = params or {}
         super().__init__(code, product, dag, name, params)
-
-        self._logger = logging.getLogger(__name__)
 
         self.client = client or self.dag.clients.get(type(self))
 
@@ -202,8 +180,6 @@ class SQLUpload(Task):
         params = params or {}
         super().__init__(code, product, dag, name, params)
 
-        self._logger = logging.getLogger(__name__)
-
         self.client = client or self.dag.clients.get(type(self))
 
         if self.client is None:
@@ -235,8 +211,6 @@ class PostgresCopy(Task):
                  params=None, sep='\t', null='\\N', columns=None):
         params = params or {}
         super().__init__(code, product, dag, name, params)
-
-        self._logger = logging.getLogger(__name__)
 
         self.client = client or self.dag.clients.get(type(self))
 

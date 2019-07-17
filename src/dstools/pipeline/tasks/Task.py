@@ -72,7 +72,8 @@ class Task:
             else:
                 self._name = self.product.name
 
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
 
         self.product.task = self
 
