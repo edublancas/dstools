@@ -12,13 +12,17 @@ class SQLiteRelation(Product):
     IDENTIFIERCLASS = SQLRelationPlaceholder
 
     def __init__(self, identifier, client=None):
-        super().__init__(identifier)
-
-        self._client = client
-
-        if self.identifier.schema is not None:
+        if identifier[0] is not None:
             raise ValueError('SQLite does not support schemas, you should '
                              'pass None')
+
+        # SQLRelationPlaceholder needs a schema value, we use a dummy value
+        # for itniialization
+        identifier = ('', identifier[1], identifier[2])
+        super().__init__(identifier)
+        self.identifier._schema = None
+
+        self._client = client
 
     @property
     def client(self):
