@@ -49,7 +49,7 @@ def test_can_dump_postgres(tmp_directory, pg_client):
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', pg_client.engine)
+    df.to_sql('numbers', pg_client.engine, if_exists='replace')
 
     # create the task and run it
     dag = DAG()
