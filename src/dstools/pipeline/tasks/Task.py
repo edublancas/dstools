@@ -17,6 +17,7 @@ from dstools.pipeline.dag import DAG
 from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.tasks.TaskStatus import TaskStatus
+from dstools.pipeline.tasks.Params import Params
 from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.util import isiterable
 
@@ -38,7 +39,7 @@ class Task:
                                         self.PRODUCT_CLASSES_ALLOWED,
                                         type(product).__name__))
 
-        self._upstream = {}
+        self._upstream = Params()
 
         self.params = params or {}
         self.build_report = None
