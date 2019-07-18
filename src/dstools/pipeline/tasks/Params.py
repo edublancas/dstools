@@ -6,7 +6,8 @@ class Params(collections.abc.Mapping):
     """
     @property
     def first(self):
-        return next(iter(self._dict))
+        first_key = next(iter(self._dict))
+        return self._dict[first_key]
 
     def __init__(self):
         self._dict = collections.OrderedDict()
