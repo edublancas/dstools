@@ -125,16 +125,24 @@ def test_raises_render_error_if_missing_param_in_product():
     with pytest.raises(RenderError):
         ta.render()
 
-
-def test_error_message_shows_task_and_dag_if_rendering_dag():
+def test_raises_render_error_if_non_existing_dependency_used():
     dag = DAG('my dag')
 
-    ta = BashCommand('echo "a" > {{product}}', File('a_{{name}}.txt'), dag,
-                     name='my task')
+    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag)
+    tb = BashCommand('cat {{upstream.not_valid}} > {{product}}',
+                     File('b.txt'), dag)
+    ta >> tb
 
-    with pytest.raises(RenderError) as exc_info:
-        dag.render()
-
-    assert 'DAG("my dag")' in exc_info.value.args[0]
+    with pytest.raises(RenderError):
+        tb.render()
 
 
+def test_raises_render_error_if_extra_param_in_code():
+    dag = DAG('my dag')
+
+    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag,
+                     name='my task',
+                     params=dict(extra_param=1))
+
+    with pytest.raises(RenderError):
+        ta.render()

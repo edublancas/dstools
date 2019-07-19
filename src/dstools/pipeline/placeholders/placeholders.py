@@ -43,7 +43,7 @@ class StringPlaceholder:
         return self
 
     def __repr__(self):
-        return '{}({})'.format(type(self).__name__, self._source.raw)
+        return 'Placeholder({})'.format(self._source.raw)
 
     def __str__(self):
         return self._rendered
@@ -85,7 +85,7 @@ class PythonCodePlaceholder:
         self._params = params
 
     def __repr__(self):
-        return '{}({})'.format(type(self).__name__, self.source.__name__)
+        return 'Placeholder({})'.format(self._source.raw)
 
     def __str__(self):
         return self._source_as_str
@@ -168,4 +168,5 @@ class SQLRelationPlaceholder:
         return self._rendered
 
     def __repr__(self):
-        return f'SQL {self.kind.capitalize()}: "{self.schema}"."{self._source.raw}"'
+        return ('Placeholder("{}"."{}")'
+                .format(self.schema, self._source.raw, self.kind))

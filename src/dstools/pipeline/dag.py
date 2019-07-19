@@ -120,8 +120,9 @@ class DAG(collections.abc.Mapping):
             try:
                 t.render()
             except Exception as e:
-                raise type(e)('Error rendering {}'.format(self)) from e
-
+                raise type(e)('While rendering a Task in {}, check the full '
+                              'traceback above for details'
+                              .format(self)) from e
 
     def _add_task(self, task):
         """Adds a task to the DAG

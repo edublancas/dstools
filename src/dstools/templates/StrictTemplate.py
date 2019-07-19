@@ -6,7 +6,7 @@ from dstools.exceptions import RenderError
 
 from numpydoc.docscrape import NumpyDocString
 import jinja2
-from jinja2 import Environment, meta, Template
+from jinja2 import Environment, meta, Template, UndefinedError
 
 
 class StrictTemplate:
@@ -154,13 +154,23 @@ class StrictTemplate:
                            self.declared, missing, extra)
 
         if missing:
-            raise RenderError('Error rendering template {}, missing required '
-                              'arguments: {}, got params {}'
+            raise RenderError('in {}, missing required '
+                              'parameters: {}, params passed: {}'
                               .format(repr(self), missing, params))
 
         if extra:
-            raise RenderError('Got unexpected arguments {}, '
-                              'declared arguments are {}'
-                              .format(extra, self.declared))
+            raise RenderError('in {}, unused parameters: {}, params '
+                              'declared: {}'
+                              .format(repr(self), extra, self.declared))
 
-        return self.source.render(**params)
+        try:
+            return self.source.render(**params)
+        except UndefinedError as e:
+            raise RenderError('in {}, jinja2 raised an UndefinedError, this '
+                              'means the template is using an attribute '
+                              'or item that does not exist, the original '
+                              'traceback is shown above. For jinja2 '
+                              'implementation details see: '
+                              'http://jinja.pocoo.org/docs/latest'
+                              '/templates/#variables'
+                              .format(repr(self))) from e

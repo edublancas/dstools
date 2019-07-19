@@ -198,13 +198,20 @@ class Task:
 
         self.params['product'] = self.product
 
+        params = copy(self.params)
+
         # most parameters are required, if upstream is not used, it should not
         # have any dependencies, if any param is not used, it should not
         # exist, the product should exist only for specific cases
-        self._code.render(copy(self.params),
-                          optional=set(('product',))
-                          if not self.PRODUCT_IN_CODE
-                          else set())
+        try:
+            self._code.render(params,
+                              optional=set(('product',))
+                              if not self.PRODUCT_IN_CODE
+                              else set())
+        except Exception as e:
+            raise type(e)('Error rendering code from Task "{}", '
+                          ' check the full traceback above for details'
+                          .format(repr(self), self.params)) from e
 
         self._status = (TaskStatus.WaitingExecution if not self.upstream
                         else TaskStatus.WaitingUpstream)
@@ -262,7 +269,7 @@ class Task:
         # add upstream product identifiers to params, if any
         if self.upstream:
             self.params['upstream'] = Params({n: t.product for n, t
-                                             in self.upstream.items()})
+                                              in self.upstream.items()})
 
         # render the current product
         try:
@@ -272,8 +279,9 @@ class Task:
             self.product.render(copy(self.params),
                                 optional=set(params_names + ['upstream']))
         except Exception as e:
-            raise type(e)('Error rendering product from task "{}", with '
-                          'params {}'.format(repr(self), self.params)) from e
+            raise type(e)('Error rendering Product from Task "{}", '
+                          ' check the full traceback above for details'
+                          .format(repr(self), self.params)) from e
 
     def _get_downstream(self):
         downstream = []
@@ -314,4 +322,3 @@ class Task:
             return s if len(s) <= max_l else s[:max_l - 3] + '...'
 
         return f'{short(self.name)} -> \n{self.product._short_repr()}'
-
