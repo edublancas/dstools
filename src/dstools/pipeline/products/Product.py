@@ -24,10 +24,6 @@ class Product:
         self.logger = logging.getLogger(__name__)
 
     @property
-    def identifier(self):
-        return self._identifier
-
-    @property
     def timestamp(self):
         return self.metadata.get('timestamp')
 
@@ -47,7 +43,7 @@ class Product:
         if self.did_download_metadata:
             return self._metadata
         else:
-            self.get_metadata()
+            self._get_metadata()
             self.did_download_metadata = True
             return self._metadata
 
@@ -67,7 +63,15 @@ class Product:
     def metadata(self, value):
         self._metadata = value
 
-    def outdated_data_dependencies(self):
+    def render(self, params, **kwargs):
+        """
+        Render Product - this will render contents of Templates used as
+        identifier for this Product, if a regular string was passed, this
+        method has no effect
+        """
+        self._identifier.render(params, **kwargs)
+
+    def _outdated_data_dependencies(self):
         def is_outdated(up_prod):
             """
             A task becomes data outdated if an upstream product has a higher
@@ -84,14 +88,10 @@ class Product:
 
         return outdated
 
-    def outdated_code_dependency(self):
+    def _outdated_code_dependency(self):
         return self.stored_source_code != self.task.source_code
 
-    def outdated(self):
-        return (self.outdated_data_dependencies()
-                or self.outdated_code_dependency())
-
-    def get_metadata(self):
+    def _get_metadata(self):
         """
         This method calls Product.fetch_metadata() (provided by subclasses),
         if some conditions are met, then it saves it in Product.metadata
@@ -113,22 +113,14 @@ class Product:
                 # types and fill with None if any of the keys is missing
                 self.metadata = metadata
 
-    def render(self, params, **kwargs):
-        """
-        Render Product - this will render contents of Templates used as
-        identifier for this Product, if a regular string was passed, this
-        method has no effect
-        """
-        self._identifier.render(params, **kwargs)
-
     def __str__(self):
-        return str(self.identifier)
+        return str(self._identifier)
 
     def __repr__(self):
-        return f'{type(self).__name__}({repr(self.identifier)})'
+        return f'{type(self).__name__}({repr(self._identifier)})'
 
-    def short_repr(self):
-        s = str(self.identifier)
+    def _short_repr(self):
+        s = str(self._identifier)
 
         if len(s) > 20:
             s_short = ''

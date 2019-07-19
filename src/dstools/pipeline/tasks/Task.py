@@ -123,8 +123,8 @@ class Task:
 
         # check dependencies only if the product exists and there is metadata
         if self.product.exists() and self.product.metadata is not None:
-            outdated_data_deps = self.product.outdated_data_dependencies()
-            outdated_code_dep = self.product.outdated_code_dependency()
+            outdated_data_deps = self.product._outdated_data_dependencies()
+            outdated_code_dep = self.product._outdated_code_dependency()
 
             if outdated_data_deps:
                 run = True
@@ -235,7 +235,7 @@ class Task:
         """
         p = self.product
 
-        outd_code = p.outdated_code_dependency()
+        outd_code = p._outdated_code_dependency()
 
         out = ''
 
@@ -246,7 +246,7 @@ class Task:
         else:
             out += f'* Timestamp is None\n'
 
-        out += f'* Oudated data dependencies: {p.outdated_data_dependencies()}'
+        out += f'* Oudated data dependencies: {p._outdated_data_dependencies()}'
         out += f'\n* Oudated code dependency: {outd_code}'
 
         if outd_code:
@@ -310,10 +310,10 @@ class Task:
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
 
-    def short_repr(self):
+    def _short_repr(self):
         def short(s):
             max_l = 30
             return s if len(s) <= max_l else s[:max_l - 3] + '...'
 
-        return f'{short(self.name)} -> \n{self.product.short_repr()}'
+        return f'{short(self.name)} -> \n{self.product._short_repr()}'
 
