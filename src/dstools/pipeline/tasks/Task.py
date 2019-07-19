@@ -83,13 +83,6 @@ class Task:
 
         self._status = TaskStatus.WaitingRender
 
-    def _get_downstream(self):
-        downstream = []
-        for t in self.dag.values():
-            if self in t.upstream.values():
-                downstream.append(t)
-        return downstream
-
     @property
     def name(self):
         return self._name
@@ -110,28 +103,6 @@ class Task:
 
     def run(self):
         raise NotImplementedError('You have to implement this method')
-
-    def set_upstream(self, other):
-        if isiterable(other) and not isinstance(other, DAG):
-            for o in other:
-                self._upstream[o.name] = o
-        else:
-            self._upstream[other.name] = other
-
-    def __rshift__(self, other):
-        """ a >> b is the same as b.set_upstream(a)
-        """
-        other.set_upstream(self)
-        # return other so a >> b >> c works
-        return other
-
-    def __add__(self, other):
-        """ a + b means TaskGroup([a, b])
-        """
-        if isiterable(other) and not isinstance(other, DAG):
-            return TaskGroup([self] + list(other))
-        else:
-            return TaskGroup((self, other))
 
     def build(self, force=False):
         """Run the task if needed by checking its dependencies
@@ -218,13 +189,54 @@ class Task:
 
         return self
 
-    def _update_status(self):
-        if self._status == TaskStatus.WaitingUpstream:
-            all_upstream_executed = all([t._status == TaskStatus.Executed
-                                         for t in self.upstream.values()])
+    def render(self):
+        """
+        Renders code and product, all upstream tasks must have been rendered
+        first, for that reason, this method will usually not be called
+        directly but via DAG.render(), which renders in the right order
+        """
+        self._render_product()
 
-            if all_upstream_executed:
-                self._status = TaskStatus.WaitingExecution
+        self.params['product'] = self.product
+
+        # most parameters are required, if upstream is not used, it should not
+        # have any dependencies, if any param is not used, it should not
+        # exist, the product should exist only for specific cases
+        self._code.render(copy(self.params),
+                          optional=set(('product',))
+                          if not self.PRODUCT_IN_CODE
+                          else set())
+
+        self._status = (TaskStatus.WaitingExecution if not self.upstream
+                        else TaskStatus.WaitingUpstream)
+
+    def set_upstream(self, other):
+        if isiterable(other) and not isinstance(other, DAG):
+            for o in other:
+                self._upstream[o.name] = o
+        else:
+            self._upstream[other.name] = other
+
+    def short_repr(self):
+        def short(s):
+            max_l = 30
+            return s if len(s) <= max_l else s[:max_l - 3] + '...'
+
+        return f'{short(self.name)} -> \n{short(self.product.short_repr())}'
+
+    def plan(self):
+        """Shows a text summary of what this task will execute
+        """
+
+        plan = f"""
+        Input parameters: {self.params}
+        Product: {self.product}
+
+        Source code:
+        {self.source_code}
+        """
+
+        print(plan)
 
     def status(self):
         """Prints the current task status
@@ -251,7 +263,6 @@ class Task:
             out += '\n*********'
 
         print(out)
-        return out
 
     def _render_product(self):
         params_names = list(self.params)
@@ -274,47 +285,36 @@ class Task:
                           f'from task {repr(self)} with params '
                           f'{self.params}. Exception: {e}')
 
-    def render(self):
+    def _get_downstream(self):
+        downstream = []
+        for t in self.dag.values():
+            if self in t.upstream.values():
+                downstream.append(t)
+        return downstream
+
+    def _update_status(self):
+        if self._status == TaskStatus.WaitingUpstream:
+            all_upstream_executed = all([t._status == TaskStatus.Executed
+                                         for t in self.upstream.values()])
+
+            if all_upstream_executed:
+                self._status = TaskStatus.WaitingExecution
+
+    def __rshift__(self, other):
+        """ a >> b is the same as b.set_upstream(a)
         """
-        Renders code and product, all upstream tasks must have been rendered
-        first, for that reason, this method will usually not be called
-        directly but via DAG.render(), which renders in the right order
+        other.set_upstream(self)
+        # return other so a >> b >> c works
+        return other
+
+    def __add__(self, other):
+        """ a + b means TaskGroup([a, b])
         """
-        self._render_product()
-
-        self.params['product'] = self.product
-
-        # most parameters are required, if upstream is not used, it should not
-        # have any dependencies, if any param is not used, it should not
-        # exist, the product should exist only for specific cases
-        self._code.render(copy(self.params),
-                          optional=set(('product',))
-                          if not self.PRODUCT_IN_CODE
-                          else set())
-
-        self._status = (TaskStatus.WaitingExecution if not self.upstream
-                        else TaskStatus.WaitingUpstream)
+        if isiterable(other) and not isinstance(other, DAG):
+            return TaskGroup([self] + list(other))
+        else:
+            return TaskGroup((self, other))
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
 
-    def short_repr(self):
-        def short(s):
-            max_l = 30
-            return s if len(s) <= max_l else s[:max_l - 3] + '...'
-
-        return f'{short(self.name)} -> \n{short(self.product.short_repr())}'
-
-    def plan(self):
-        """Shows a text summary of what this task will execute
-        """
-
-        plan = f"""
-        Input parameters: {self.params}
-        Product: {self.product}
-
-        Source code:
-        {self.source_code}
-        """
-
-        print(plan)
