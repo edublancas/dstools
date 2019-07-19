@@ -1,4 +1,4 @@
-# import logging
+import logging
 from pathlib import Path
 import re
 
@@ -22,6 +22,8 @@ class StrictTemplate:
     """
 
     def __init__(self, source):
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
         if isinstance(source, Path):
             self._path = source
             self._raw = source.read_text()
@@ -147,6 +149,9 @@ class StrictTemplate:
 
         missing = self.declared - passed
         extra = passed - self.declared - optional
+
+        self._logger.debug('Declared: %s, missing: %s, extra: %s',
+                           self.declared, missing, extra)
 
         if missing:
             raise RenderError('Error rendering template {}, missing required '

@@ -217,13 +217,6 @@ class Task:
         else:
             self._upstream[other.name] = other
 
-    def short_repr(self):
-        def short(s):
-            max_l = 30
-            return s if len(s) <= max_l else s[:max_l - 3] + '...'
-
-        return f'{short(self.name)} -> \n{short(self.product.short_repr())}'
-
     def plan(self):
         """Shows a text summary of what this task will execute
         """
@@ -269,8 +262,8 @@ class Task:
 
         # add upstream product identifiers to params, if any
         if self.upstream:
-            self.params['upstream'] = {n: t.product for n, t
-                                       in self.upstream.items()}
+            self.params['upstream'] = Params({n: t.product for n, t
+                                             in self.upstream.items()})
 
         # render the current product
         try:
@@ -317,4 +310,11 @@ class Task:
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
+
+    def short_repr(self):
+        def short(s):
+            max_l = 30
+            return s if len(s) <= max_l else s[:max_l - 3] + '...'
+
+        return f'{short(self.name)} -> \n{self.product.short_repr()}'
 
