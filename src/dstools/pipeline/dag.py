@@ -128,9 +128,10 @@ class DAG(collections.abc.Mapping):
                                   .format(self)) from e
 
             if warnings_:
-                print('Warnings from task: {}'.format(repr(t)))
-                for a_warning in warnings_:
-                    warnings.warn(str(a_warning.message))
+                messages = [str(w.message) for w in warnings_]
+                warning = ('Task "{}" had the following warnings:\n\n{}'
+                           .format(repr(t), '\n'.join(messages)))
+                warnings.warn(warning)
 
     def _add_task(self, task):
         """Adds a task to the DAG
