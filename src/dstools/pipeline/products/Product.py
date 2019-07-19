@@ -7,7 +7,7 @@ are lazy evaluated, they can be built from templates
 """
 import logging
 import warnings
-# from dstools.pipeline.identifiers import StringIdentifier
+from math import ceil
 
 
 class Product:
@@ -149,7 +149,19 @@ class Product:
         return f'{type(self).__name__}({repr(self.identifier)})'
 
     def short_repr(self):
-        return f'{self.identifier}'
+        s = str(self.identifier)
+
+        if len(s) > 20:
+            s_short = ''
+
+            t = ceil(len(s) / 20)
+
+            for i in range(t):
+                s_short += s[(20*i):(20*(i+1))] + '\n'
+        else:
+            s_short = s
+
+        return s_short
 
     # Subclasses must implement the following methods
 

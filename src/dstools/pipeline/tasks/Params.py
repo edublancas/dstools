@@ -9,8 +9,8 @@ class Params(collections.abc.Mapping):
         first_key = next(iter(self._dict))
         return self._dict[first_key]
 
-    def __init__(self):
-        self._dict = collections.OrderedDict()
+    def __init__(self, data=None):
+        self._dict = collections.OrderedDict(data or {})
 
     def __getitem__(self, key):
         return self._dict[key]
@@ -24,3 +24,6 @@ class Params(collections.abc.Mapping):
 
     def __len__(self):
         return len(self._dict)
+
+    def pop(self, key):
+        return self._dict.pop(key)
