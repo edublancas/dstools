@@ -8,7 +8,7 @@ class Postgres:
         col = sql.Identifier(col)
 
         def _no_nas_in_column(pg_product):
-            id_ = pg_product.identifier
+            id_ = pg_product._identifier
             schema = sql.Identifier(id_.schema)
             name = sql.Identifier(id_.name)
 
@@ -38,7 +38,7 @@ class Postgres:
         col = sql.Identifier(col)
 
         def _distinct_values_in_column(pg_product):
-            id_ = pg_product.identifier
+            id_ = pg_product._identifier
             schema = sql.Identifier(id_.schema)
             name = sql.Identifier(id_.name)
 
@@ -67,7 +67,7 @@ class Postgres:
         col = sql.Identifier(col)
 
         def _no_duplicates_in_column(pg_product):
-            id_ = pg_product.identifier
+            id_ = pg_product._identifier
             schema = sql.Identifier(id_.schema)
             name = sql.Identifier(id_.name)
 

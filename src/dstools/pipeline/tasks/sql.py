@@ -52,7 +52,7 @@ class SQLScript(Task):
                                   product=self.product))
         else:
             schema, name, kind = infered_relations[0]
-            id_ = self.product.identifier
+            id_ = self.product._identifier
 
             if ((schema != id_.schema) or (name != id_.name)
                     or (kind != id_.kind)):

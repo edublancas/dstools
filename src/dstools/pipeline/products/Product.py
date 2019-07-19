@@ -71,6 +71,10 @@ class Product:
         """
         self._identifier.render(params, **kwargs)
 
+    def _outdated(self):
+        return (self._outdated_data_dependencies()
+                or self._outdated_code_dependency())
+
     def _outdated_data_dependencies(self):
         def is_outdated(up_prod):
             """
@@ -81,7 +85,7 @@ class Product:
                 return True
             else:
                 return ((up_prod.timestamp > self.timestamp)
-                        or up_prod.outdated())
+                        or up_prod._outdated())
 
         outdated = any([is_outdated(up.product) for up
                         in self.task.upstream.values()])
