@@ -104,3 +104,37 @@ def test_task_change_in_status():
     tc.build()
 
     assert all([t._status == TaskStatus.Executed for t in [ta, tb, tc]])
+
+
+def test_raises_render_error_if_missing_param_in_code():
+    dag = DAG('my dag')
+
+    ta = BashCommand('{{command}} "a" > {{product}}', File('a.txt'), dag,
+                     name='my task')
+
+    with pytest.raises(RenderError):
+        ta.render()
+
+
+def test_raises_render_error_if_missing_param_in_product():
+    dag = DAG('my dag')
+
+    ta = BashCommand('echo "a" > {{product}}', File('a_{{name}}.txt'), dag,
+                     name='my task')
+
+    with pytest.raises(RenderError):
+        ta.render()
+
+
+def test_error_message_shows_task_and_dag_if_rendering_dag():
+    dag = DAG('my dag')
+
+    ta = BashCommand('echo "a" > {{product}}', File('a_{{name}}.txt'), dag,
+                     name='my task')
+
+    with pytest.raises(RenderError) as exc_info:
+        dag.render()
+
+    assert 'DAG("my dag")' in exc_info.value.args[0]
+
+

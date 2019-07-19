@@ -25,14 +25,13 @@ class DAG(collections.abc.Mapping):
         task as values. str(BuildStatus) returns a table in plain text. This
         object is created after build() is run, otherwise is None
     """
-    # TODO: remove the tasks, and tasks_by_name properties and use the
-    # networkx.DiGraph structure directly to avoid having to re-build the
-    # graph every time
+    # TODO: use the networkx.DiGraph structure directly to avoid having to
+    # re-build the graph every time
 
     def __init__(self, name=None, clients=None):
         self._dict = {}
-        self.name = name
-        self.logger = logging.getLogger(__name__)
+        self.name = name or 'No name'
+        self._logger = logging.getLogger(__name__)
         self.build_report = None
 
         self._clients = clients or {}
@@ -91,7 +90,7 @@ class DAG(collections.abc.Mapping):
             status_all[t] = t.build().build_report
 
         self.build_report = BuildReport.from_components(status_all)
-        self.logger.info(f' DAG status:\n{self.build_report}')
+        self._logger.info(' DAG status:\n{}'.format(self.build_report))
 
         return self
 
@@ -121,9 +120,7 @@ class DAG(collections.abc.Mapping):
             try:
                 t.render()
             except Exception as e:
-                class_ = e.__class__
-                raise class_(f'Raised while rendering task "{t}" in DAG '
-                             f'"{self}", {str(e)}')
+                raise type(e)('Error rendering {}'.format(self)) from e
 
 
     def _add_task(self, task):
@@ -131,8 +128,8 @@ class DAG(collections.abc.Mapping):
         """
         if task.name in self._dict.keys():
             raise ValueError('DAGs cannot have Tasks with repeated names, '
-                             f'there is a Task with name "{task.name}" '
-                             'already')
+                             'there is a Task with name "{}" '
+                             'already'.format(task.name))
 
         if task.name is not None:
             self._dict[task.name] = task
@@ -170,8 +167,7 @@ class DAG(collections.abc.Mapping):
         return len(self._dict)
 
     def __repr__(self):
-        name = self.name if self.name is not None else 'Unnamed'
-        return f'{type(self).__name__}: {name}'
+        return '{}("{}")'.format(type(self).__name__, self.name)
 
     def _short_repr(self):
         return repr(self)

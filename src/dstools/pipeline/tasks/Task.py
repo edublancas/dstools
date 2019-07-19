@@ -272,10 +272,8 @@ class Task:
             self.product.render(copy(self.params),
                                 optional=set(params_names + ['upstream']))
         except Exception as e:
-            traceback.print_exc()
-            raise type(e)(f'Error rendering product {repr(self.product)} '
-                          f'from task {repr(self)} with params '
-                          f'{self.params}. Exception: {e}')
+            raise type(e)('Error rendering product from task "{}", with '
+                          'params {}'.format(repr(self), self.params)) from e
 
     def _get_downstream(self):
         downstream = []
