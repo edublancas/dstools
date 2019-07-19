@@ -19,7 +19,6 @@ class Product:
 
     def __init__(self, identifier):
         self._identifier = self.IDENTIFIERCLASS(identifier)
-        self.tests, self.checks = [], []
         self.did_download_metadata = False
         self.task = None
         self.logger = logging.getLogger(__name__)
@@ -113,23 +112,6 @@ class Product:
                 # check keys [timestamp, stored_source_code], check
                 # types and fill with None if any of the keys is missing
                 self.metadata = metadata
-
-    def test(self):
-        """Run tests, raise exceptions if any of these are not true
-        """
-        for fn in self.tests:
-            res = fn(self)
-            if not res:
-                raise AssertionError(f'{self} failed test: {fn}')
-
-    def check(self):
-        """
-        Run checks, this are just for diagnostic purposes, if a any returns
-        False, a warning is sent
-        """
-        for fn in self.checks:
-            if not fn(self):
-                warnings.warn(f'Check did not pass: {fn}')
 
     def render(self, params, **kwargs):
         """

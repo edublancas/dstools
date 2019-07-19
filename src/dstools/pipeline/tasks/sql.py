@@ -70,10 +70,6 @@ class SQLScript(Task):
         conn.commit()
         conn.close()
 
-        self.product.check()
-        self.product.test()
-
-
 def to_parquet(df, path):
     """
     Notes
