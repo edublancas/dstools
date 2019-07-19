@@ -125,6 +125,7 @@ def test_raises_render_error_if_missing_param_in_product():
     with pytest.raises(RenderError):
         ta.render()
 
+
 def test_raises_render_error_if_non_existing_dependency_used():
     dag = DAG('my dag')
 
@@ -146,3 +147,22 @@ def test_raises_render_error_if_extra_param_in_code():
 
     with pytest.raises(RenderError):
         ta.render()
+
+
+def test_shows_warning_if_unused_dependencies():
+    dag = DAG('dag')
+
+    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag, 'ta')
+    tb = BashCommand('cat {{upstream["ta"]}} > {{product}}',
+                     File('b.txt'), dag, 'tb')
+    tc = BashCommand('cat {{upstream["tb"]}} > {{product}}',
+                     File('c.txt'), dag, 'tc')
+
+    ta >> tb >> tc
+    ta >> tc
+
+    ta.render()
+    tb.render()
+
+    with pytest.warns(UserWarning):
+        tc.render()

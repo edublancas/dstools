@@ -203,11 +203,16 @@ class Task:
         # most parameters are required, if upstream is not used, it should not
         # have any dependencies, if any param is not used, it should not
         # exist, the product should exist only for specific cases
+        opt = set(('product',)) if not self.PRODUCT_IN_CODE else set()
         try:
-            self._code.render(params,
-                              optional=set(('product',))
-                              if not self.PRODUCT_IN_CODE
-                              else set())
+            # if this task has upstream dependencies, render using the
+            # context manager, which will raise a warning if any of the
+            # dependencies is not used, otherwise just render
+            if params.get('upstream'):
+                with params.get('upstream'):
+                    self._code.render(params, optional=opt)
+            else:
+                self._code.render(params, optional=opt)
         except Exception as e:
             raise type(e)('Error rendering code from Task "{}", '
                           ' check the full traceback above for details'
