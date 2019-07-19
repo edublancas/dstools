@@ -4,6 +4,7 @@ DAG module
 A DAG is collection of tasks that makes sure they are executed in
 the right order
 """
+import warnings
 import logging
 from collections import OrderedDict
 import collections
@@ -117,12 +118,19 @@ class DAG(collections.abc.Mapping):
         g = self._to_graph(only_current_dag=True)
 
         for t in nx.algorithms.topological_sort(g):
-            try:
-                t.render()
-            except Exception as e:
-                raise type(e)('While rendering a Task in {}, check the full '
-                              'traceback above for details'
-                              .format(self)) from e
+            with warnings.catch_warnings(record=True) as warnings_:
+                try:
+                    t.render()
+                except Exception as e:
+                    raise type(e)('While rendering a Task in {}, check '
+                                  'the full '
+                                  'traceback above for details'
+                                  .format(self)) from e
+
+            if warnings_:
+                print('Warnings from task: {}'.format(repr(t)))
+                for a_warning in warnings_:
+                    warnings.warn(str(a_warning.message))
 
     def _add_task(self, task):
         """Adds a task to the DAG
