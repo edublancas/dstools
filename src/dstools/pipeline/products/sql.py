@@ -20,7 +20,7 @@ class SQLiteRelation(Product):
         # for itniialization
         identifier = ('', identifier[1], identifier[2])
         super().__init__(identifier)
-        self.identifier._schema = None
+        self._identifier._schema = None
 
         self._client = client
 
@@ -58,7 +58,7 @@ class SQLiteRelation(Product):
         query = """
         SELECT metadata FROM _metadata
         WHERE name = '{name}'
-        """.format(name=self.identifier.name)
+        """.format(name=self._identifier.name)
 
         conn = self.client.raw_connection()
         cur = conn.cursor()
@@ -84,7 +84,7 @@ class SQLiteRelation(Product):
         conn = self.client.raw_connection()
         cur = conn.cursor()
         cur.execute(query, (sqlite3.Binary(metadata_bin),
-                            self.identifier.name))
+                            self._identifier.name))
         conn.commit()
         conn.close()
 
@@ -94,8 +94,8 @@ class SQLiteRelation(Product):
         FROM sqlite_master
         WHERE type = '{kind}'
         AND name = '{name}'
-        """.format(kind=self.identifier.kind,
-                   name=self.identifier.name)
+        """.format(kind=self._identifier.kind,
+                   name=self._identifier.name)
 
         conn = self.client.raw_connection()
         cur = conn.cursor()
@@ -108,7 +108,7 @@ class SQLiteRelation(Product):
         """Deletes the product
         """
         query = ("DROP {kind} IF EXISTS {relation}"
-                 .format(kind=self.identifier.kind,
+                 .format(kind=self._identifier.kind,
                          relation=str(self)))
         self.logger.debug('Running "{query}" on the databse...'
                           .format(query=query))
@@ -120,11 +120,11 @@ class SQLiteRelation(Product):
 
     @property
     def name(self):
-        return self.identifier.name
+        return self._identifier.name
 
     @property
     def schema(self):
-        return self.identifier.schema
+        return self._identifier.schema
 
 
 class PostgresRelation(Product):
@@ -164,8 +164,8 @@ class PostgresRelation(Product):
         """
         conn = self.client.raw_connection()
         cur = conn.cursor()
-        cur.execute(query, dict(schema=self.identifier.schema,
-                                name=self.identifier.name))
+        cur.execute(query, dict(schema=self._identifier.schema,
+                                name=self._identifier.name))
         metadata = cur.fetchone()
         conn.close()
 
@@ -181,12 +181,12 @@ class PostgresRelation(Product):
     def save_metadata(self):
         metadata = Base64Serializer.serialize(self.metadata)
 
-        if self.identifier.kind == 'table':
+        if self._identifier.kind == 'table':
             query = (sql.SQL("COMMENT ON TABLE {} IS %(metadata)s;"
-                             .format(self.identifier)))
+                             .format(self._identifier)))
         else:
             query = (sql.SQL("COMMENT ON VIEW {} IS %(metadata)s;"
-                             .format(self.identifier)))
+                             .format(self._identifier)))
 
         conn = self.client.raw_connection()
         cur = conn.cursor()
@@ -208,8 +208,8 @@ class PostgresRelation(Product):
 
         conn = self.client.raw_connection()
         cur = conn.cursor()
-        cur.execute(query, dict(schema=self.identifier.schema,
-                                name=self.identifier.name))
+        cur.execute(query, dict(schema=self._identifier.schema,
+                                name=self._identifier.name))
         exists = cur.fetchone()[0]
         conn.close()
         return exists
@@ -218,7 +218,7 @@ class PostgresRelation(Product):
         """Deletes the product
         """
         cascade = 'CASCADE' if force else ''
-        query = f"DROP {self.identifier.kind} IF EXISTS {self} {cascade}"
+        query = f"DROP {self._identifier.kind} IF EXISTS {self} {cascade}"
         self.logger.debug(f'Running "{query}" on the databse...')
         conn = self.client.raw_connection()
         cur = conn.cursor()
@@ -228,8 +228,8 @@ class PostgresRelation(Product):
 
     @property
     def name(self):
-        return self.identifier.name
+        return self._identifier.name
 
     @property
     def schema(self):
-        return self.identifier.schema
+        return self._identifier.schema

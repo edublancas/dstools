@@ -46,43 +46,10 @@ class DAG(collections.abc.Mapping):
     def clients(self):
         return self._clients
 
-    def add_task(self, task):
-        """Adds a task to the DAG
-        """
-        if task.name in self._dict.keys():
-            raise ValueError('DAGs cannot have Tasks with repeated names, '
-                             f'there is a Task with name "{task.name}" '
-                             'already')
-
-        if task.name is not None:
-            self._dict[task.name] = task
-        else:
-            raise ValueError('Tasks must have a name, got None')
-
-    def to_graph(self, only_current_dag=False):
-        """
-        Converts the DAG to a Networkx DiGraph object. Since upstream
-        dependencies are not required to come from the same DAG,
-        this object might include tasks that are not included in the current
-        object
-        """
-        G = nx.DiGraph()
-
-        for task in self.values():
-            G.add_node(task)
-
-            if only_current_dag:
-                G.add_edges_from([(up, task) for up
-                                  in task.upstream.values() if up.dag is self])
-            else:
-                G.add_edges_from([(up, task) for up in task.upstream.values()])
-
-        return G
-
     def render(self):
         """Render the graph
         """
-        g = self.to_graph()
+        g = self._to_graph()
 
         def unique(elements):
             elements_unique = []
@@ -102,17 +69,6 @@ class DAG(collections.abc.Mapping):
         # then, render this dag
         self._render_current()
 
-    def _render_current(self):
-        g = self.to_graph(only_current_dag=True)
-
-        for t in nx.algorithms.topological_sort(g):
-            try:
-                t.render()
-            except Exception as e:
-                class_ = e.__class__
-                raise class_(f'Raised while rendering task "{t}" in DAG '
-                             f'"{self}", {str(e)}')
-
     def build(self):
         """
         Runs the DAG in order so that all upstream dependencies are run for
@@ -131,7 +87,7 @@ class DAG(collections.abc.Mapping):
 
         status_all = OrderedDict()
 
-        for t in nx.algorithms.topological_sort(self.to_graph()):
+        for t in nx.algorithms.topological_sort(self._to_graph()):
             status_all[t] = t.build().build_report
 
         self.build_report = BuildReport.from_components(status_all)
@@ -144,7 +100,7 @@ class DAG(collections.abc.Mapping):
         """
         self.render()
 
-        G = self.to_graph()
+        G = self._to_graph()
 
         for n, data in G.nodes(data=True):
             data['color'] = 'red' if n.product.outdated() else 'green'
@@ -158,12 +114,50 @@ class DAG(collections.abc.Mapping):
         G_.draw(path, prog='dot', args='-Grankdir=LR')
         subprocess.run(['open', path])
 
-    def status(self):
-        """Returns the status of each node in the DAG
+    def _render_current(self):
+        g = self._to_graph(only_current_dag=True)
+
+        for t in nx.algorithms.topological_sort(g):
+            try:
+                t.render()
+            except Exception as e:
+                class_ = e.__class__
+                raise class_(f'Raised while rendering task "{t}" in DAG '
+                             f'"{self}", {str(e)}')
+
+
+    def _add_task(self, task):
+        """Adds a task to the DAG
         """
-        self.render()
-        return [t.status() for t
-                in nx.algorithms.topological_sort(self.to_graph())]
+        if task.name in self._dict.keys():
+            raise ValueError('DAGs cannot have Tasks with repeated names, '
+                             f'there is a Task with name "{task.name}" '
+                             'already')
+
+        if task.name is not None:
+            self._dict[task.name] = task
+        else:
+            raise ValueError('Tasks must have a name, got None')
+
+    def _to_graph(self, only_current_dag=False):
+        """
+        Converts the DAG to a Networkx DiGraph object. Since upstream
+        dependencies are not required to come from the same DAG,
+        this object might include tasks that are not included in the current
+        object
+        """
+        G = nx.DiGraph()
+
+        for task in self.values():
+            G.add_node(task)
+
+            if only_current_dag:
+                G.add_edges_from([(up, task) for up
+                                  in task.upstream.values() if up.dag is self])
+            else:
+                G.add_edges_from([(up, task) for up in task.upstream.values()])
+
+        return G
 
     def __getitem__(self, key):
         return self._dict[key]
@@ -179,11 +173,11 @@ class DAG(collections.abc.Mapping):
         name = self.name if self.name is not None else 'Unnamed'
         return f'{type(self).__name__}: {name}'
 
+    def _short_repr(self):
+        return repr(self)
+
     # IPython integration
     # https://ipython.readthedocs.io/en/stable/config/integrating.html
 
     def _ipython_key_completions_(self):
         return list(self)
-
-    def short_repr(self):
-        return repr(self)

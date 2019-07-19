@@ -15,7 +15,7 @@ class File(Product):
 
     @property
     def _path_to_file(self):
-        return Path(str(self.identifier))
+        return Path(str(self._identifier))
 
     @property
     def _path_to_stored_source_code(self):

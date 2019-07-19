@@ -78,7 +78,7 @@ class Task:
 
         self.product.task = self
 
-        dag.add_task(self)
+        dag._add_task(self)
         self.dag = dag
 
         self._status = TaskStatus.WaitingRender
