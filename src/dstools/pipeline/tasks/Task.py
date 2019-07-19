@@ -159,7 +159,6 @@ class Task:
             # stop execution
 
             # update metadata
-            self.product.pre_save_metadata_hook()
             self.product.timestamp = datetime.now().timestamp()
             self.product.stored_source_code = self.source_code
             self.product.save_metadata()

@@ -131,9 +131,6 @@ class Product:
             if not fn(self):
                 warnings.warn(f'Check did not pass: {fn}')
 
-    def pre_save_metadata_hook(self):
-        pass
-
     def render(self, params, **kwargs):
         """
         Render Product - this will render contents of Templates used as
@@ -185,4 +182,8 @@ class Product:
 
     @property
     def name(self):
+        """
+        Product name, this is used as Task.name default if no name
+        is provided
+        """
         raise NotImplementedError('You have to implement this property')

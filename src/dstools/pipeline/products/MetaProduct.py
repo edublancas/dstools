@@ -93,9 +93,6 @@ class MetaProduct:
         for p in self.products:
             p.render(params, **kwargs)
 
-    def pre_save_metadata_hook(self):
-        pass
-
     def short_repr(self):
         return ', '.join([p.short_repr() for p in self.products])
 
