@@ -321,6 +321,9 @@ class Task:
     def __repr__(self):
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
 
+    def __str__(self):
+        return str(self.product._identifier)
+
     def _short_repr(self):
         def short(s):
             max_l = 30
