@@ -70,19 +70,26 @@ class SQLScript(Task):
         conn.commit()
         conn.close()
 
-def to_parquet(df, path):
-    """
+
+def _to_parquet(df, path, schema=None):
+    """Export a pandas.DataFrame to parquet
+
     Notes
     -----
+
     going from pandas.DataFrame to parquet has an intermediate
     apache arrow conversion (since arrow has the actual implementation
-    for writing parquet). using the shortcut pandas.DataFrame.to_parquet
-    gives this error with timestamps:
+    for writing parquet). pandas provides the pandas.DataFrame.to_parquet
+    to do this 2-step process but it gives errors with timestamps:
     ArrowInvalid: Casting from timestamp[ns] to timestamp[ms] would lose data
-    so we are using taking the long way
+
+    This function uses the pyarrow package directly to save to parquet
     """
-    table = pa.Table.from_pandas(df)
-    return pq.write_table(table, str(path))
+    # keeping the index causes a "KeyError: '__index_level_0__'" error,
+    # so remove it
+    table = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
+    pq.write_table(table, str(path))
+    return table.schema
 
 
 class SQLDump(Task):
@@ -109,20 +116,38 @@ class SQLDump(Task):
         source_code = str(self._code)
         path = Path(str(self.params['product']))
 
-        if path.exists():
-            shutil.rmtree(path)
-
-        path.mkdir()
-
         self._logger.debug('Code: %s', source_code)
 
-        self._logger.debug('Fetcthing first chunk...')
+        if self.chunksize is None:
+            df = pd.read_sql(source_code, self.client.engine,
+                             chunksize=self.chunksize)
+            self._logger.info('Fetching data...')
+            _to_parquet(df, path)
+        else:
+            if path.exists():
+                shutil.rmtree(path)
 
-        for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
-                               chunksize=self.chunksize)):
-            self._logger.info('Fetched chunk {i}'.format(i=i))
-            to_parquet(df, path / '{i}.parquet'.format(i=i))
-            self._logger.info('Fetching chunk {j}...'.format(j=i+1))
+            path.mkdir()
+
+            self._logger.debug('Fetching first chunk...')
+
+            # during the first chunk, we pass None as schema, so it's inferred
+            schema = None
+
+            for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
+                                               chunksize=self.chunksize)):
+
+                self._logger.info('Fetched chunk {i}'.format(i=i))
+
+                s = _to_parquet(df, path / '{i}.parquet'.format(i=i), schema)
+
+                # save the inferred schema, following iterations will use this
+                # to avoid incompatibility between schemas:
+                # https://github.com/dask/dask/issues/4194
+                if i == 0:
+                    schema = s
+
+                self._logger.info('Fetching chunk {j}...'.format(j=i + 1))
 
 
 class SQLTransfer(Task):
