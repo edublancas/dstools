@@ -1,13 +1,25 @@
 """
-If a Task B is said to have Task A as a dependencies, it means that the
+If Task B has Task A as a dependency, it means that the
 Product of A should be used by B in some way (e.g. Task A produces a table
 and Task B pivots it), placeholders help avoid redundancy when building tasks,
 if you declare that Product A is "schema"."table", the use of placeholders
 prevents "schema"."table" to be explicitely declared in B, since B depends
-on A, information from A is passed to B.
+on A, this information from A is passed to B. Placeholders fill that purpose,
+they are placeholders that will be filled at rendering time so that
+parameteters are only declared once.
 
-They are not intended to be used by the user, since Task and Product objects
-implicitely initialize them from strings
+They serve a second, more advanced use case. It is recommended for Tasks to
+have no parameters and be fully declared by specifying their code, product
+and upstream dependencies. However, there is one use case where parameters
+are useful: batch processing and parallelization. For example, if we are
+operating on a 10-year databse, a single task might take too long, but we
+could split the data in 1-year chunks and process them in parallel, in such
+use case we could create 10 task instances, each one with a different year
+parameters and process them independently. So, apart from upstream and product
+placeholders, arbitrary parameters can also be placeholders.
+
+These classes are not intended to be used by the end user, since Task and
+Product objects create placeholders from strings.
 """
 from pathlib import Path
 import inspect

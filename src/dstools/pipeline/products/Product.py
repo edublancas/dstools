@@ -4,6 +4,13 @@ filesystem or an table in a database. Each Product is uniquely identified,
 for example a file can be specified using a absolute path, a table can be
 fully specified by specifying a database, a schema and a name. Names
 are lazy evaluated, they can be built from templates
+
+All actual products derive from the Product abstract class, they have an
+IDENTIFIERCLASS, which determines a data structure to uniquely identify the
+product, the simplest case is a string, which can identify many types of
+resources via a URI. The other (current) structure is a SQLRelationPlaceholder
+which identifies a relation in a database, it is different than a string
+since it contains a schema and a name fields.
 """
 import logging
 import warnings
