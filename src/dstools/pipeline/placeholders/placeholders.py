@@ -14,8 +14,23 @@ import inspect
 
 from dstools.templates.StrictTemplate import StrictTemplate
 
+class TemplatedPlaceholder:
+    """
+    There are two types of placeholders, templated strings (whose
+    parameteters are rendered using jinja templates and then executed) and
+    native Python code (a callable object), which has no render logic, but
+    still needs to offer the same API for compatibility, this class only
+    helps identify which placeholders are from the first class since in some
+    execution points, they need to be treated differently (e.g. for templated
+    placeholders it is possible to check whether any passed parameter is
+    unused at rendering time, since python code does not have a render step,
+    this is not possible)
 
-class StringPlaceholder:
+    """
+    pass
+
+
+class StringPlaceholder(TemplatedPlaceholder):
     """
     StringPlaceholders are StrictTemplates that store its rendered version
     in the same object so it can later be accesed
@@ -65,33 +80,7 @@ class ClientCodePlaceholder(StringPlaceholder):
         self._rendered_value = None
 
 
-class PythonCodePlaceholder:
-
-    def __init__(self, source):
-        if not callable(source):
-            raise TypeError(f'{type(self).__name__} must be initialized'
-                            'with a Python callable, got '
-                            f'"{type(source).__name__}"')
-
-        self._source = source
-        self._source_as_str = inspect.getsource(source)
-
-        self._params = None
-
-    def render(self, params, **kwargs):
-        # FIXME: we need **kwargs for compatibility, but they are not used,
-        # think what's the best thing to do
-        # TODO: verify that params match function signature
-        self._params = params
-
-    def __repr__(self):
-        return 'Placeholder({})'.format(self._source.raw)
-
-    def __str__(self):
-        return self._source_as_str
-
-
-class SQLRelationPlaceholder:
+class SQLRelationPlaceholder(TemplatedPlaceholder):
     """An identifier that represents a database relation (table or view)
     """
 
@@ -170,3 +159,29 @@ class SQLRelationPlaceholder:
     def __repr__(self):
         return ('Placeholder("{}"."{}")'
                 .format(self.schema, self._source.raw, self.kind))
+
+
+class PythonCodePlaceholder:
+
+    def __init__(self, source):
+        if not callable(source):
+            raise TypeError(f'{type(self).__name__} must be initialized'
+                            'with a Python callable, got '
+                            f'"{type(source).__name__}"')
+
+        self._source = source
+        self._source_as_str = inspect.getsource(source)
+
+        self._params = None
+
+    def render(self, params, **kwargs):
+        # FIXME: we need **kwargs for compatibility, but they are not used,
+        # think what's the best thing to do
+        # TODO: verify that params match function signature
+        self._params = params
+
+    def __repr__(self):
+        return 'Placeholder({})'.format(self._source.raw)
+
+    def __str__(self):
+        return self._source_as_str

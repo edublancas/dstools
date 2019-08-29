@@ -7,7 +7,11 @@ class Params(abc.Mapping):
     Mapping for representing parameters, it's a collections.OrderedDict
     under the hood with an added .pop(key) method (like the one in a regular
     dictionary) and with a .first attribute, that returns the first value,
-    useful when there is only one key-value pair
+    useful when there is only one key-value pair.
+
+    Currently used for task upstream dependencies, used as a context manager,
+    it raises a warning if any of the elements was not used at least once,
+    which means there are unused upstream dependencies
     """
 
     def __init__(self, data=None):

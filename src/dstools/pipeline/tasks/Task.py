@@ -18,7 +18,8 @@ from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.tasks.TaskStatus import TaskStatus
 from dstools.pipeline.tasks.Params import Params
-from dstools.pipeline.placeholders import ClientCodePlaceholder
+from dstools.pipeline.placeholders import (ClientCodePlaceholder,
+                                           TemplatedPlaceholder)
 from dstools.util import isiterable
 
 
@@ -99,7 +100,9 @@ class Task:
     def upstream(self):
         """{'task_name': task} dict
         """
-        return self._upstream
+        # always return a copy to prevent global state if contents
+        # are modified (e.g. by using pop)
+        return copy(self._upstream)
 
     def run(self):
         raise NotImplementedError('You have to implement this method')
@@ -207,8 +210,12 @@ class Task:
         try:
             # if this task has upstream dependencies, render using the
             # context manager, which will raise a warning if any of the
-            # dependencies is not used, otherwise just render
-            if params.get('upstream'):
+            # dependencies is not used, otherwise just render, also
+            # check if the code is a TemplatedPlaceholder, for other
+            # types of code objects we cannot determine parameter
+            # use at render time
+            if (params.get('upstream')
+                and isinstance(self._code, TemplatedPlaceholder)):
                 with params.get('upstream'):
                     self._code.render(params, optional=opt)
             else:
