@@ -99,5 +99,9 @@ class MetaProduct:
         reprs = ', '.join([repr(p) for p in self.products])
         return f'{type(self).__name__}: {reprs}'
 
+    def __str__(self):
+        strs = ', '.join([str(p) for p in self.products._identifier])
+        return f'{type(self).__name__}: {strs}'
+
     def __getitem__(self, key):
         return self.products[key]
