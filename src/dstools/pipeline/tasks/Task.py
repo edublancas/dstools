@@ -329,7 +329,7 @@ class Task:
         return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
 
     def __str__(self):
-        return str(self.product._identifier)
+        return str(self.product)
 
     def _short_repr(self):
         def short(s):
