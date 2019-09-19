@@ -70,6 +70,8 @@ class DAG(collections.abc.Mapping):
         # then, render this dag
         self._render_current()
 
+        return self
+
     def build(self):
         """
         Runs the DAG in order so that all upstream dependencies are run for
