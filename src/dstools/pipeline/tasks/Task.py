@@ -6,7 +6,6 @@ a product (a persistent object such as a table in a database),
 it has a name (which can be infered from the source code filename)
 and lives in a DAG
 """
-import traceback
 from copy import copy
 import logging
 from datetime import datetime
@@ -22,6 +21,8 @@ from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            TemplatedPlaceholder)
 from dstools.pipeline.Table import Table
 from dstools.util import isiterable
+
+import humanize
 
 
 class Task:
@@ -260,9 +261,10 @@ class Task:
         data['name'] = self.name
 
         if p.timestamp is not None:
-            dt = (datetime
-                  .fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M'))
-            data['Last updated'] = dt
+            dt = datetime.fromtimestamp(p.timestamp)
+            date_h = dt.strftime('%b %d, %y at %H:%M')
+            time_h = humanize.naturaltime(dt)
+            data['Last updated'] = '{} ({})'.format(time_h, date_h)
         else:
             data['Last updated'] = 'Has not been run'
 
