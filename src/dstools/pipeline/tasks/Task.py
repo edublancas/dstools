@@ -6,7 +6,6 @@ a product (a persistent object such as a table in a database),
 it has a name (which can be infered from the source code filename)
 and lives in a DAG
 """
-import traceback
 from copy import copy
 import logging
 from datetime import datetime
@@ -20,7 +19,10 @@ from dstools.pipeline.tasks.TaskStatus import TaskStatus
 from dstools.pipeline.tasks.Params import Params
 from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            TemplatedPlaceholder)
+from dstools.pipeline.Table import Table
 from dstools.util import isiterable
+
+import humanize
 
 
 class Task:
@@ -215,7 +217,7 @@ class Task:
             # types of code objects we cannot determine parameter
             # use at render time
             if (params.get('upstream')
-                and isinstance(self._code, TemplatedPlaceholder)):
+                    and isinstance(self._code, TemplatedPlaceholder)):
                 with params.get('upstream'):
                     self._code.render(params, optional=opt)
             else:
@@ -254,26 +256,31 @@ class Task:
         """
         p = self.product
 
-        outd_code = p._outdated_code_dependency()
+        data = {}
 
-        out = ''
+        data['name'] = self.name
 
         if p.timestamp is not None:
-            dt = (datetime
-                  .fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M'))
-            out += f'* Last updated: {dt}\n'
+            dt = datetime.fromtimestamp(p.timestamp)
+            date_h = dt.strftime('%b %d, %y at %H:%M')
+            time_h = humanize.naturaltime(dt)
+            data['Last updated'] = '{} ({})'.format(time_h, date_h)
         else:
-            out += f'* Timestamp is None\n'
+            data['Last updated'] = 'Has not been run'
 
-        out += f'* Oudated data dependencies: {p._outdated_data_dependencies()}'
-        out += f'\n* Oudated code dependency: {outd_code}'
+        data['Outdated dependencies'] = p._outdated_data_dependencies()
+        outd_code = p._outdated_code_dependency()
+        data['Outdated code'] = outd_code
 
         if outd_code:
-            out += '\n\nCODE DIFF\n*********\n'
-            out += util.diff_strings(p.stored_source_code, self.source_code)
-            out += '\n*********'
+            data['Code diff'] = util.diff_strings(p.stored_source_code,
+                                                  self.source_code)
+        else:
+            outd_code = ''
 
-        print(out)
+        data['Product'] = str(self.product)
+
+        return Table(data)
 
     def _render_product(self):
         params_names = list(self.params)

@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import networkx as nx
 
+from dstools.pipeline.Table import Table
 from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.products import MetaProduct
 
@@ -96,6 +97,11 @@ class DAG(collections.abc.Mapping):
         self._logger.info(' DAG status:\n{}'.format(self.build_report))
 
         return self
+
+    def status(self):
+        """Returns a table with tasks status
+        """
+        return Table.from_tables([t.status() for k, t in self._dict.items()])
 
     def plot(self):
         """Plot the DAG
