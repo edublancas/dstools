@@ -150,9 +150,6 @@ class StrictTemplate:
         missing = self.declared - passed
         extra = passed - self.declared - optional
 
-        self._logger.debug('Declared: %s, missing: %s, extra: %s',
-                           self.declared, missing, extra)
-
         if missing:
             raise RenderError('in {}, missing required '
                               'parameters: {}, params passed: {}'
