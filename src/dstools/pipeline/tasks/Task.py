@@ -276,6 +276,8 @@ class Task:
         else:
             outd_code = ''
 
+        data['Product'] = str(self.product)
+
         return Table(data)
 
     def _render_product(self):
