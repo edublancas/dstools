@@ -101,7 +101,7 @@ class DAG(collections.abc.Mapping):
         """
         return Table.from_tables([t.status() for k, t in self._dict.items()])
 
-    def plot(self):
+    def plot(self, open_image=True):
         """Plot the DAG
         """
         # FIXME: add tests for this
@@ -119,7 +119,11 @@ class DAG(collections.abc.Mapping):
         G_ = nx.nx_agraph.to_agraph(G)
         path = tempfile.mktemp(suffix='.png')
         G_.draw(path, prog='dot', args='-Grankdir=LR')
-        subprocess.run(['open', path])
+
+        if open_image:
+            subprocess.run(['open', path])
+
+        return path
 
     def _render_current(self):
         g = self._to_graph(only_current_dag=True)
