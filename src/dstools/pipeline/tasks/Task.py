@@ -251,7 +251,7 @@ class Task:
 
         print(plan)
 
-    def status(self):
+    def status(self, include_code_diff=False):
         """Prints the current task status
         """
         p = self.product
@@ -272,7 +272,7 @@ class Task:
         outd_code = p._outdated_code_dependency()
         data['Outdated code'] = outd_code
 
-        if outd_code:
+        if outd_code and include_code_diff:
             data['Code diff'] = util.diff_strings(p.stored_source_code,
                                                   self.source_code)
         else:

@@ -98,10 +98,11 @@ class DAG(collections.abc.Mapping):
 
         return self
 
-    def status(self):
+    def status(self, **kwargs):
         """Returns a table with tasks status
         """
-        return Table.from_tables([t.status() for k, t in self._dict.items()])
+        return Table.from_tables([t.status(**kwargs)
+                                  for k, t in self._dict.items()])
 
     def plot(self, open_image=True):
         """Plot the DAG
