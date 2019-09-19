@@ -14,8 +14,7 @@ import tempfile
 import networkx as nx
 from tqdm.auto import tqdm
 
-from dstools.pipeline.Table import Table
-from dstools.pipeline.build_report import BuildReport
+from dstools.pipeline.Table import Table, BuildReport
 from dstools.pipeline.products import MetaProduct
 
 
@@ -91,16 +90,17 @@ class DAG(collections.abc.Mapping):
         # attributes docs:
         # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
 
-        status_all = OrderedDict()
+        status_all = []
 
         g = self._to_graph()
         pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
 
         for t in pbar:
             pbar.set_description('Building task "{}"'.format(t.name))
-            status_all[t] = t.build().build_report
+            t.build()
+            status_all.append(t.build_report)
 
-        self.build_report = BuildReport.from_components(status_all)
+        self.build_report = BuildReport(status_all)
         self._logger.info(' DAG status:\n{}'.format(self.build_report))
 
         return self.build_report
@@ -108,8 +108,8 @@ class DAG(collections.abc.Mapping):
     def status(self, **kwargs):
         """Returns a table with tasks status
         """
-        return Table.from_tables([t.status(**kwargs)
-                                  for k, t in self._dict.items()])
+        return Table([t.status(**kwargs)
+                      for k, t in self._dict.items()])
 
     def plot(self, open_image=True):
         """Plot the DAG

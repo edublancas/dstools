@@ -11,7 +11,6 @@ import logging
 from datetime import datetime
 from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
-from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
 from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
@@ -19,7 +18,7 @@ from dstools.pipeline.tasks.TaskStatus import TaskStatus
 from dstools.pipeline.tasks.Params import Params
 from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            TemplatedPlaceholder)
-from dstools.pipeline.Table import Table
+from dstools.pipeline.Table import Row
 from dstools.util import isiterable
 
 import humanize
@@ -124,7 +123,7 @@ class Task:
         self._logger.info(f'-----\nChecking {repr(self)}....')
 
         run = False
-        elapsed = None
+        elapsed = 0
 
         # check dependencies only if the product exists and there is metadata
         if self.product.exists() and self.product.metadata is not None:
@@ -189,7 +188,8 @@ class Task:
         for t in self._get_downstream():
             t._update_status()
 
-        self.build_report = BuildReport(run=run, elapsed=elapsed)
+        self.build_report = Row({'name': self.name, 'Ran?': run,
+                                 'Elapsed (s)': elapsed, })
 
         return self
 
@@ -280,7 +280,7 @@ class Task:
 
         data['Product'] = str(self.product)
 
-        return Table(data)
+        return Row(data)
 
     def _render_product(self):
         params_names = list(self.params)
