@@ -10,7 +10,9 @@ from collections import OrderedDict
 import collections
 import subprocess
 import tempfile
+
 import networkx as nx
+from tqdm.auto import tqdm
 
 from dstools.pipeline.Table import Table
 from dstools.pipeline.build_report import BuildReport
@@ -37,6 +39,7 @@ class DAG(collections.abc.Mapping):
         self.build_report = None
 
         self._clients = clients or {}
+        self._rendered = False
 
     @property
     def product(self):
@@ -90,13 +93,17 @@ class DAG(collections.abc.Mapping):
 
         status_all = OrderedDict()
 
-        for t in nx.algorithms.topological_sort(self._to_graph()):
+        g = self._to_graph()
+        pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
+
+        for t in pbar:
+            pbar.set_description('Building task "{}"'.format(t.name))
             status_all[t] = t.build().build_report
 
         self.build_report = BuildReport.from_components(status_all)
         self._logger.info(' DAG status:\n{}'.format(self.build_report))
 
-        return self
+        return self.build_report
 
     def status(self, **kwargs):
         """Returns a table with tasks status
@@ -129,23 +136,34 @@ class DAG(collections.abc.Mapping):
         return path
 
     def _render_current(self):
-        g = self._to_graph(only_current_dag=True)
+        # only render the first time this is called, this means that
+        # if the dag is modified, render won't have an effect, DAGs are meant
+        # to be all set before rendering, but might be worth raising a warning
+        # if trying to modify an already rendered DAG
+        if not self._rendered:
+            g = self._to_graph(only_current_dag=True)
 
-        for t in nx.algorithms.topological_sort(g):
-            with warnings.catch_warnings(record=True) as warnings_:
-                try:
-                    t.render()
-                except Exception as e:
-                    raise type(e)('While rendering a Task in {}, check '
-                                  'the full '
-                                  'traceback above for details'
-                                  .format(self)) from e
+            pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
 
-            if warnings_:
-                messages = [str(w.message) for w in warnings_]
-                warning = ('Task "{}" had the following warnings:\n\n{}'
-                           .format(repr(t), '\n'.join(messages)))
-                warnings.warn(warning)
+            for t in pbar:
+                pbar.set_description('Rendering DAG "{}"'.format(self.name))
+
+                with warnings.catch_warnings(record=True) as warnings_:
+                    try:
+                        t.render()
+                    except Exception as e:
+                        raise type(e)('While rendering a Task in {}, check '
+                                      'the full '
+                                      'traceback above for details'
+                                      .format(self)) from e
+
+                if warnings_:
+                    messages = [str(w.message) for w in warnings_]
+                    warning = ('Task "{}" had the following warnings:\n\n{}'
+                               .format(repr(t), '\n'.join(messages)))
+                    warnings.warn(warning)
+
+                self._rendered = True
 
     def _add_task(self, task):
         """Adds a task to the DAG

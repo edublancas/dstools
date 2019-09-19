@@ -73,7 +73,7 @@ setup(
     install_requires=[
         # FIXME: remove pyyaml
         'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate', 'pygraphviz',
-        'humanize',
+        'humanize', 'tqdm',
         # used in SQLTemplate
         'numpydoc', 'pyarrow',
         # for pipeline.sql

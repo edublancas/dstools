@@ -41,6 +41,10 @@ class BuildReport:
                               headers=['Name', 'Ran?',
                                        'Elapsed (s)', 'Percentage'],
                               floatfmt='.2f')
+        obj._table_html = tabulate(rows,
+                                   headers=['Name', 'Ran?',
+                                            'Elapsed (s)', 'Percentage'],
+                                   floatfmt='.2f', tablefmt='html')
 
         return obj
 
@@ -51,3 +55,6 @@ class BuildReport:
             s = f'{self._table}\n'+s
 
         return s
+
+    def _repr_html_(self):
+        return self._table_html
