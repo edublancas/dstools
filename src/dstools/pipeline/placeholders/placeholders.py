@@ -21,10 +21,12 @@ placeholders, arbitrary parameters can also be placeholders.
 These classes are not intended to be used by the end user, since Task and
 Product objects create placeholders from strings.
 """
+import tempfile
 from pathlib import Path
 import inspect
 
 from dstools.templates.StrictTemplate import StrictTemplate
+
 
 class TemplatedPlaceholder:
     """
@@ -44,8 +46,11 @@ class TemplatedPlaceholder:
 
 class StringPlaceholder(TemplatedPlaceholder):
     """
-    StringPlaceholders are StrictTemplates that store its rendered version
-    in the same object so it can later be accesed
+    StringPlaceholders templated strings (using StrictTemplates) that store
+    its rendered version in the same object so it can later be accesed,
+    if a pathlib.Path object is used as source, it is casted to str. If the
+    contents of the file represent the placeholder's content, use
+    ClientCodePlaceholder instead
     """
 
     def __init__(self, source):
@@ -77,7 +82,9 @@ class StringPlaceholder(TemplatedPlaceholder):
 
 
 class ClientCodePlaceholder(StringPlaceholder):
-    """An object that represents client code
+    """
+    An object that represents client code, if a pathlib.Path object is passed,
+    its contents are read and interpreted as the placeholder's content
 
     Notes
     -----
@@ -90,6 +97,13 @@ class ClientCodePlaceholder(StringPlaceholder):
         # is how they treat pathlib.Path
         self._source = StrictTemplate(source)
         self._rendered_value = None
+
+    def save_to_tmp_file(self):
+        """Save contents of rendered version to a tmp file
+        """
+        _, path_to_tmp = tempfile.mkstemp()
+        Path(path_to_tmp).write_text(str(self))
+        return path_to_tmp
 
 
 class SQLRelationPlaceholder(TemplatedPlaceholder):
