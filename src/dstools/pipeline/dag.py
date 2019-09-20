@@ -6,7 +6,6 @@ the right order
 """
 import warnings
 import logging
-from collections import OrderedDict
 import collections
 import subprocess
 import tempfile
@@ -102,6 +101,9 @@ class DAG(collections.abc.Mapping):
 
         self.build_report = BuildReport(status_all)
         self._logger.info(' DAG status:\n{}'.format(self.build_report))
+
+        for client in self.clients.values():
+            client.close()
 
         return self.build_report
 

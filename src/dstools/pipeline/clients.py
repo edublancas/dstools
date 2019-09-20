@@ -34,6 +34,8 @@ class SQLAlchemyClient(Client):
 
     @property
     def engine(self):
+        """Returns a SQLAlchemy engine, creates one if one does not exist
+        """
         if self._engine is None:
             self._engine = create_engine(self.uri)
             ENGINES.append(self._engine)
@@ -41,6 +43,8 @@ class SQLAlchemyClient(Client):
         return self._engine
 
     def connect(self):
+        """Use the engine to return a connection object
+        """
         # answer on engines, connections, etc:
         # https://stackoverflow.com/a/8705750/709975
         self._conn = self.engine.connect()
@@ -48,14 +52,20 @@ class SQLAlchemyClient(Client):
         return self._conn
 
     def raw_connection(self):
+        """Uses engine to return a raw connection
+        """
         self._conn = self.engine.raw_connection()
 
         return self._conn
 
     def __del__(self):
+        """Same as client.close()
+        """
         self.close()
 
     def close(self):
+        """Disposes the engine if it exists
+        """
         if self._engine is not None:
             print(f'Disposing engine {self._engine}')
             self._engine.dispose()
