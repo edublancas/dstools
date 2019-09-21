@@ -128,14 +128,23 @@ class RemoteShellClient(Client):
     """Client to run commands in a remote shell
     """
     def __init__(self, connect_kwargs):
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.client = client.connect(**connect_kwargs)
+        self.connect_kwargs = connect_kwargs
+        self._raw_client = None
+
+    @property
+    def raw_client(self):
+        if self._raw_client is None:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(**self.connect_kwargs)
+            self._raw_client = client
+
+        return self._raw_client
 
     def run(self, code):
         """Run code
         """
-        stdin, stdout, stderr = self.client.exec_command('sleep 3')
+        stdin, stdout, stderr = self.raw_client.exec_command('sleep 3')
         returncode = stdout.channel.recv_exit_status()
 
         if returncode != 0:
@@ -149,7 +158,7 @@ class RemoteShellClient(Client):
                               f' stderr: {stderr}')
 
     def close(self):
-        self.client.close()
+        self.raw_client.close()
 
 
 @atexit.register
