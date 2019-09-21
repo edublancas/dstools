@@ -77,7 +77,9 @@ setup(
         # used in SQLTemplate
         'numpydoc', 'pyarrow',
         # for pipeline.sql
-        'sqlalchemy'
+        'sqlalchemy',
+        # for sshclient,
+        'paramiko',
 
     ],
     extras_require={

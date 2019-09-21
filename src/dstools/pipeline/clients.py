@@ -11,6 +11,7 @@ from subprocess import CalledProcessError
 from dstools.templates.StrictTemplate import StrictTemplate
 
 from sqlalchemy import create_engine
+import paramiko
 
 ENGINES = []
 
@@ -126,11 +127,29 @@ class ShellClient(Client):
 class RemoteShellClient(Client):
     """Client to run commands in a remote shell
     """
+    def __init__(self, connect_kwargs):
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.client = client.connect(**connect_kwargs)
 
     def run(self, code):
         """Run code
         """
-        pass
+        stdin, stdout, stderr = self.client.exec_command('sleep 3')
+        returncode = stdout.channel.recv_exit_status()
+
+        if returncode != 0:
+            # log source code without expanded params
+            self._logger.info(f'{self.source_code} returned stdout: '
+                              f'{stdout} and stderr: {stderr} '
+                              f'and exit status {returncode}')
+            raise CalledProcessError(returncode, self.source_code)
+        else:
+            self._logger.info(f'Finished running {self}. stdout: {stdout},'
+                              f' stderr: {stderr}')
+
+    def close(self):
+        self.client.close()
 
 
 @atexit.register
