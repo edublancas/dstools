@@ -2,6 +2,8 @@
 A client reflects a connection to a system that performs the actual
 computations
 """
+import random
+import string
 import logging
 import atexit
 import shlex
@@ -94,22 +96,22 @@ class ShellClient(Client):
     """Client to run command in the local shell
     """
 
-    def __init__(self, run_template='bash {{path_to_code}}',
+    def __init__(self,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
                                         'shell': False}):
         """
         """
-        self.run_template = StrictTemplate(run_template)
         self.subprocess_run_kwargs = subprocess_run_kwargs
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
 
-    def run(self, code):
+    def run(self, code, run_template='bash {{path_to_code}}'):
         """Run code
         """
         path_to_code = code.save_to_tmp_file()
-        source = self.run_template.render(dict(path_to_code=path_to_code))
+        run_template = StrictTemplate(run_template)
+        source = run_template.render(dict(path_to_code=path_to_code))
 
         res = subprocess.run(shlex.split(source), **self.subprocess_run_kwargs)
 
@@ -127,7 +129,14 @@ class ShellClient(Client):
 class RemoteShellClient(Client):
     """Client to run commands in a remote shell
     """
-    def __init__(self, connect_kwargs):
+
+    def __init__(self, connect_kwargs, path_to_directory):
+        """
+
+        path_to_directory: str
+            A path to save temporary files
+        """
+        self.path_to_directory = path_to_directory
         self.connect_kwargs = connect_kwargs
         self._raw_client = None
 
@@ -141,10 +150,22 @@ class RemoteShellClient(Client):
 
         return self._raw_client
 
-    def run(self, code):
+    def _random_name(self):
+        filename = (''.join(random.choice(string.ascii_letters)
+                    for i in range(16)))
+        return filename
+
+    def run(self, code, run_template='bash {{path_to_code}}'):
         """Run code
         """
-        stdin, stdout, stderr = self.raw_client.exec_command('sleep 3')
+        ftp = self.raw_client.open_sftp()
+        path_remote = self.path_to_directory + self._random_name()
+        ftp.put(code.save_to_tmp_file(), path_remote)
+        ftp.close()
+
+        run_template = StrictTemplate(run_template)
+        source = run_template.render(dict(path_to_code=path_remote))
+        stdin, stdout, stderr = self.raw_client.exec_command(source)
         returncode = stdout.channel.recv_exit_status()
 
         if returncode != 0:
