@@ -93,24 +93,24 @@ class ShellClient(Client):
     """Client to run command in the local shell
     """
 
-    def __init__(self, run_template='bash {{path_to_code}}'):
+    def __init__(self, run_template='bash {{path_to_code}}',
+                 subprocess_run_kwargs={'stderr': subprocess.PIPE,
+                                        'stdout': subprocess.PIPE,
+                                        'shell': False}):
         """
         """
         self.run_template = StrictTemplate(run_template)
+        self.subprocess_run_kwargs = subprocess_run_kwargs
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
 
     def run(self, code):
         """Run code
         """
-        kwargs = {'stderr': subprocess.PIPE,
-                  'stdout': subprocess.PIPE,
-                  'shell': True}
-
         path_to_code = code.save_to_tmp_file()
         source = self.run_template.render(dict(path_to_code=path_to_code))
 
-        res = subprocess.run(shlex.split(source))
+        res = subprocess.run(shlex.split(source), **self.subprocess_run_kwargs)
 
         if res.returncode != 0:
             # log source code without expanded params
