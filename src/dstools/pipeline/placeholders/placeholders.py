@@ -98,13 +98,6 @@ class ClientCodePlaceholder(StringPlaceholder):
         self._source = StrictTemplate(source)
         self._rendered_value = None
 
-    def save_to_tmp_file(self):
-        """Save contents of rendered version to a tmp file
-        """
-        _, path_to_tmp = tempfile.mkstemp()
-        Path(path_to_tmp).write_text(str(self))
-        return path_to_tmp
-
 
 class SQLRelationPlaceholder(TemplatedPlaceholder):
     """An identifier that represents a database relation (table or view)

@@ -70,4 +70,4 @@ class ShellScript(Task):
                              .format(type(self).__name__))
 
     def run(self):
-        self.client.run(str(self.code))
+        self.client.run(str(self._code))

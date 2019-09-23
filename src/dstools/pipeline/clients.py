@@ -119,10 +119,10 @@ class ShellClient(Client):
 
         if res.returncode != 0:
             # log source code without expanded params
-            self._logger.info(f'{self.source_code} returned stdout: '
+            self._logger.info(f'{code} returned stdout: '
                               f'{res.stdout} and stderr: {res.stderr} '
                               f'and exit status {res.returncode}')
-            raise CalledProcessError(res.returncode, self.source_code)
+            raise CalledProcessError(res.returncode, code)
         else:
             self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
                               f' stderr: {res.stderr}')
@@ -193,20 +193,31 @@ class RemoteShellClient(Client):
         """
         ftp = self.raw_client.open_sftp()
         path_remote = self.path_to_directory + self._random_name()
-        ftp.put(code.save_to_tmp_file(), path_remote)
+
+        _, path_to_tmp = tempfile.mkstemp()
+        Path(path_to_tmp).write_text(code)
+
+        ftp.put(path_to_tmp, path_remote)
         ftp.close()
 
         run_template = StrictTemplate(run_template)
         source = run_template.render(dict(path_to_code=path_remote))
         stdin, stdout, stderr = self.raw_client.exec_command(source)
+
+        for line in stdout:
+            self._logger.info(stdout)
+
         returncode = stdout.channel.recv_exit_status()
+
+        stdout = ''.join(stdout)
+        stderr = ''.join(stderr)
 
         if returncode != 0:
             # log source code without expanded params
-            self._logger.info(f'{self.source_code} returned stdout: '
+            self._logger.info(f'{code} returned stdout: '
                               f'{stdout} and stderr: {stderr} '
                               f'and exit status {returncode}')
-            raise CalledProcessError(returncode, self.source_code)
+            raise CalledProcessError(returncode, code)
         else:
             self._logger.info(f'Finished running {self}. stdout: {stdout},'
                               f' stderr: {stderr}')
