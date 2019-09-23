@@ -205,7 +205,7 @@ class RemoteShellClient(Client):
         stdin, stdout, stderr = self.raw_client.exec_command(source)
 
         for line in stdout:
-            self._logger.info(stdout)
+            self._logger.info(line)
 
         returncode = stdout.channel.recv_exit_status()
 

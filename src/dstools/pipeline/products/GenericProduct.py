@@ -10,7 +10,7 @@ from dstools.pipeline.products.Product import Product
 from dstools.pipeline.placeholders import StringPlaceholder
 
 
-class GenericFile(Product):
+class GenericProduct(Product):
     """A product representing a file in the local filesystem
     """
     def __init__(self, identifier, path_to_metadata, client, exists_command,
