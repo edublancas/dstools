@@ -2,6 +2,8 @@
 A client reflects a connection to a system that performs the actual
 computations
 """
+import tempfile
+from pathlib import Path
 import random
 import string
 import logging
@@ -15,7 +17,7 @@ from dstools.templates.StrictTemplate import StrictTemplate
 from sqlalchemy import create_engine
 import paramiko
 
-ENGINES = []
+CLIENTS = []
 
 # TODO: make all clients expose the same API
 
@@ -59,7 +61,7 @@ class SQLAlchemyClient(Client):
         """
         if self._engine is None:
             self._engine = create_engine(self.uri)
-            ENGINES.append(self._engine)
+            CLIENTS.append(self._engine)
 
         return self._engine
 
@@ -155,6 +157,32 @@ class RemoteShellClient(Client):
                     for i in range(16)))
         return filename
 
+    def read_file(self, path):
+        ftp = self.raw_client.open_sftp()
+
+        _, path_to_tmp = tempfile.mkstemp()
+        ftp.get(path, path_to_tmp)
+
+        path_to_tmp = Path(path_to_tmp)
+
+        content = path_to_tmp.read_text()
+        path_to_tmp.unlink()
+
+        ftp.close()
+
+        return content
+
+    def write_to_file(self, content, path):
+        ftp = self.raw_client.open_sftp()
+
+        _, path_to_tmp = tempfile.mkstemp()
+        path_to_tmp = Path(path_to_tmp)
+        path_to_tmp.write_text(content)
+        ftp.put(path_to_tmp, path)
+
+        ftp.close()
+        path_to_tmp.unlink()
+
     def run(self, code, run_template='bash {{path_to_code}}'):
         """Run code
         """
@@ -178,12 +206,14 @@ class RemoteShellClient(Client):
             self._logger.info(f'Finished running {self}. stdout: {stdout},'
                               f' stderr: {stderr}')
 
+        return {'returncode': returncode, 'stdout': stdout, 'stderr': stderr}
+
     def close(self):
         self.raw_client.close()
 
 
 @atexit.register
 def close_conns():
-    for engine in ENGINES:
+    for engine in CLIENTS:
         print(f'Disposing engine {engine}')
         engine.dispose()

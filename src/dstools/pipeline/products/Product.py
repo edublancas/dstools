@@ -13,7 +13,6 @@ which identifies a relation in a database, it is different than a string
 since it contains a schema and a name fields.
 """
 import logging
-import warnings
 from math import ceil
 
 
@@ -150,6 +149,9 @@ class Product:
     def fetch_metadata(self):
         raise NotImplementedError('You have to implement this method')
 
+    # TODO: this should have metadata as parameter, it is confusing
+    # when writing a new product to know that the metaada to save is
+    # in self.metadata
     def save_metadata(self):
         raise NotImplementedError('You have to implement this method')
 
