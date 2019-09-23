@@ -135,10 +135,15 @@ class RemoteShellClient(Client):
 
         path_to_directory: str
             A path to save temporary files
+
+        connect_kwargs: dict
+            Parameters to send to the paramiko.SSHClient.connect constructor
         """
         self.path_to_directory = path_to_directory
         self.connect_kwargs = connect_kwargs
         self._raw_client = None
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
 
     @property
     def raw_client(self):
