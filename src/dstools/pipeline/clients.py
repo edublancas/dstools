@@ -111,9 +111,11 @@ class ShellClient(Client):
     def run(self, code, run_template='bash {{path_to_code}}'):
         """Run code
         """
-        path_to_code = code.save_to_tmp_file()
+        _, path_to_tmp = tempfile.mkstemp()
+        Path(path_to_tmp).write_text(code)
+
         run_template = StrictTemplate(run_template)
-        source = run_template.render(dict(path_to_code=path_to_code))
+        source = run_template.render(dict(path_to_code=path_to_tmp))
 
         res = subprocess.run(shlex.split(source), **self.subprocess_run_kwargs)
 
