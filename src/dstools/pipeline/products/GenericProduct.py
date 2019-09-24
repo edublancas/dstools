@@ -13,8 +13,8 @@ from dstools.pipeline.placeholders import StringPlaceholder
 class GenericProduct(Product):
     """A product representing a file in the local filesystem
     """
-    def __init__(self, identifier, path_to_metadata, client, exists_command,
-                 delete_command):
+    def __init__(self, identifier, path_to_metadata, exists_command,
+                 delete_command, client=None):
 
         self._identifier = StringPlaceholder(identifier)
         self._path_to_metadata = path_to_metadata
@@ -65,6 +65,7 @@ class GenericProduct(Product):
         metadata_str = json.dumps(self.metadata)
         self.client.write_to_file(metadata_str, self._path_to_metadata_file)
 
+    # TODO: implement
     def exists(self):
         return True
 
