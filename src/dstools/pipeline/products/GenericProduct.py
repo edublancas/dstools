@@ -20,8 +20,8 @@ class GenericProduct(Product):
         self._path_to_metadata = path_to_metadata
         self._client = client
 
-        self.exists_command = exists_command
-        self.delete_command = delete_command
+        self.exists_command = StringPlaceholder(exists_command)
+        self.delete_command = StringPlaceholder(delete_command)
 
         self.did_download_metadata = False
         self.task = None
@@ -40,6 +40,13 @@ class GenericProduct(Product):
                 self._client = default
 
         return self._client
+
+    def render(self, params, **kwargs):
+        # overriding parent implementation since this product also needs
+        # render for other variables
+        self._identifier.render(params, **kwargs)
+        self.exists_command.render(params, **kwargs)
+        self.delete_command.render(params, **kwargs)
 
     @property
     def _path_to_metadata_file(self):
