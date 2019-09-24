@@ -18,7 +18,7 @@ class GenericProduct(Product):
 
         self._identifier = StringPlaceholder(identifier)
         self._path_to_metadata = path_to_metadata
-        self.client = client
+        self._client = client
 
         self.exists_command = exists_command
         self.delete_command = delete_command
@@ -26,6 +26,20 @@ class GenericProduct(Product):
         self.did_download_metadata = False
         self.task = None
         self._logger = logging.getLogger(__name__)
+
+    # TODO: create a mixing with this so all client-based tasks can include it
+    @property
+    def client(self):
+        if self._client is None:
+            default = self.task.dag.clients.get(type(self))
+
+            if default is None:
+                raise ValueError('{} must be initialized with a client'
+                                 .format(type(self).__name__))
+            else:
+                self._client = default
+
+        return self._client
 
     @property
     def _path_to_metadata_file(self):
