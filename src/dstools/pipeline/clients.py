@@ -55,13 +55,14 @@ class SQLAlchemyClient(Client):
         self._engine = None
         # self._conn = None
 
+        CLIENTS.append(self)
+
     @property
     def engine(self):
         """Returns a SQLAlchemy engine, creates one if one does not exist
         """
         if self._engine is None:
             self._engine = create_engine(self.uri)
-            CLIENTS.append(self._engine)
 
         return self._engine
 
@@ -148,6 +149,7 @@ class RemoteShellClient(Client):
         self._raw_client = None
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
+        CLIENTS.append(self)
 
     @property
     def raw_client(self):
@@ -161,7 +163,7 @@ class RemoteShellClient(Client):
 
     def _random_name(self):
         filename = (''.join(random.choice(string.ascii_letters)
-                    for i in range(16)))
+                            for i in range(16)))
         return filename
 
     def read_file(self, path):
@@ -204,10 +206,15 @@ class RemoteShellClient(Client):
 
         run_template = StrictTemplate(run_template)
         source = run_template.render(dict(path_to_code=path_remote))
-        stdin, stdout, stderr = self.raw_client.exec_command(source)
 
-        for line in stdout:
-            self._logger.info(line)
+        # stream stdout. related: https://stackoverflow.com/q/31834743
+        # using pty is not ideal, fabric has a clean implementation for this
+        # worth checking out
+        stdin, stdout, stderr = self.raw_client.exec_command(source,
+                                                             get_pty=True)
+
+        for line in iter(stdout.readline, ""):
+            self._logger.info('(STDOUT): {}'.format(line))
 
         returncode = stdout.channel.recv_exit_status()
 
@@ -231,7 +238,7 @@ class RemoteShellClient(Client):
 
 
 @atexit.register
-def close_conns():
-    for engine in CLIENTS:
-        print(f'Disposing engine {engine}')
-        engine.dispose()
+def close_all_clients():
+    for client in CLIENTS:
+        print(f'Closing client {client}')
+        client.close()
