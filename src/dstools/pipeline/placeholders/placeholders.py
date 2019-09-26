@@ -21,7 +21,6 @@ placeholders, arbitrary parameters can also be placeholders.
 These classes are not intended to be used by the end user, since Task and
 Product objects create placeholders from strings.
 """
-import tempfile
 from pathlib import Path
 import inspect
 
@@ -59,6 +58,12 @@ class StringPlaceholder(TemplatedPlaceholder):
 
         self._source = StrictTemplate(source)
         self._rendered_value = None
+
+        # if source is literal, rendering without params should work, this
+        # allows this template to be used without having to render the dag
+        # first
+        if self._source.is_literal:
+            self.render({})
 
     @property
     def _rendered(self):
@@ -98,6 +103,12 @@ class ClientCodePlaceholder(StringPlaceholder):
         self._source = StrictTemplate(source)
         self._rendered_value = None
 
+        # if source is literal, rendering without params should work, this
+        # allows this template to be used without having to render the dag
+        # first
+        if self._source.is_literal:
+            self.render({})
+
 
 class SQLRelationPlaceholder(TemplatedPlaceholder):
     """An identifier that represents a database relation (table or view)
@@ -126,6 +137,12 @@ class SQLRelationPlaceholder(TemplatedPlaceholder):
 
         self._kind = kind
         self._schema = schema
+
+        # if source is literal, rendering without params should work, this
+        # allows this template to be used without having to render the dag
+        # first
+        if self._source.is_literal:
+            self.render({})
 
     @property
     def schema(self):

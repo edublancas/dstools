@@ -73,6 +73,8 @@ class StrictTemplate:
 
         self.declared = self._get_declared()
 
+        self.is_literal = self._check_is_literal()
+
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
 
@@ -106,6 +108,18 @@ class StrictTemplate:
         regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
         match = re.match(regex, self.raw)
         return '' if match is None else match.group(1)
+
+    def _check_is_literal(self):
+        """
+        Returns true if the template is a literal and does not need any
+        parameters to render
+        """
+        env = self.source.environment
+
+        # check if the template has the variable or block start string
+        # is there any better way of checking this?
+        return ((env.variable_start_string not in self.raw)
+                and env.block_start_string not in self.raw)
 
     def __str__(self):
         return self.raw
