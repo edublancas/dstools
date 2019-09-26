@@ -48,7 +48,7 @@ class DAG(collections.abc.Mapping):
     def clients(self):
         return self._clients
 
-    def render(self):
+    def render(self, show_progress=True, force=False):
         """Render the graph
         """
         g = self._to_graph()
@@ -66,10 +66,10 @@ class DAG(collections.abc.Mapping):
         # upstream parameters come form other dags)
         for dag in dags:
             if dag is not self:
-                dag._render_current()
+                dag._render_current(show_progress, force)
 
         # then, render this dag
-        self._render_current()
+        self._render_current(show_progress, force)
 
         return self
 
@@ -137,18 +137,23 @@ class DAG(collections.abc.Mapping):
 
         return path
 
-    def _render_current(self):
+    def _render_current(self, show_progress, force):
         # only render the first time this is called, this means that
         # if the dag is modified, render won't have an effect, DAGs are meant
         # to be all set before rendering, but might be worth raising a warning
         # if trying to modify an already rendered DAG
-        if not self._rendered:
+        if not self._rendered or force:
             g = self._to_graph(only_current_dag=True)
 
-            pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
+            tasks = nx.algorithms.topological_sort(g)
 
-            for t in pbar:
-                pbar.set_description('Rendering DAG "{}"'.format(self.name))
+            if show_progress:
+                tasks = tqdm(tasks, total=len(g))
+
+            for t in tasks:
+                if show_progress:
+                    tasks.set_description('Rendering DAG "{}"'
+                                          .format(self.name))
 
                 with warnings.catch_warnings(record=True) as warnings_:
                     try:
