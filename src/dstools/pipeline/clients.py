@@ -91,8 +91,9 @@ class SQLAlchemyClient(Client):
         """Disposes the engine if it exists
         """
         if self._engine is not None:
-            print(f'Disposing engine {self._engine}')
+            self._logger.info(f'Disposing engine {self._engine}')
             self._engine.dispose()
+            self._engine = None
 
 
 class ShellClient(Client):
@@ -234,7 +235,10 @@ class RemoteShellClient(Client):
         return {'returncode': returncode, 'stdout': stdout, 'stderr': stderr}
 
     def close(self):
-        self.raw_client.close()
+        if self._raw_client is not None:
+            self._logger.info(f'Closing client {self._raw_client}')
+            self._raw_client.close()
+            self._raw_client = None
 
 
 @atexit.register
