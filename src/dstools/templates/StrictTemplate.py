@@ -77,6 +77,15 @@ class StrictTemplate:
 
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
+        self._doc = self._parse_docstring()
+
+    @property
+    def doc(self):
+        return self._doc
+
+    @property
+    def doc_short(self):
+        return self.doc.split('\n')[0]
 
     @property
     def source(self):

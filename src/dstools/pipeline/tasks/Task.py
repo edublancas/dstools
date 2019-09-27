@@ -279,6 +279,8 @@ class Task:
             outd_code = ''
 
         data['Product'] = str(self.product)
+        data['Doc (short)'] = self._code.doc_short
+        data['Location'] = self._code.loc
 
         return Row(data)
 

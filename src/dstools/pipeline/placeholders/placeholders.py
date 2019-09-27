@@ -85,6 +85,9 @@ class StringPlaceholder(TemplatedPlaceholder):
     def __str__(self):
         return self._rendered
 
+    # FIXME: add doc, doc_short and loc, otherwise dag.status()
+    # will break for tasks that have this as "code" such as PostgresCopy
+
 
 class ClientCodePlaceholder(StringPlaceholder):
     """
@@ -108,6 +111,18 @@ class ClientCodePlaceholder(StringPlaceholder):
         # first
         if self._source.is_literal:
             self.render({})
+
+    @property
+    def doc(self):
+        return self._source.doc
+
+    @property
+    def doc_short(self):
+        return self._source.doc_short
+
+    @property
+    def loc(self):
+        return str(self._source.path)
 
 
 class SQLRelationPlaceholder(TemplatedPlaceholder):
@@ -209,6 +224,7 @@ class PythonCodePlaceholder:
         self._source_as_str = inspect.getsource(source)
 
         self._params = None
+        self._loc = inspect.getsourcefile(source)
 
     def render(self, params, **kwargs):
         # FIXME: we need **kwargs for compatibility, but they are not used,
@@ -221,3 +237,15 @@ class PythonCodePlaceholder:
 
     def __str__(self):
         return self._source_as_str
+
+    @property
+    def doc(self):
+        return self._source.__doc__
+
+    @property
+    def doc_short(self):
+        self.doc.split('\n')[0]
+
+    @property
+    def loc(self):
+        return self._loc
