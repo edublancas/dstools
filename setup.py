@@ -80,6 +80,10 @@ setup(
         'sqlalchemy',
         # for sshclient,
         'paramiko',
+        # for pg tools - should make it optional
+        'psycopg2',
+        # other deps that should be optional
+        'pandas',
 
     ],
     extras_require={
