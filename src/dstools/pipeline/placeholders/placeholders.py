@@ -244,7 +244,10 @@ class PythonCodePlaceholder:
 
     @property
     def doc_short(self):
-        self.doc.split('\n')[0]
+        if self.doc is not None:
+            return self.doc.split('\n')[0]
+        else:
+            return None
 
     @property
     def loc(self):
