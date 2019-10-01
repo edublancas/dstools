@@ -110,6 +110,8 @@ class DAG(collections.abc.Mapping):
     def status(self, **kwargs):
         """Returns a table with tasks status
         """
+        self.render()
+
         return Table([t.status(**kwargs)
                       for k, t in self._dict.items()])
 
