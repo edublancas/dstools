@@ -1,6 +1,8 @@
 """
 A mapping object with text and HTML representations
 """
+from pathlib import Path
+import tempfile
 from collections.abc import Mapping
 from tabulate import tabulate
 
@@ -56,6 +58,14 @@ class Table:
 
     def data_preprocessing(self, data):
         return data
+
+    def save(self, path=None):
+        if path is None:
+            path = Path(tempfile.mktemp(suffix='.html'))
+
+        path.write_text(self._html)
+
+        return path
 
 
 class BuildReport(Table):
