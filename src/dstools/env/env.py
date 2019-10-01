@@ -8,6 +8,7 @@ from pathlib import Path
 from glob import iglob
 from io import StringIO
 import getpass
+import platform
 
 from dstools.FrozenJSON import FrozenJSON
 from dstools.path import PathManager
@@ -57,7 +58,9 @@ class Env:
             # try to set it if no argument was provided
             if path_to_env is None:
 
-                path_to_env = find_env()
+                # look for an env.{name}.yaml, if that fails, try env.yaml
+                name = platform.node()
+                path_to_env = find_env_w_name(name)
 
                 if path_to_env is None:
                     raise FileNotFoundError("Couldn't find env.yaml")
@@ -142,7 +145,16 @@ class Env:
         return env
 
 
-def find_env(max_levels_up=6):
+def find_env_w_name(name):
+    path = find_env(name='env.{}.yaml'.format(name))
+
+    if path is None:
+        return find_env(name='env.yaml')
+    else:
+        return path
+
+
+def find_env(name, max_levels_up=6):
     def levels_up(n):
         return chain.from_iterable(iglob('../' * i + '**')
                                    for i in range(n + 1))
@@ -152,7 +164,7 @@ def find_env(max_levels_up=6):
     for filename in levels_up(max_levels_up):
         p = Path(filename)
 
-        if p.name == 'env.yaml':
+        if p.name == name:
             path_to_env = filename
             break
 
