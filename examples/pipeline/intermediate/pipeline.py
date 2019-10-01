@@ -28,10 +28,7 @@ from sample import sample
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-import os
-from glob import glob
-print(os.getcwd())
-print(glob(os.getcwd() + '/*'))
+
 env = Env()
 home = env.path.home
 path_to_sample = env.path.input / 'sample'
