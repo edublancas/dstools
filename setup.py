@@ -81,7 +81,7 @@ setup(
         # for sshclient,
         'paramiko',
         # for pg tools - should make it optional
-        'psycopg2',
+        'psycopg2-binary',
         # other deps that should be optional
         'pandas',
 
