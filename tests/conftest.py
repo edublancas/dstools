@@ -32,11 +32,11 @@ def tmp_directory():
 
 
 @pytest.fixture()
-def tmp_example_directory():
+def tmp_intermediate_example_directory():
     """Move to examples/pipeline/
     """
     old = os.getcwd()
-    path = _path_to_tests() / '..' / 'examples' / 'pipeline'
+    path = _path_to_tests() / '..' / 'examples' / 'pipeline' / 'intermediate'
     tmp = Path(tempfile.mkdtemp()) / 'content'
 
     # we have to add extra folder content/, otherwise copytree complains
