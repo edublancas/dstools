@@ -42,7 +42,10 @@ def get_git_timestamp(path):
 
 
 def current_branch(path):
-    return _run_command(path, 'git branch --show-current')
+    # seems like the most reliable way is to do:
+    # git branch --show-current, but that was added in a recent git
+    # version 2.22, for older versions, the one below works
+    return _run_command(path, 'git symbolic-ref --short HEAD')
 
 
 def get_version(package_name):
