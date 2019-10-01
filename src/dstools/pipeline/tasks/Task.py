@@ -6,18 +6,22 @@ a product (a persistent object such as a table in a database),
 it has a name (which can be infered from the source code filename)
 and lives in a DAG
 """
-import traceback
 from copy import copy
 import logging
 from datetime import datetime
 from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
-from dstools.pipeline.build_report import BuildReport
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.exceptions import TaskBuildError, RenderError
+from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
-from dstools.pipeline.placeholders import ClientCodePlaceholder
+from dstools.pipeline.tasks.TaskStatus import TaskStatus
+from dstools.pipeline.tasks.Params import Params
+from dstools.pipeline.placeholders import (ClientCodePlaceholder,
+                                           TemplatedPlaceholder)
+from dstools.pipeline.Table import Row
 from dstools.util import isiterable
+
+import humanize
 
 
 class Task:
@@ -26,6 +30,7 @@ class Task:
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = None
+    PRODUCT_IN_CODE = True
 
     def __init__(self, code, product, dag, name=None, params=None):
         if self.PRODUCT_CLASSES_ALLOWED is not None:
@@ -36,7 +41,7 @@ class Task:
                                         self.PRODUCT_CLASSES_ALLOWED,
                                         type(product).__name__))
 
-        self._upstream = {}
+        self._upstream = Params()
 
         self.params = params or {}
         self.build_report = None
@@ -68,14 +73,17 @@ class Task:
                                   'in which case, the Task gets assigned '
                                   'the same name as the Product')
             else:
-                self._name = product.name
+                self._name = self.product.name
 
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
 
         self.product.task = self
 
-        dag.add_task(self)
+        dag._add_task(self)
         self.dag = dag
+
+        self._status = TaskStatus.WaitingRender
 
     @property
     def name(self):
@@ -93,32 +101,12 @@ class Task:
     def upstream(self):
         """{'task_name': task} dict
         """
-        return self._upstream
+        # always return a copy to prevent global state if contents
+        # are modified (e.g. by using pop)
+        return copy(self._upstream)
 
     def run(self):
         raise NotImplementedError('You have to implement this method')
-
-    def set_upstream(self, other):
-        if isiterable(other) and not isinstance(other, DAG):
-            for o in other:
-                self._upstream[o.name] = o
-        else:
-            self._upstream[other.name] = other
-
-    def __rshift__(self, other):
-        """ a >> b is the same as b.set_upstream(a)
-        """
-        other.set_upstream(self)
-        # return other so a >> b >> c works
-        return other
-
-    def __add__(self, other):
-        """ a + b means TaskGroup([a, b])
-        """
-        if isiterable(other) and not isinstance(other, DAG):
-            return TaskGroup([self] + list(other))
-        else:
-            return TaskGroup((self, other))
 
     def build(self, force=False):
         """Run the task if needed by checking its dependencies
@@ -135,12 +123,12 @@ class Task:
         self._logger.info(f'-----\nChecking {repr(self)}....')
 
         run = False
-        elapsed = None
+        elapsed = 0
 
         # check dependencies only if the product exists and there is metadata
         if self.product.exists() and self.product.metadata is not None:
-            outdated_data_deps = self.product.outdated_data_dependencies()
-            outdated_code_dep = self.product.outdated_code_dependency()
+            outdated_data_deps = self.product._outdated_data_dependencies()
+            outdated_code_dep = self.product._outdated_code_dependency()
 
             if outdated_data_deps:
                 run = True
@@ -175,7 +163,6 @@ class Task:
             # stop execution
 
             # update metadata
-            self.product.pre_save_metadata_hook()
             self.product.timestamp = datetime.now().timestamp()
             self.product.stored_source_code = self.source_code
             self.product.save_metadata()
@@ -196,57 +183,15 @@ class Task:
 
         self._logger.info('-----\n')
 
-        self.build_report = BuildReport(run=run, elapsed=elapsed)
+        self._status = TaskStatus.Executed
+
+        for t in self._get_downstream():
+            t._update_status()
+
+        self.build_report = Row({'name': self.name, 'Ran?': run,
+                                 'Elapsed (s)': elapsed, })
 
         return self
-
-    def status(self):
-        """Prints the current task status
-        """
-        p = self.product
-
-        outd_code = p.outdated_code_dependency()
-
-        out = ''
-
-        if p.timestamp is not None:
-            dt = (datetime
-                  .fromtimestamp(p.timestamp).strftime('%b %m, %y at %H:%M'))
-            out += f'* Last updated: {dt}\n'
-        else:
-            out += f'* Timestamp is None\n'
-
-        out += f'* Oudated data dependencies: {p.outdated_data_dependencies()}'
-        out += f'\n* Oudated code dependency: {outd_code}'
-
-        if outd_code:
-            out += '\n\nCODE DIFF\n*********\n'
-            out += util.diff_strings(p.stored_source_code, self.source_code)
-            out += '\n*********'
-
-        print(out)
-        return out
-
-    def _render_product(self):
-        params_names = list(self.params)
-
-        # add upstream product identifiers to params, if any
-        if self.upstream:
-            self.params['upstream'] = {n: t.product for n, t
-                                       in self.upstream.items()}
-
-        # render the current product
-        try:
-            # using the upstream products to define the current product
-            # is optional, using the parameters passed in params is also
-            # optional
-            self.product.render(copy(self.params),
-                                optional=set(params_names + ['upstream']))
-        except Exception as e:
-            traceback.print_exc()
-            raise type(e)(f'Error rendering product {repr(self.product)} '
-                          f'from task {repr(self)} with params '
-                          f'{self.params}. Exception: {e}')
 
     def render(self):
         """
@@ -258,20 +203,39 @@ class Task:
 
         self.params['product'] = self.product
 
-        # all parameters are required, if upstream is not used, it should not
+        params = copy(self.params)
+
+        # most parameters are required, if upstream is not used, it should not
         # have any dependencies, if any param is not used, it should not
-        # exist and the product should exist
-        self._code.render(copy(self.params))
+        # exist, the product should exist only for specific cases
+        opt = set(('product',)) if not self.PRODUCT_IN_CODE else set()
+        try:
+            # if this task has upstream dependencies, render using the
+            # context manager, which will raise a warning if any of the
+            # dependencies is not used, otherwise just render, also
+            # check if the code is a TemplatedPlaceholder, for other
+            # types of code objects we cannot determine parameter
+            # use at render time
+            if (params.get('upstream')
+                    and isinstance(self._code, TemplatedPlaceholder)):
+                with params.get('upstream'):
+                    self._code.render(params, optional=opt)
+            else:
+                self._code.render(params, optional=opt)
+        except Exception as e:
+            raise type(e)('Error rendering code from Task "{}", '
+                          ' check the full traceback above for details'
+                          .format(repr(self), self.params)) from e
 
-    def __repr__(self):
-        return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
+        self._status = (TaskStatus.WaitingExecution if not self.upstream
+                        else TaskStatus.WaitingUpstream)
 
-    def short_repr(self):
-        def short(s):
-            max_l = 30
-            return s if len(s) <= max_l else s[:max_l-3]+'...'
-
-        return f'{short(self.name)} -> \n{short(self.product.short_repr())}'
+    def set_upstream(self, other):
+        if isiterable(other) and not isinstance(other, DAG):
+            for o in other:
+                self._upstream[o.name] = o
+        else:
+            self._upstream[other.name] = other
 
     def plan(self):
         """Shows a text summary of what this task will execute
@@ -286,3 +250,99 @@ class Task:
         """
 
         print(plan)
+
+    def status(self, return_code_diff=False):
+        """Prints the current task status
+        """
+        p = self.product
+
+        data = {}
+
+        data['name'] = self.name
+
+        if p.timestamp is not None:
+            dt = datetime.fromtimestamp(p.timestamp)
+            date_h = dt.strftime('%b %d, %y at %H:%M')
+            time_h = humanize.naturaltime(dt)
+            data['Last updated'] = '{} ({})'.format(time_h, date_h)
+        else:
+            data['Last updated'] = 'Has not been run'
+
+        data['Outdated dependencies'] = p._outdated_data_dependencies()
+        outd_code = p._outdated_code_dependency()
+        data['Outdated code'] = outd_code
+
+        if outd_code and return_code_diff:
+            data['Code diff'] = util.diff_strings(p.stored_source_code,
+                                                  self.source_code)
+        else:
+            outd_code = ''
+
+        data['Product'] = str(self.product)
+        data['Doc (short)'] = self._code.doc_short
+        data['Location'] = self._code.loc
+
+        return Row(data)
+
+    def _render_product(self):
+        params_names = list(self.params)
+
+        # add upstream product identifiers to params, if any
+        if self.upstream:
+            self.params['upstream'] = Params({n: t.product for n, t
+                                              in self.upstream.items()})
+
+        # render the current product
+        try:
+            # using the upstream products to define the current product
+            # is optional, using the parameters passed in params is also
+            # optional
+            self.product.render(copy(self.params),
+                                optional=set(params_names + ['upstream']))
+        except Exception as e:
+            raise type(e)('Error rendering Product from Task "{}", '
+                          ' check the full traceback above for details'
+                          .format(repr(self), self.params)) from e
+
+    def _get_downstream(self):
+        downstream = []
+        for t in self.dag.values():
+            if self in t.upstream.values():
+                downstream.append(t)
+        return downstream
+
+    def _update_status(self):
+        if self._status == TaskStatus.WaitingUpstream:
+            all_upstream_executed = all([t._status == TaskStatus.Executed
+                                         for t in self.upstream.values()])
+
+            if all_upstream_executed:
+                self._status = TaskStatus.WaitingExecution
+
+    def __rshift__(self, other):
+        """ a >> b is the same as b.set_upstream(a)
+        """
+        other.set_upstream(self)
+        # return other so a >> b >> c works
+        return other
+
+    def __add__(self, other):
+        """ a + b means TaskGroup([a, b])
+        """
+        if isiterable(other) and not isinstance(other, DAG):
+            return TaskGroup([self] + list(other))
+        else:
+            return TaskGroup((self, other))
+
+    def __repr__(self):
+        return f'{type(self).__name__}: {self.name} -> {repr(self.product)}'
+
+    def __str__(self):
+        return str(self.product)
+
+    def _short_repr(self):
+        def short(s):
+            max_l = 30
+            return s if len(s) <= max_l else s[:max_l - 3] + '...'
+
+        return f'{short(self.name)} -> \n{self.product._short_repr()}'

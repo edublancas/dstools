@@ -3,7 +3,7 @@ import tempfile
 import pytest
 from pathlib import Path
 from dstools.pipeline.placeholders import StringPlaceholder
-from jinja2 import Template, Environment, FileSystemLoader
+from jinja2 import Template, Environment, FileSystemLoader, StrictUndefined
 
 
 def test_string_identifier_initialized_with_path():
@@ -41,7 +41,7 @@ def test_string_identifier_initialized_with_template_from_env():
 
     Path(tmp, 'template.sql').write_text('{{key}}')
 
-    env = Environment(loader=FileSystemLoader(tmp))
+    env = Environment(loader=FileSystemLoader(tmp), undefined=StrictUndefined)
 
     template = env.get_template('template.sql')
 

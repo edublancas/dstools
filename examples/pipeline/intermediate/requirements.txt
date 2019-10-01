@@ -1,3 +1,4 @@
+ipython
 csvkit
 pandas
 psycopg2

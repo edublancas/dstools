@@ -4,7 +4,10 @@ import warnings
 class MetaProduct:
     """
     Exposes a Product-like API for a list of products, used internally
-    when a Task is declared to have more than one product
+    when a Task is declared to have more than one product so they can be
+    easily accesed via product[0], it is also used in a DAG to expose
+    a limited version of a Product API which is used when a DAG is declared
+    as an upstream dependency of a Taks
     """
 
     def __init__(self, products):
@@ -15,29 +18,6 @@ class MetaProduct:
         # this has to happen dynamically since it depends on
         # the tasks being rendered already
         return {p: p.metadata for p in self.products}
-
-    @property
-    def identifier(self):
-        return [p.identifier for p in self.products]
-
-    def exists(self):
-        return all([p.exists() for p in self.products])
-
-    def delete(self, force=False):
-        for product in self.products:
-            product.delete(force)
-
-    def outdated(self):
-        return (self.outdated_data_dependencies()
-                or self.outdated_code_dependency())
-
-    def outdated_data_dependencies(self):
-        return any([p.outdated_data_dependencies()
-                    for p in self.products])
-
-    def outdated_code_dependency(self):
-        return any([p.outdated_code_dependency()
-                    for p in self.products])
 
     @property
     def timestamp(self):
@@ -85,6 +65,25 @@ class MetaProduct:
         for p in self.products:
             p.metadata['stored_source_code'] = value
 
+    def exists(self):
+        return all([p.exists() for p in self.products])
+
+    def delete(self, force=False):
+        for product in self.products:
+            product.delete(force)
+
+    def _outdated(self):
+        return (self._outdated_data_dependencies()
+                or self._outdated_code_dependency())
+
+    def _outdated_data_dependencies(self):
+        return any([p._outdated_data_dependencies()
+                    for p in self.products])
+
+    def _outdated_code_dependency(self):
+        return any([p._outdated_code_dependency()
+                    for p in self.products])
+
     def save_metadata(self):
         for p in self.products:
             p.save_metadata()
@@ -93,15 +92,16 @@ class MetaProduct:
         for p in self.products:
             p.render(params, **kwargs)
 
-    def pre_save_metadata_hook(self):
-        pass
-
     def short_repr(self):
-        return ', '.join([p.short_repr() for p in self.products])
+        return ', '.join([p._short_repr() for p in self.products])
 
     def __repr__(self):
         reprs = ', '.join([repr(p) for p in self.products])
         return f'{type(self).__name__}: {reprs}'
+
+    def __str__(self):
+        strs = ', '.join([str(p) for p in self.products])
+        return f'{type(self).__name__}: {strs}'
 
     def __getitem__(self, key):
         return self.products[key]

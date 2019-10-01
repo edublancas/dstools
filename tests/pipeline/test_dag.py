@@ -8,13 +8,11 @@ from dstools.pipeline.products import File
 def test_can_access_sub_dag():
     sub_dag = DAG('sub_dag')
 
-    fa = Path('a.txt')
-    fb = Path('b.txt')
-    fc = Path('c.txt')
-
-    ta = BashCommand('touch a.txt', File(fa), sub_dag, 'ta')
-    tb = BashCommand('touch b.txt', File(fb), sub_dag, 'tb')
-    tc = BashCommand('touch c.txt', File(fc), sub_dag, 'tc')
+    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), sub_dag, 'ta')
+    tb = BashCommand('cat {{upstream["ta"]}} > {{product}}',
+                     File('b.txt'), sub_dag, 'tb')
+    tc = BashCommand('tcat {{upstream["tb"]}} > {{product}}',
+                     File('c.txt'), sub_dag, 'tc')
 
     ta >> tb >> tc
 

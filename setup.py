@@ -73,10 +73,17 @@ setup(
     install_requires=[
         # FIXME: remove pyyaml
         'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate', 'pygraphviz',
+        'humanize', 'tqdm',
         # used in SQLTemplate
         'numpydoc', 'pyarrow',
         # for pipeline.sql
-        'sqlalchemy'
+        'sqlalchemy',
+        # for sshclient,
+        'paramiko',
+        # for pg tools - should make it optional
+        'psycopg2-binary',
+        # other deps that should be optional
+        'pandas',
 
     ],
     extras_require={

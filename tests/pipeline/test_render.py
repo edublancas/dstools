@@ -34,6 +34,18 @@ def dag():
     return dag
 
 
+def can_access_product_without_rendering_if_literal():
+    dag = DAG()
+
+    BashCommand('echo a > {{product}}', File('1.txt'), dag,
+                't1')
+
+    # no rendering!
+
+    # check str works even though we did not run dag.render()
+    assert str(dag['t1'].product) == '1.txt'
+
+
 def test_can_render_templates_in_products(dag, tmp_directory):
 
     t2 = dag['t2']

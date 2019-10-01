@@ -7,21 +7,20 @@ such as a bash or a SQL script
 import shlex
 import subprocess
 from subprocess import CalledProcessError
-from pathlib import Path
 import logging
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.placeholders import PythonCodePlaceholder
 
 
 class BashCommand(Task):
-    """A task that runs bash command
+    """A task that runs an inline bash command
     """
 
     def __init__(self, code, product, dag, name=None, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
                                         'shell': True},
-                 split_source_code=True):
+                 split_source_code=False):
         super().__init__(code, product, dag, name, params)
         self.split_source_code = split_source_code
         self.subprocess_run_kwargs = subprocess_run_kwargs
@@ -44,52 +43,6 @@ class BashCommand(Task):
             self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
                               f' stderr: {res.stderr}')
 
-# FIXME: this no longer works since it will try to run the template
-class ScriptTask(Task):
-    """A task that runs a generic script
-    """
-    _INTERPRETER = None
-
-    def __init__(self, code, product, dag, name=None, params=None):
-        if not isinstance(code, Path):
-            raise ValueError(f'{type(self).__name__} must be called with '
-                             'a pathlib.Path object in the code '
-                             'parameter')
-
-        super().__init__(code, product, dag, name, params)
-
-    def run(self):
-        if self._INTERPRETER is None:
-            raise ValueError(f'{type(self).__name__}: subclasses must '
-                             'declare an interpreter')
-        res = subprocess.run([self._INTERPRETER,
-                              self._code.location],
-                             stderr=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             shell=True)
-
-        if res.returncode != 0:
-            # log source code without expanded params
-            self._logger.info(f'{self.source_code} returned stdout: '
-                              f'{res.stdout} and stderr: {res.stderr} '
-                              f'and exit status {res.returncode}')
-            raise CalledProcessError(res.returncode, self.source_code)
-        else:
-            self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
-                              f' stderr: {res.stderr}')
-
-
-class BashScript(ScriptTask):
-    """A task that runs a bash script
-    """
-    _INTERPRETER = 'bash'
-
-
-class PythonScript(ScriptTask):
-    """A task that runs a python script
-    """
-    _INTERPRETER = 'python'
-
 
 class PythonCallable(Task):
     """A task that runs a Python callabel (i.e.  a function)
@@ -101,3 +54,20 @@ class PythonCallable(Task):
 
     def run(self):
         self._code._source(**self.params)
+
+
+class ShellScript(Task):
+    """A task to run a shell script
+    """
+    def __init__(self, code, product, dag, name=None, params=None,
+                 client=None):
+        super().__init__(code, product, dag, name, params)
+
+        self.client = client or self.dag.clients.get(type(self))
+
+        if self.client is None:
+            raise ValueError('{} must be initialized with a client'
+                             .format(type(self).__name__))
+
+    def run(self):
+        self.client.run(str(self._code))

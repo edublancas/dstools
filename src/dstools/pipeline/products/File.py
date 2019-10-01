@@ -15,7 +15,7 @@ class File(Product):
 
     @property
     def _path_to_file(self):
-        return Path(str(self.identifier))
+        return Path(str(self._identifier))
 
     @property
     def _path_to_stored_source_code(self):
@@ -45,8 +45,12 @@ class File(Product):
     def delete(self, force=False):
         # force is not used for this product but it is left for API
         # compatibility
-        self.logger.debug(f'Deleting {self._path_to_file}')
-        os.remove(self._path_to_file)
+        if self.exists():
+            self.logger.debug(f'Deleting {self._path_to_file}')
+            os.remove(self._path_to_file)
+        else:
+            self.logger.debug(f'{self._path_to_file} does not exist '
+                              'ignoring...')
 
     @property
     def name(self):

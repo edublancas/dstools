@@ -5,9 +5,8 @@ import subprocess
 from pathlib import Path
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import BashCommand
-from dstools.pipeline.products import File
-from dstools.pipeline import postgres as pg
+from dstools.pipeline.tasks import BashCommand, SQLScript
+from dstools.pipeline.products import File, PostgresRelation
 
 
 def test_passing_upstream_and_product_in_bashcommand(tmp_directory):
@@ -37,9 +36,7 @@ def test_passing_upstream_and_product_in_bashcommand(tmp_directory):
     assert fc.read_text() == 'a\nb\nc\n'
 
 
-def test_passing_upstream_and_product_in_postgres(pg_client):
-    dag = DAG()
-
+def test_passing_upstream_and_product_in_postgres(pg_client, dag):
     conn = pg_client.raw_connection()
     cur = conn.cursor()
     cur.execute('drop table if exists public.series;')
@@ -51,8 +48,8 @@ def test_passing_upstream_and_product_in_postgres(pg_client):
               create table {{product}} as
               select * from generate_series(0, 15) as n;
               commit;"""
-    ta_rel = pg.PostgresRelation(('public', 'series', 'table'))
-    ta = pg.PostgresScript(ta_t, ta_rel, dag, 'ta')
+    ta_rel = PostgresRelation(('public', 'series', 'table'))
+    ta = SQLScript(ta_t, ta_rel, dag, 'ta')
 
     dag.build()
 

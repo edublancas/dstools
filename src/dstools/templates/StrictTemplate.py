@@ -1,12 +1,12 @@
-# import logging
+import logging
 from pathlib import Path
 import re
 
-from dstools.pipeline.exceptions import RenderError
+from dstools.exceptions import RenderError
 
 from numpydoc.docscrape import NumpyDocString
 import jinja2
-from jinja2 import Environment, meta, Template
+from jinja2 import Environment, meta, Template, UndefinedError
 
 
 class StrictTemplate:
@@ -22,6 +22,8 @@ class StrictTemplate:
     """
 
     def __init__(self, source):
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
         if isinstance(source, Path):
             self._path = source
             self._raw = source.read_text()
@@ -36,6 +38,14 @@ class StrictTemplate:
         elif isinstance(source, Template):
             path = Path(source.filename)
 
+            if source.environment.undefined != jinja2.StrictUndefined:
+                raise ValueError('StrictTemplate can only be initialized '
+                                 'from jinja2.Templates whose undefined '
+                                 'parameter is set to '
+                                 'jinja2.StrictUndefined, set it explicitely '
+                                 'either in the Template or Environment '
+                                 'constructors')
+
             if not path.exists():
                 raise ValueError('Could not load raw source from '
                                  'jinja2.Template, this usually happens '
@@ -49,8 +59,7 @@ class StrictTemplate:
 
             self._path = path
             self._raw = path.read_text()
-            self._source = Template(self._raw,
-                                    undefined=jinja2.StrictUndefined)
+            self._source = source
         elif isinstance(source, StrictTemplate):
             self._path = source.path
             self._raw = source.raw
@@ -64,8 +73,19 @@ class StrictTemplate:
 
         self.declared = self._get_declared()
 
+        self.is_literal = self._check_is_literal()
+
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
+        self._doc = self._parse_docstring()
+
+    @property
+    def doc(self):
+        return self._doc
+
+    @property
+    def doc_short(self):
+        return self.doc.split('\n')[0]
 
     @property
     def source(self):
@@ -88,7 +108,7 @@ class StrictTemplate:
         None if initialized with a str or with a jinja2.Template created
         from a str
         """
-        return self._raw
+        return self._path
 
     def _parse_docstring(self):
         """Finds the docstring at the beginning of the source
@@ -97,6 +117,18 @@ class StrictTemplate:
         regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
         match = re.match(regex, self.raw)
         return '' if match is None else match.group(1)
+
+    def _check_is_literal(self):
+        """
+        Returns true if the template is a literal and does not need any
+        parameters to render
+        """
+        env = self.source.environment
+
+        # check if the template has the variable or block start string
+        # is there any better way of checking this?
+        return ((env.variable_start_string not in self.raw)
+                and env.block_start_string not in self.raw)
 
     def __str__(self):
         return self.raw
@@ -142,13 +174,23 @@ class StrictTemplate:
         extra = passed - self.declared - optional
 
         if missing:
-            raise RenderError('Error rendering template {}, missing required '
-                              'arguments: {}, got params {}'
+            raise RenderError('in {}, missing required '
+                              'parameters: {}, params passed: {}'
                               .format(repr(self), missing, params))
 
         if extra:
-            raise RenderError('Got unexpected arguments {}, '
-                              'declared arguments are {}'
-                              .format(extra, self.declared))
+            raise RenderError('in {}, unused parameters: {}, params '
+                              'declared: {}'
+                              .format(repr(self), extra, self.declared))
 
-        return self.source.render(**params)
+        try:
+            return self.source.render(**params)
+        except UndefinedError as e:
+            raise RenderError('in {}, jinja2 raised an UndefinedError, this '
+                              'means the template is using an attribute '
+                              'or item that does not exist, the original '
+                              'traceback is shown above. For jinja2 '
+                              'implementation details see: '
+                              'http://jinja.pocoo.org/docs/latest'
+                              '/templates/#variables'
+                              .format(repr(self))) from e

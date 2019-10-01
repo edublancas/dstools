@@ -1,13 +1,14 @@
 import json
 from os import environ
-import psycopg2
 import shutil
 import os
 import pytest
 from pathlib import Path
 import tempfile
-from dstools.pipeline import postgres as pg
 from dstools.pipeline.clients import SQLAlchemyClient
+from dstools.pipeline.tasks import SQLScript
+from dstools.pipeline.products import PostgresRelation
+from dstools.pipeline.dag import DAG
 
 
 def _path_to_tests():
@@ -31,11 +32,11 @@ def tmp_directory():
 
 
 @pytest.fixture()
-def tmp_example_directory():
+def tmp_intermediate_example_directory():
     """Move to examples/pipeline/
     """
     old = os.getcwd()
-    path = _path_to_tests() / '..' / 'examples' / 'pipeline'
+    path = _path_to_tests() / '..' / 'examples' / 'pipeline' / 'intermediate'
     tmp = Path(tempfile.mkdtemp()) / 'content'
 
     # we have to add extra folder content/, otherwise copytree complains
@@ -80,6 +81,11 @@ def path_to_env():
     return _path_to_tests() / 'assets' / 'sample' / 'env.yaml'
 
 
+@pytest.fixture(scope='session')
+def path_to_assets():
+    return _path_to_tests() / 'assets'
+
+
 def _load_db_credentials():
     try:
         p = Path('~', '.auth', 'postgres-dstools.json').expanduser()
@@ -98,11 +104,7 @@ def pg_client():
 
     client = SQLAlchemyClient(db['uri'])
 
-    pg.CLIENT = client
-
     yield client
-
-    pg.CLIENT = None
 
     client.close()
 
@@ -111,8 +113,20 @@ def pg_client():
 def fake_conn():
     o = object()
 
-    pg.CLIENT = o
-
     yield o
 
-    pg.CLIENT = None
+
+@pytest.fixture()
+def dag():
+    dag = DAG()
+
+    db = _load_db_credentials()
+
+    client = SQLAlchemyClient(db['uri'])
+
+    dag.clients[SQLScript] = client
+    dag.clients[PostgresRelation] = client
+
+    yield dag
+
+    client.close()
