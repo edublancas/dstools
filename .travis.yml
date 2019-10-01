@@ -4,7 +4,7 @@ python:
   - 3.6
 
 install:
-  - pip install -r examples/pipeline/requirements.txt
+  - pip install -r examples/pipeline/intermediate/requirements.txt
   - pip install -r requirements.txt
   - pip install .
 
