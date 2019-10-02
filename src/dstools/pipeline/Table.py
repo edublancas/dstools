@@ -67,6 +67,9 @@ class Table:
 
         return path
 
+    def to_format(self, fmt):
+        return tabulate(self._data, headers='keys', tablefmt=fmt)
+
 
 class BuildReport(Table):
     """A Table that adds a columns for checking task elapsed time
