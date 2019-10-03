@@ -231,7 +231,7 @@ class DAG(collections.abc.Mapping):
     def _ipython_key_completions_(self):
         return list(self)
 
-        # __getstate__ and __setstate__ are needed to make this picklable
+    # __getstate__ and __setstate__ are needed to make this picklable
 
     def __getstate__(self):
         state = self.__dict__.copy()

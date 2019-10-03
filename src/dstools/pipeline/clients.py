@@ -28,8 +28,7 @@ class Client:
 
     def __init__(self, uri):
         self._uri = uri
-        self._logger = logging.getLogger('{}.{}'.format(__name__,
-                                                        type(self).__name__))
+        self._set_logger()
 
     def connect(self):
         raise NotImplementedError("This method must be implemented in the "
@@ -44,6 +43,23 @@ class Client:
         """
         raise NotImplementedError("This method must be implemented in the "
                                   "subclasses")
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger is not pickable, so we remove them and build it
+        # again in __setstate__
+        del state['_logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._set_logger()
+
+    def _set_logger(self):
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
 
 
 class SQLAlchemyClient(Client):
