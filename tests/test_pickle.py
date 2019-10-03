@@ -11,13 +11,14 @@ from dstools.pipeline.placeholders import StringPlaceholder, ClientCodePlacehold
 from dstools.templates.StrictTemplate import StrictTemplate
 
 
+def fn():
+    pass
+
+
 def test_can_pickle_dag():
     dag = DAG()
 
     t = BashCommand('echo "hi"', File('/tmp/file.txt'), dag)
-
-    def fn():
-        pass
 
     t2 = PythonCallable(fn, File('/tmp/file2.txt'), dag)
 
