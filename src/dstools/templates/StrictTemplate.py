@@ -32,7 +32,7 @@ class StrictTemplate:
         elif isinstance(source, str):
             self._path = None
             self._raw = source
-            self._source = Template(source,
+            self._source = Template(self._raw,
                                     undefined=jinja2.StrictUndefined)
 
         elif isinstance(source, Template):
@@ -194,3 +194,20 @@ class StrictTemplate:
                               'http://jinja.pocoo.org/docs/latest'
                               '/templates/#variables'
                               .format(repr(self))) from e
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger and _source are not pickable, so we remove them and build
+        # them again in __setstate__
+        del state['_logger']
+        del state['_source']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
+        self._source = Template(self._raw,
+                                undefined=jinja2.StrictUndefined)
