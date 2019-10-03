@@ -5,14 +5,18 @@ to be sent to other processed
 import pickle
 
 from dstools.pipeline.products import File, PostgresRelation
-from dstools.pipeline.placeholders import StringPlaceholder
+from dstools.pipeline.placeholders import StringPlaceholder, ClientCodePlaceholder
 from dstools.templates.StrictTemplate import StrictTemplate
 
-# f = File('/path/to/file.csv')
-# pickle.dumps(f)
 
-# rel = PostgresRelation(('schema', 'name', 'table'))
-# pickle.dumps(rel)
+def test_postgres_relation_is_picklable():
+    rel = PostgresRelation(('schema', 'name', 'table'))
+    pickle.loads(pickle.dumps(rel))
+
+
+def test_file_is_pickable():
+    f = File('/path/to/file.csv')
+    pickle.loads(pickle.dumps(f))
 
 
 def test_string_placeholder_is_picklable():

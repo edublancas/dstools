@@ -27,7 +27,8 @@ class Product:
         self._identifier = self.IDENTIFIERCLASS(identifier)
         self.did_download_metadata = False
         self.task = None
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger('{}.{}'.format(__name__,
+                                                       type(self).__name__))
 
     @property
     def timestamp(self):
@@ -143,6 +144,20 @@ class Product:
             s_short = s
 
         return s_short
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # logger is not pickable, so we remove them and build
+        # them again in __setstate__
+        del state['logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.logger = logging.getLogger('{}.{}'.format(__name__,
+                                                       type(self).__name__))
 
     # Subclasses must implement the following methods
 
