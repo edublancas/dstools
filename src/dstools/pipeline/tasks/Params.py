@@ -19,8 +19,14 @@ class Params(abc.Mapping):
         self._init_counts()
         self._in_context = False
 
+    # we cannot define this inside _init_counts or as a lambda, that does
+    # not work with pickle
+    def _zero():
+        return 0
+
     def _init_counts(self):
-        self._counts = defaultdict(lambda: 0,
+        # lambdas do not work with pickle, must define a function
+        self._counts = defaultdict(self._zero,
                                    {key: 0 for key in self._dict.keys()})
 
     @property

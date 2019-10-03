@@ -4,9 +4,26 @@ to be sent to other processed
 """
 import pickle
 
+from dstools.pipeline import DAG
+from dstools.pipeline.tasks import PythonCallable, BashCommand
 from dstools.pipeline.products import File, PostgresRelation
 from dstools.pipeline.placeholders import StringPlaceholder, ClientCodePlaceholder
 from dstools.templates.StrictTemplate import StrictTemplate
+
+
+def test_can_pickle_dag():
+    dag = DAG()
+
+    t = BashCommand('echo "hi"', File('/tmp/file.txt'), dag)
+
+    def fn():
+        pass
+
+    t2 = PythonCallable(fn, File('/tmp/file2.txt'), dag)
+
+    t >> t2
+
+    pickle.loads(pickle.dumps(dag))
 
 
 def test_postgres_relation_is_picklable():

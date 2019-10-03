@@ -211,6 +211,8 @@ class DAG(collections.abc.Mapping):
         return self._dict[key]
 
     def __iter__(self):
+        # TODO: raise a warning if this any of this dag tasks have tasks
+        # from other tasks as dependencies (they won't show up here)
         for name in self._dict.keys():
             yield name
 
@@ -228,3 +230,17 @@ class DAG(collections.abc.Mapping):
 
     def _ipython_key_completions_(self):
         return list(self)
+
+        # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger is not pickable, so we remove them and build
+        # them again in __setstate__
+        del state['_logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.logger = logging.getLogger('{}.{}'.format(__name__,
+                                                       type(self).__name__))
