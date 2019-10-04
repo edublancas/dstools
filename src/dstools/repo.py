@@ -1,5 +1,6 @@
 import json
 import subprocess
+from subprocess import CalledProcessError
 from shlex import quote
 import sys
 from pathlib import Path
@@ -45,7 +46,12 @@ def current_branch(path):
     # seems like the most reliable way is to do:
     # git branch --show-current, but that was added in a recent git
     # version 2.22, for older versions, the one below works
-    return _run_command(path, 'git symbolic-ref --short HEAD')
+    try:
+        return _run_command(path, 'git symbolic-ref --short HEAD')
+    except CalledProcessError:
+        # if detached head, the command above does not work, since there is
+        # no current branch
+        return None
 
 
 def get_version(package_name):
