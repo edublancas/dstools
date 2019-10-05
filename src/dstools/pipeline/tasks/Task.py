@@ -284,6 +284,13 @@ class Task:
 
         return Row(data)
 
+    def to_dict(self):
+        """
+        Returns a dict representation of the Task, only includes a few
+        attributes
+        """
+        return dict(name=self.name, product=str(self.product))
+
     def _render_product(self):
         params_names = list(self.params)
 
