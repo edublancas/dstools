@@ -289,7 +289,8 @@ class Task:
         Returns a dict representation of the Task, only includes a few
         attributes
         """
-        return dict(name=self.name, product=str(self.product))
+        return dict(name=self.name, product=str(self.product),
+                    source_code=self.source_code)
 
     def _render_product(self):
         params_names = list(self.params)
