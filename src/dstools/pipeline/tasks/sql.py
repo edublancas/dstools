@@ -94,6 +94,22 @@ def _to_parquet(df, path, schema=None):
 class SQLDump(Task):
     """
     Dumps data from a SQL SELECT statement to parquet files (one per chunk)
+
+    Parameters
+    ----------
+    code: str
+        The SQL query to run in the database
+    product: File
+        The directory location for the output parquet files
+    dag: DAG
+        The DAG for this task
+    name: str, optional
+        Name for this task
+    params: dict, optional
+        Extra parameters for the task's code
+    chunksize: int, optional
+        Size of each chunk, one parquet file will be generated per chunk. If
+        None, only one file is created
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
