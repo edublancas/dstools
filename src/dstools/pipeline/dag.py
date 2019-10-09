@@ -4,6 +4,7 @@ DAG module
 A DAG is collection of tasks that makes sure they are executed in
 the right order
 """
+from pathlib import Path
 import warnings
 import logging
 import collections
@@ -12,9 +13,11 @@ import tempfile
 
 import networkx as nx
 from tqdm.auto import tqdm
+from jinja2 import Template
 
 from dstools.pipeline.Table import Table, BuildReport
 from dstools.pipeline.products import MetaProduct
+from dstools.pipeline.util import image_bytes2html
 
 
 class DAG(collections.abc.Mapping):
@@ -130,6 +133,45 @@ class DAG(collections.abc.Mapping):
             d['_plot'] = self.plot(open_image=False)
 
         return d
+
+    def to_html(self, path=None):
+        """Returns a str (HTML) with the pipelines description
+        """
+        status = self.status().to_format('html')
+        path_to_plot = Path(self.plot(open_image=False))
+        plot = image_bytes2html(path_to_plot.read_bytes())
+
+        # FIXME: code will not render line breaks and indentation properly,
+        # this is not trivial to do using HTML, a workaround is to use
+        # a markdown parser, that can also get us syntax highlighting
+        # https://github.com/lepture/mistune#renderer
+
+        template = Template(
+            """
+        <h1>DAG report</h1>
+
+        <h2>Plot</h2>
+
+        {{plot}}
+
+        <h2>Status</h2>
+
+        {{status}}
+
+        <h2>Source code</h2>
+
+        {% for task in dag.values() %}
+        <h3>{{task.name}}</h3>
+        <code>{{task.source_code | safe}}</code>
+        {% endfor %}
+        """)
+
+        s = template.render(plot=plot, status=status, dag=self)
+
+        if path is not None:
+            Path(path).write_text(s)
+
+        return s
 
     def plot(self, open_image=True):
         """Plot the DAG
