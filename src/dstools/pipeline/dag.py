@@ -115,11 +115,21 @@ class DAG(collections.abc.Mapping):
         return Table([t.status(**kwargs)
                       for k, t in self._dict.items()])
 
-    def to_dict(self):
+    def to_dict(self, include_plot=False):
         """Returns a dict representation of the dag's Tasks,
         only includes a few attributes.
+
+        Parameters
+        ----------
+        include_plot: bool, optional
+            If True, the path to a PNG file with the plot in "_plot"
         """
-        return {name: task.to_dict() for name, task in self._dict.items()}
+        d = {name: task.to_dict() for name, task in self._dict.items()}
+
+        if include_plot:
+            d['_plot'] = self.plot(open_image=False)
+
+        return d
 
     def plot(self, open_image=True):
         """Plot the DAG
