@@ -18,10 +18,17 @@ from jinja2 import Template
 from dstools.pipeline.Table import Table, BuildReport
 from dstools.pipeline.products import MetaProduct
 from dstools.pipeline.util import image_bytes2html
+from dstools.pipeline.CodeDiffer import CodeDiffer
 
 
 class DAG(collections.abc.Mapping):
     """A DAG is a collection of tasks with dependencies
+
+    Parameters
+    ----------
+    differ: CodeDiffer
+        An object to determine whether two pieces of code are the same and
+        to output a diff, defaults to CodeDiffer() (default parameters)
 
     Attributes
     ----------
@@ -33,9 +40,10 @@ class DAG(collections.abc.Mapping):
     # TODO: use the networkx.DiGraph structure directly to avoid having to
     # re-build the graph every time
 
-    def __init__(self, name=None, clients=None):
+    def __init__(self, name=None, clients=None, differ=None):
         self._dict = {}
         self.name = name or 'No name'
+        self.differ = differ or CodeDiffer()
         self._logger = logging.getLogger(__name__)
         self.build_report = None
 

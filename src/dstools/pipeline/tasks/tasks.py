@@ -43,6 +43,10 @@ class BashCommand(Task):
             self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
                               f' stderr: {res.stderr}')
 
+    @property
+    def language(self):
+        return 'bash'
+
 
 class PythonCallable(Task):
     """A task that runs a Python callabel (i.e.  a function)
@@ -54,6 +58,10 @@ class PythonCallable(Task):
 
     def run(self):
         self._code._source(**self.params)
+
+    @property
+    def language(self):
+        return 'python'
 
 
 class ShellScript(Task):
@@ -71,3 +79,7 @@ class ShellScript(Task):
 
     def run(self):
         self.client.run(str(self._code))
+
+    @property
+    def language(self):
+        return 'bash'

@@ -84,6 +84,8 @@ setup(
         'psycopg2-binary',
         # other deps that should be optional
         'pandas',
+        # for code normalization
+        'sqlparse', 'autopep8',
 
     ],
     extras_require={

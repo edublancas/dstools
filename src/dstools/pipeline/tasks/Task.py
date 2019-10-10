@@ -9,7 +9,6 @@ and lives in a DAG
 from copy import copy
 import logging
 from datetime import datetime
-from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.dag import DAG
 from dstools.exceptions import TaskBuildError, RenderError
@@ -84,6 +83,11 @@ class Task:
         self.dag = dag
 
         self._status = TaskStatus.WaitingRender
+
+    @property
+    def language(self):
+        # this is used for determining how to normalize code before comparing
+        return None
 
     @property
     def name(self):
@@ -273,8 +277,11 @@ class Task:
         data['Outdated code'] = outd_code
 
         if outd_code and return_code_diff:
-            data['Code diff'] = util.diff_strings(p.stored_source_code,
-                                                  self.source_code)
+            data['Code diff'] = (self.dag
+                                 .differ
+                                 .get_diff(p.stored_source_code,
+                                           self.source_code,
+                                           language=self.language))
         else:
             outd_code = ''
 

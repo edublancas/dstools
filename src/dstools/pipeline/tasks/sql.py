@@ -14,7 +14,16 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-class SQLScript(Task):
+class SQLInputTask(Task):
+    """Tasks whose code is SQL code
+    """
+
+    @property
+    def language(self):
+        return 'sql'
+
+
+class SQLScript(SQLInputTask):
     """
     A tasks represented by a SQL script run agains a database this Task
     does not make any assumptions about the underlying SQL engine, it should
@@ -91,7 +100,7 @@ def _to_parquet(df, path, schema=None):
     return table.schema
 
 
-class SQLDump(Task):
+class SQLDump(SQLInputTask):
     """
     Dumps data from a SQL SELECT statement to parquet files (one per chunk)
 
@@ -174,7 +183,7 @@ class SQLDump(Task):
                 self._logger.info('Fetching chunk {j}...'.format(j=i + 1))
 
 
-class SQLTransfer(Task):
+class SQLTransfer(SQLInputTask):
     """Transfers data from a SQL statement to a SQL relation
     """
     CODECLASS = ClientCodePlaceholder
@@ -215,6 +224,11 @@ class SQLTransfer(Task):
 
 class SQLUpload(Task):
     """Upload data to a database from a parquet file
+
+    Parameters
+    ----------
+    code: str
+        Path to parquet file to upload
     """
     CODECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
@@ -246,7 +260,13 @@ class SQLUpload(Task):
 
 
 class PostgresCopy(Task):
-    """Efficiently copy data to a postgres database using COPY
+    """Efficiently copy data to a postgres database using COPY (better
+    alternative to SQLUpload for postgres)
+
+    Parameters
+    ----------
+    code: str
+        Path to parquet file to upload
     """
     CODECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)
