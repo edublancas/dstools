@@ -89,7 +89,7 @@ setup(
         # for generating dag.to_markup(fmt='html')
         'mistune',
         # python<3.7 backported library
-        'resources',
+        'importlib_resources',
 
     ],
     extras_require={
