@@ -5,19 +5,20 @@ from dstools.pipeline.tasks import BashCommand, PythonCallable
 from dstools.pipeline.products import File
 
 
-def test_to_html():
-    def fn1(product):
-        pass
+# can test this since this uses dag.plot(), which needs dot for plotting
+# def test_to_html():
+#     def fn1(product):
+#         pass
 
-    def fn2(product):
-        pass
+#     def fn2(product):
+#         pass
 
-    dag = DAG()
-    t1 = PythonCallable(fn1, File('file1.txt'), dag)
-    t2 = PythonCallable(fn2, File('file2.txt'), dag)
-    t1 >> t2
+#     dag = DAG()
+#     t1 = PythonCallable(fn1, File('file1.txt'), dag)
+#     t2 = PythonCallable(fn2, File('file2.txt'), dag)
+#     t1 >> t2
 
-    dag.to_html()
+#     dag.to_html()
 
 
 def test_can_access_sub_dag():
