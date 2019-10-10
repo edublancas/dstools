@@ -181,11 +181,14 @@ class DAG(collections.abc.Mapping):
 
         return out
 
-    def plot(self, open_image=True):
+    def plot(self, open_image=True, path=None):
         """Plot the DAG
         """
         # FIXME: add tests for this
         self.render()
+
+        if not path:
+            path = tempfile.mktemp(suffix='.png')
 
         G = self._to_graph()
 
@@ -197,7 +200,6 @@ class DAG(collections.abc.Mapping):
         # # http://graphviz.org/doc/info/attrs.html
         # NOTE: requires pygraphviz and pygraphviz
         G_ = nx.nx_agraph.to_agraph(G)
-        path = tempfile.mktemp(suffix='.png')
         G_.draw(path, prog='dot', args='-Grankdir=LR')
 
         if open_image:
