@@ -161,6 +161,15 @@ class SQLDump(Task):
                 # https://github.com/dask/dask/issues/4194
                 if i == 0:
                     schema = s
+                    self._logger.info('Got first chunk, to avoid schemas '
+                                      'incompatibility, the schema from this chunk '
+                                      'will be applied to the other chunks, verify '
+                                      'that this is correct: %s. Columns might be '
+                                      'incorrectly detected as "null" if all values'
+                                      ' from the first chunk are empty, in such '
+                                      'case the only safe way to dump is in one '
+                                      'chunk (by setting chunksize to None)',
+                                      schema)
 
                 self._logger.info('Fetching chunk {j}...'.format(j=i + 1))
 
