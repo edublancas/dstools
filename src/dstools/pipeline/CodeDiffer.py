@@ -23,19 +23,19 @@ def normalize_sql(code):
     if not sqlparse:
         raise ImportError('sqlparse is required for normalizing SQL code')
 
-    return sqlparse.format(code,
-                           keyword_case='upper',
-                           identifier_case='lower',
-                           strip_comments=True,
-                           reindent=True,
-                           indent_with=4)
+    return None if code is None else sqlparse.format(code,
+                                                     keyword_case='upper',
+                                                     identifier_case='lower',
+                                                     strip_comments=True,
+                                                     reindent=True,
+                                                     indent_with=4)
 
 
 def normalize_python(code):
     if not autopep8:
         raise ImportError('autopep8 is required for normalizing Python code')
 
-    return autopep8.fix_code(code)
+    return None if code is None else autopep8.fix_code(code)
 
 
 def diff_strings(a, b):
