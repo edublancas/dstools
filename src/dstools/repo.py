@@ -80,8 +80,11 @@ def get_env_metadata(path):
     git_timestamp = get_git_timestamp(path)
     git_branch = current_branch(path)
 
+    git_location = git_branch or hash_
+
     return dict(git_summary=git_summary, git_hash=hash_, git_diff=git_diff,
-                git_timestamp=git_timestamp, git_branch=git_branch)
+                git_timestamp=git_timestamp, git_branch=git_branch,
+                git_location=git_location)
 
 
 def save_env_metadata(env, path_to_output):

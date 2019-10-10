@@ -34,8 +34,9 @@ class Env:
     is applied so "~" can be used.
 
     There are two wildcards available "{{user}}" (returns the current user)
-    and "{{git_branch}}" (returns the current git branch by looking in the
-    env.yaml file location)
+    and "{{git_location}}" (if the env.yaml file is located inside a git
+    repo, this will return the current branch name, if in detached HEAD
+    state, it will return the hash to the current commit
 
     Examples
     --------
@@ -131,9 +132,10 @@ class Env:
 
         params = dict(user=getpass.getuser())
 
-        # only try to find git branch if {{git_branch is used}}
-        if '{{git_branch}}' in env_content:
-            params['git_branch'] = repo.get_env_metadata(home)['git_branch']
+        # only try to find git location if {{git_location is used}}
+        if '{{git_location}}' in env_content:
+            params['git_location'] = (repo
+                                      .get_env_metadata(home)['git_location'])
 
         s = Template(env_content).render(**params)
 
