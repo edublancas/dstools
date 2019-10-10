@@ -1,2 +1,3 @@
 include CHANGELOG.rst
 include README.rst
+include src/dstools/pipeline/resources/*

@@ -38,6 +38,10 @@ def normalize_python(code):
     return autopep8.fix_code(code)
 
 
+normalize_mapping = {None: normalize_null, 'python': normalize_python,
+                     'sql': normalize_sql}
+
+
 def diff_strings(a, b):
     """Compute the diff between two strings
     """
@@ -83,10 +87,9 @@ class CodeDiffer:
         diff = diff_strings(a, b)
 
         if language is not None:
-            diff = '[Code was normalized]\n'+diff
+            diff = '[Code was normalized]\n' + diff
 
         return diff
 
-    def _get_normalizer(language):
-        return {None: normalize_null, 'python': normalize_python,
-                'sql': normalize_sql}
+    def _get_normalizer(self, language):
+        return normalize_mapping[language]

@@ -100,7 +100,10 @@ class Product:
         return outdated
 
     def _outdated_code_dependency(self):
-        return self.stored_source_code != self.task.source_code
+        dag = self.task.dag
+        return dag.differ.code_is_different(self.stored_source_code,
+                                            self.task.source_code,
+                                            language=self.task.language)
 
     def _get_metadata(self):
         """
@@ -139,7 +142,7 @@ class Product:
             t = ceil(len(s) / 20)
 
             for i in range(t):
-                s_short += s[(20*i):(20*(i+1))] + '\n'
+                s_short += s[(20 * i):(20 * (i + 1))] + '\n'
         else:
             s_short = s
 
