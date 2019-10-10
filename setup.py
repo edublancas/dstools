@@ -86,6 +86,10 @@ setup(
         'pandas',
         # for code normalization
         'sqlparse', 'autopep8',
+        # for generating dag.to_markup(fmt='html')
+        'mistune',
+        # python<3.7 backported library
+        'resources',
 
     ],
     extras_require={

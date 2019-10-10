@@ -11,6 +11,18 @@ import collections
 import subprocess
 import tempfile
 
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    # backported
+    import importlib_resources
+
+
+try:
+    import mistune
+except ImportError:
+    mistune = None
+
 import networkx as nx
 from tqdm.auto import tqdm
 from jinja2 import Template
@@ -19,6 +31,7 @@ from dstools.pipeline.Table import Table, BuildReport
 from dstools.pipeline.products import MetaProduct
 from dstools.pipeline.util import image_bytes2html
 from dstools.pipeline.CodeDiffer import CodeDiffer
+from dstools.pipeline import resources
 
 
 class DAG(collections.abc.Mapping):
@@ -142,44 +155,31 @@ class DAG(collections.abc.Mapping):
 
         return d
 
-    def to_html(self, path=None):
-        """Returns a str (HTML) with the pipelines description
+    def to_markup(self, path=None, fmt='html'):
+        """Returns a str (md or html) with the pipeline's description
         """
+        if fmt not in ['html', 'md']:
+            raise ValueError('fmt must be html or md, got {}'.format(fmt))
+
         status = self.status().to_format('html')
         path_to_plot = Path(self.plot(open_image=False))
         plot = image_bytes2html(path_to_plot.read_bytes())
 
-        # FIXME: code will not render line breaks and indentation properly,
-        # this is not trivial to do using HTML, a workaround is to use
-        # a markdown parser, that can also get us syntax highlighting
+        template_md = importlib_resources.read_text(resources, 'dag.md')
+        out = Template(template_md).render(plot=plot, status=status, dag=self)
+
+        # TODO: syntax highlighting
         # https://github.com/lepture/mistune#renderer
+        if fmt == 'html':
+            if not mistune:
+                raise ImportError('mistune is required to export to HTML')
 
-        template = Template(
-            """
-        <h1>DAG report</h1>
-
-        <h2>Plot</h2>
-
-        {{plot}}
-
-        <h2>Status</h2>
-
-        {{status}}
-
-        <h2>Source code</h2>
-
-        {% for task in dag.values() %}
-        <h3>{{task.name}}</h3>
-        <code>{{task.source_code | safe}}</code>
-        {% endfor %}
-        """)
-
-        s = template.render(plot=plot, status=status, dag=self)
+            out = mistune.markdown(out, escape=False)
 
         if path is not None:
-            Path(path).write_text(s)
+            Path(path).write_text(out)
 
-        return s
+        return out
 
     def plot(self, open_image=True):
         """Plot the DAG

@@ -18,7 +18,7 @@ from dstools.pipeline.products import File
 #     t2 = PythonCallable(fn2, File('file2.txt'), dag)
 #     t1 >> t2
 
-#     dag.to_html()
+#     dag.to_html('a.html')
 
 
 def test_can_access_sub_dag():
