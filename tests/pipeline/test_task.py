@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from dstools.exceptions import RenderError
 from dstools.pipeline import DAG
 from dstools.pipeline.products import File, PostgresRelation
@@ -166,3 +168,19 @@ def test_shows_warning_if_unused_dependencies():
 
     with pytest.warns(UserWarning):
         tc.render()
+
+
+def test_on_finish(tmp_directory):
+
+    def touch(product):
+        Path('file').touch()
+
+    def on_finish(task):
+        Path('file').write_text('hello')
+
+    dag = DAG()
+
+    t = PythonCallable(touch, File('file'), dag)
+    t.on_finish = on_finish
+
+    dag.build()

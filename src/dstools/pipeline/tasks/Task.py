@@ -84,6 +84,8 @@ class Task:
 
         self._status = TaskStatus.WaitingRender
 
+        self._on_finish = None
+
     @property
     def language(self):
         # this is used for determining how to normalize code before comparing
@@ -108,6 +110,18 @@ class Task:
         # always return a copy to prevent global state if contents
         # are modified (e.g. by using pop)
         return copy(self._upstream)
+
+    @property
+    def on_finish(self):
+        """
+        Callable to be executed after this task is built (passes Task as
+        parameter)
+        """
+        return self._on_finish
+
+    @on_finish.setter
+    def on_finish(self, value):
+        self._on_finish = value
 
     def run(self):
         raise NotImplementedError('You have to implement this method')
@@ -181,6 +195,9 @@ class Task:
                                      'the task ran successfully but product '
                                      f'"{self.product}" does not exist yet '
                                      '(task.product.exist() returned False)')
+
+            if self.on_finish:
+                self.on_finish(self)
 
         else:
             self._logger.info(f'No need to run {repr(self)}')
