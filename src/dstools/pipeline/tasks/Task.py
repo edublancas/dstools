@@ -114,14 +114,25 @@ class Task:
     @property
     def on_finish(self):
         """
-        Callable to be executed after this task is built (passes Task as
-        parameter)
+        Callable to be executed after this task is built successfully
+        (passes Task as parameter)
         """
         return self._on_finish
 
     @on_finish.setter
     def on_finish(self, value):
         self._on_finish = value
+
+    @property
+    def on_failure(self):
+        """
+        Callable to be executed if task fails (passes Task as parameter)
+        """
+        return self._on_failure
+
+    @on_failure.setter
+    def on_failure(self, value):
+        self._on_failure = value
 
     def run(self):
         raise NotImplementedError('You have to implement this method')
@@ -171,14 +182,16 @@ class Task:
 
             then = datetime.now()
 
-            self.run()
+            try:
+                self.run()
+            except Exception as e:
+                if self.on_failure:
+                    self.on_failure(self)
+                raise e
 
             now = datetime.now()
             elapsed = (now - then).total_seconds()
             self._logger.info(f'Done. Operation took {elapsed:.1f} seconds')
-
-            # TODO: should check if job ran successfully, if not,
-            # stop execution
 
             # update metadata
             self.product.timestamp = datetime.now().timestamp()
