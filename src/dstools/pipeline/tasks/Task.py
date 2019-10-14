@@ -85,6 +85,7 @@ class Task:
         self._status = TaskStatus.WaitingRender
 
         self._on_finish = None
+        self._on_failure = None
 
     @property
     def language(self):
