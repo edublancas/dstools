@@ -23,6 +23,14 @@ try:
 except ImportError:
     mistune = None
 
+
+try:
+    from pygments import highlight
+    from pygments.lexers import get_lexer_by_name
+    from pygments.formatters import html
+except ImportError:
+    pygments = None
+
 import networkx as nx
 from tqdm.auto import tqdm
 from jinja2 import Template
@@ -32,6 +40,23 @@ from dstools.pipeline.products import MetaProduct
 from dstools.pipeline.util import image_bytes2html
 from dstools.pipeline.CodeDiffer import CodeDiffer
 from dstools.pipeline import resources
+
+
+class HighlightRenderer(mistune.Renderer):
+    """mistune renderer with syntax highlighting
+
+    Notes
+    -----
+    Source: https://github.com/lepture/mistune#renderer
+    """
+
+    def block_code(self, code, lang):
+        if not lang:
+            return '\n<pre><code>%s</code></pre>\n' % \
+                mistune.escape(code)
+        lexer = get_lexer_by_name(lang, stripall=True)
+        formatter = html.HtmlFormatter()
+        return highlight(code, lexer, formatter)
 
 
 class DAG(collections.abc.Mapping):
@@ -168,14 +193,18 @@ class DAG(collections.abc.Mapping):
         template_md = importlib_resources.read_text(resources, 'dag.md')
         out = Template(template_md).render(plot=plot, status=status, dag=self)
 
-        # TODO: syntax highlighting
-        # https://github.com/lepture/mistune#renderer
         if fmt == 'html':
-            if not mistune:
-                raise ImportError('mistune is required to export to HTML')
+            if not mistune or not pygments:
+                raise ImportError('mistune and pygments are '
+                                  'required to export to HTML')
 
-            out = mistune.markdown(out, escape=False)
+            renderer = HighlightRenderer()
+            out = mistune.markdown(out, escape=False, renderer=renderer)
 
+            # add css
+            html = importlib_resources.read_text(resources,
+                                                 'github-markdown.html')
+            out = Template(html).render(content=out)
         if path is not None:
             Path(path).write_text(out)
 
