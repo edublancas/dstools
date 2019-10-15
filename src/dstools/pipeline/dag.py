@@ -354,5 +354,5 @@ class DAG(collections.abc.Mapping):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.logger = logging.getLogger('{}.{}'.format(__name__,
-                                                       type(self).__name__))
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))

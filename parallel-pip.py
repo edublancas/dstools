@@ -1,18 +1,8 @@
-"""
-Pickling is the main challenge: idea, just pass the task name,
-and re-build the dag in the child process, then do dag[name].build()
-
-option two: pickle by passing class name and then initializing the task with
-the actual parameters (no placeholders) - this option is better. don't have
-to include dag or any other things, just class, code and params, check
-actual task.run implementation to see what i need
-
-"""
-
 from multiprocessing import Pool, TimeoutError
 import time
 import os
 from pathos.multiprocessing import ProcessingPool
+from pathlib import Path
 
 
 from dstools.exceptions import RenderError
@@ -25,18 +15,20 @@ import pytest
 
 
 def fna1(product):
-    pass
+    Path(str(product)).touch()
+    time.sleep(30)
 
 
 def fna2(product):
-    pass
+    time.sleep(30)
+    Path(str(product)).touch()
 
 
-def fnb(product):
-    pass
+def fnb(upstream, product):
+    Path(str(product)).touch()
 
-def fnc(product):
-    pass
+def fnc(upstream, product):
+    Path(str(product)).touch()
 
 dag = DAG('dag')
 
@@ -52,32 +44,64 @@ dag.render()
 
 
 done = []
+started = []
 
-def callback(x):
-    done.append(x)
-
-def poll():
-    global i
-    print('polling', i)
-
-    if i < len(t):
-        r = t[i]
-        i+=1
-        print('return ', r)
-        return r
-    else:
-        print('NONEEE')
-        return None
+def callback(task):
+    # print('finished', task)
+    # task = dag[task.name]
+    # task._status = TaskStatus.Executed
+    # task._update_status()
+    done.append(task)
 
 
-from functools import partial
+def next_task():
+    # global remaining
 
-f = partial(a1._code._source, **{k: str(v) for k, v in a1.params.items()})
+    # print('done', done)
+    # print('remaining ', remaining)
+
+    if done:
+        for task in done:
+            # print('updating', name)
+            task = dag[task.name]
+            task._status = TaskStatus.Executed
+
+            for t in task._get_downstream():
+                t._update_status()
+
+    # if not remaining:
+        # raise StopIteration
+
+
+    # for n, t in dag._dict.items():
+    #     print(n, t, t._status)
+
+    for task_name in dag:
+        if (dag[task_name]._status == TaskStatus.WaitingExecution
+            and dag[task_name] not in started):
+            # print('got ', task_name)
+            t = dag[task_name]
+            # remaining = remaining - 1
+            return t
+
+    if set([t.name for t in done]) == set(dag):
+        raise StopIteration
+
+
+# next_task()
 
 with Pool(processes=4) as pool:
-    pool.apply_async(f, [], callback=callback).get()
-
-
-
-with ProcessingPool(processes=4) as pool:
-    pool.apipe(a1._code._source, callback=callback).get()
+    while True:
+        try:
+            task = next_task()
+        except StopIteration:
+            break
+        else:
+            if task is not None:
+                res = pool.apply_async(task.build, [], callback=callback)#.get()
+                started.append(task)
+                print('started', task.name)
+                # time.sleep(3)
+            else:
+                pass
+                # print('waiting...')
