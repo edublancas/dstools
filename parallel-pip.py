@@ -1,7 +1,12 @@
+"""
+Parallel DAG execution proof of concept
+
+A few notes:
+    * Have to test this with other Tasks, especially the ones that use
+    clients - have to make sure they are serialized correctly
+"""
 from multiprocessing import Pool, TimeoutError
 import time
-import os
-from pathos.multiprocessing import ProcessingPool
 from pathlib import Path
 
 
@@ -11,24 +16,24 @@ from dstools.pipeline.products import File, PostgresRelation
 from dstools.pipeline.tasks import PythonCallable, SQLScript, BashCommand
 from dstools.pipeline.tasks.TaskStatus import TaskStatus
 
-import pytest
-
 
 def fna1(product):
     Path(str(product)).touch()
-    time.sleep(30)
+    time.sleep(10)
 
 
 def fna2(product):
-    time.sleep(30)
+    time.sleep(10)
     Path(str(product)).touch()
 
 
 def fnb(upstream, product):
     Path(str(product)).touch()
 
+
 def fnc(upstream, product):
     Path(str(product)).touch()
+
 
 dag = DAG('dag')
 
@@ -46,49 +51,50 @@ dag.render()
 done = []
 started = []
 
+
 def callback(task):
-    # print('finished', task)
-    # task = dag[task.name]
-    # task._status = TaskStatus.Executed
-    # task._update_status()
+    """Keep track of finished tasks
+    """
     done.append(task)
 
 
 def next_task():
-    # global remaining
-
-    # print('done', done)
-    # print('remaining ', remaining)
-
+    """
+    Return the next Task to execute, returns None if no Tasks are available
+    for execution (cause their dependencies are not done yet) and raises
+    a StopIteration exception if there are no more tasks to run, which means
+    the DAG is done
+    """
     if done:
         for task in done:
-            # print('updating', name)
             task = dag[task.name]
+            # TODO: must check for esxecution status - if there is an error
+            # is this status updated automatically? cause it will be better
+            # for tasks to update their status by themselves, then have a
+            # manager to update the other tasks statuses whenever one finishes
+            # to know which ones are available for execution
             task._status = TaskStatus.Executed
 
+            # update other tasks status, should abstract this in a execution
+            # manager, also make the _get_downstream more efficient by
+            # using the networkx data structure directly
             for t in task._get_downstream():
                 t._update_status()
 
-    # if not remaining:
-        # raise StopIteration
-
-
-    # for n, t in dag._dict.items():
-    #     print(n, t, t._status)
-
+    # iterate over tasks to find which is ready for execution
     for task_name in dag:
+        # ignore tasks that are already started, I should probably add an
+        # executing status but that cannot exist in the task itself,
+        # maybe in the manaer?
         if (dag[task_name]._status == TaskStatus.WaitingExecution
-            and dag[task_name] not in started):
-            # print('got ', task_name)
+           and dag[task_name] not in started):
             t = dag[task_name]
-            # remaining = remaining - 1
             return t
 
+    # if all tasks are done, stop
     if set([t.name for t in done]) == set(dag):
         raise StopIteration
 
-
-# next_task()
 
 with Pool(processes=4) as pool:
     while True:
@@ -98,10 +104,7 @@ with Pool(processes=4) as pool:
             break
         else:
             if task is not None:
-                res = pool.apply_async(task.build, [], callback=callback)#.get()
+                res = pool.apply_async(task.build, [], callback=callback)
                 started.append(task)
                 print('started', task.name)
                 # time.sleep(3)
-            else:
-                pass
-                # print('waiting...')
