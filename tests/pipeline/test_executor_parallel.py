@@ -42,13 +42,14 @@ from dstools.pipeline import executors
 def fna1(product):
     print('running fna1')
     Path(str(product)).touch()
-    time.sleep(3)
+    # time.sleep(3)
 
 
 def fna2(product):
     print('running fna2')
-    time.sleep(3)
+    # time.sleep(3)
     Path(str(product)).touch()
+    # raise ValueError
 
 
 def fnb(upstream, product):
@@ -59,16 +60,14 @@ def fnc(upstream, product):
     Path(str(product)).touch()
 
 
-dag = DAG('dag', executor=executors.parallel)
+def test_parallel_execution(tmp_directory):
+    dag = DAG('dag', executor=executors.parallel)
 
-a1 = PythonCallable(fna1, File('a1.txt'), dag, 'a1')
-a2 = PythonCallable(fna2, File('a2.txt'), dag, 'a2')
-b = PythonCallable(fnb, File('b.txt'), dag, 'b')
-c = PythonCallable(fnc, File('c.txt'), dag, 'c')
+    a1 = PythonCallable(fna1, File('a1.txt'), dag, 'a1')
+    a2 = PythonCallable(fna2, File('a2.txt'), dag, 'a2')
+    b = PythonCallable(fnb, File('b.txt'), dag, 'b')
+    c = PythonCallable(fnc, File('c.txt'), dag, 'c')
 
+    (a1 + a2) >> b >> c
 
-(a1 + a2) >> b >> c
-
-dag.render()
-
-dag.build()
+    dag.build()
