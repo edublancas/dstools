@@ -6,7 +6,7 @@ from multiprocessing import Pool, TimeoutError
 import networkx as nx
 from tqdm.auto import tqdm
 from dstools.pipeline.Table import BuildReport
-from dstools.pipeline.tasks.TaskStatus import TaskStatus
+from dstools.pipeline.constants import TaskStatus
 
 
 def serial(dag):
