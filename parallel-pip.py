@@ -18,12 +18,14 @@ from dstools.pipeline.tasks.TaskStatus import TaskStatus
 
 
 def fna1(product):
+    print('running fna1')
     Path(str(product)).touch()
-    time.sleep(10)
+    time.sleep(3)
 
 
 def fna2(product):
-    time.sleep(10)
+    print('running fna2')
+    time.sleep(3)
     Path(str(product)).touch()
 
 

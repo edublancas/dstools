@@ -36,11 +36,12 @@ import networkx as nx
 from tqdm.auto import tqdm
 from jinja2 import Template
 
-from dstools.pipeline.Table import Table, BuildReport
+from dstools.pipeline.Table import Table
 from dstools.pipeline.products import MetaProduct
 from dstools.pipeline.util import image_bytes2html
 from dstools.pipeline.CodeDiffer import CodeDiffer
 from dstools.pipeline import resources
+from dstools.pipeline import executors
 
 
 class HighlightRenderer(mistune.Renderer):
@@ -69,26 +70,21 @@ class DAG(collections.abc.Mapping):
         An object to determine whether two pieces of code are the same and
         to output a diff, defaults to CodeDiffer() (default parameters)
 
-    Attributes
-    ----------
-    build_report: BuildStatus
-        A dict-like object with tasks as keys and BuildStatus objects for each
-        task as values. str(BuildStatus) returns a table in plain text. This
-        object is created after build() is run, otherwise is None
     """
     # TODO: use the networkx.DiGraph structure directly to avoid having to
     # re-build the graph every time
 
     def __init__(self, name=None, clients=None, differ=None,
-                 on_task_finish=None, on_task_failure=None):
+                 on_task_finish=None, on_task_failure=None,
+                 executor=executors.serial):
         self._dict = {}
         self.name = name or 'No name'
         self.differ = differ or CodeDiffer()
         self._logger = logging.getLogger(__name__)
-        self.build_report = None
 
         self._clients = clients or {}
         self._rendered = False
+        self._executor = executor
 
         self._on_task_finish = on_task_finish
         self._on_task_failure = on_task_failure
@@ -134,43 +130,12 @@ class DAG(collections.abc.Mapping):
 
         Returns
         -------
-        DAGStats
+        BuildReport
             A dict-like object with tasks as keys and dicts with task
-            status as values. str(DAGStats) returns a table in plain text
+            status as values
         """
         self.render()
-
-        # attributes docs:
-        # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
-
-        status_all = []
-
-        g = self._to_graph()
-        pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
-
-        for t in pbar:
-            pbar.set_description('Building task "{}"'.format(t.name))
-
-            try:
-                t.build()
-            except Exception as e:
-                if self._on_task_failure:
-                    self._on_task_failure(t)
-
-                raise e
-            else:
-                if self._on_task_finish:
-                    self._on_task_finish(t)
-
-            status_all.append(t.build_report)
-
-        self.build_report = BuildReport(status_all)
-        self._logger.info(' DAG status:\n{}'.format(self.build_report))
-
-        for client in self.clients.values():
-            client.close()
-
-        return self.build_report
+        return self._executor(self)
 
     def status(self, **kwargs):
         """Returns a table with tasks status
@@ -229,6 +194,9 @@ class DAG(collections.abc.Mapping):
     def plot(self, open_image=True, path=None):
         """Plot the DAG
         """
+        # attributes docs:
+        # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
+
         # FIXME: add tests for this
         self.render()
 
