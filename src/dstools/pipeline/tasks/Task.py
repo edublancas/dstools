@@ -127,7 +127,8 @@ class Task:
     @property
     def on_failure(self):
         """
-        Callable to be executed if task fails (passes Task as parameter)
+        Callable to be executed if task fails (passes Task as first parameter
+        and the exception as second parameter)
         """
         return self._on_failure
 
@@ -187,7 +188,11 @@ class Task:
                 self.run()
             except Exception as e:
                 if self.on_failure:
-                    self.on_failure(self)
+                    try:
+                        self.on_failure(self, e)
+                    except Exception:
+                        self._logger.exception('Error executing on_failure '
+                                               'callback')
                 raise e
 
             now = datetime.now()
@@ -211,7 +216,11 @@ class Task:
                                      '(task.product.exist() returned False)')
 
             if self.on_finish:
-                self.on_finish(self)
+                try:
+                    self.on_finish(self)
+                except Exception:
+                    self._logger.exception('Error executing on_finish '
+                                           'callback')
 
         else:
             self._logger.info(f'No need to run {repr(self)}')
