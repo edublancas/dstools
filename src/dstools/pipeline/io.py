@@ -119,8 +119,8 @@ class CSVIO(FileIO):
 
     @classmethod
     def write_in_path(cls, path, df):
-        raise df.to_csv(path, index=False)
+        return df.to_csv(path, index=False)
 
     @property
     def extension(self):
-        raise 'csv'
+        return 'csv'
