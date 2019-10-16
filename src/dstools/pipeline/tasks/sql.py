@@ -93,10 +93,32 @@ def _to_parquet(df, path, schema=None):
 
     This function uses the pyarrow package directly to save to parquet
     """
+    def safe_remove(path):
+        if path.exists():
+            if path.is_file():
+                path.unlink()
+            else:
+                shutil.rmtree(path)
+
+    path = Path(path)
+
+    # if the file (or if a dir) exists, remove it...
+    if path.exists():
+        safe_remove(path)
+    # if not...
+    else:
+        # if parent is currently a file, delete
+        if path.parent.is_file():
+            path.parent.unlink()
+
+        # make sure parent exists
+        path.parent.mkdir(parents=True, exist_ok=True)
+
     # keeping the index causes a "KeyError: '__index_level_0__'" error,
     # so remove it
     table = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
     pq.write_table(table, str(path))
+
     return table.schema
 
 
