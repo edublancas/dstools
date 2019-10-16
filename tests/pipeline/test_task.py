@@ -4,7 +4,7 @@ from dstools.exceptions import RenderError
 from dstools.pipeline import DAG
 from dstools.pipeline.products import File, PostgresRelation
 from dstools.pipeline.tasks import PythonCallable, SQLScript, BashCommand
-from dstools.pipeline.tasks.TaskStatus import TaskStatus
+from dstools.pipeline.constants import TaskStatus
 
 import pytest
 

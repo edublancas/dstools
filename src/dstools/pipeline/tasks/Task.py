@@ -13,7 +13,7 @@ from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.dag import DAG
 from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
-from dstools.pipeline.tasks.TaskStatus import TaskStatus
+from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Params import Params
 from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            TemplatedPlaceholder)

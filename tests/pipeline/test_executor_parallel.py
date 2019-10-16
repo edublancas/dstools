@@ -1,29 +1,73 @@
+# from dstools.exceptions import RenderError
+# from dstools.pipeline import DAG
+# from dstools.pipeline.products import File, PostgresRelation
+# from dstools.pipeline.tasks import PythonCallable, SQLScript, BashCommand
+# from dstools.pipeline.tasks.TaskStatus import TaskStatus
+
+# import pytest
+
+
+# def test_parallel_execution():
+#     dag = DAG('dag')
+
+#     a1 = BashCommand('echo "a" > {{product}}', File('a1.txt'), dag, 'a1')
+#     a2 = BashCommand('echo "a" > {{product}}', File('a1.txt'), dag, 'a2')
+#     b = BashCommand('cat {{upstream["a1"]}} > {{product}}',
+#                      File('b.txt'), dag, 'b')
+#     c = BashCommand('cat {{upstream["b"]}} > {{product}}',
+#                      File('c.txt'), dag, 'c')
+
+#     (a1 + a2) >> b >> c
+
+#     dag.render()
+
+#     a1.build()
+#     a2.build()
+
+
+#     for n, t in dag._dict.items():
+#         print(n, t, t._status)
+
+import time
+from pathlib import Path
+
+
 from dstools.exceptions import RenderError
 from dstools.pipeline import DAG
 from dstools.pipeline.products import File, PostgresRelation
 from dstools.pipeline.tasks import PythonCallable, SQLScript, BashCommand
-from dstools.pipeline.tasks.TaskStatus import TaskStatus
-
-import pytest
+from dstools.pipeline import executors
 
 
-def test_parallel_execution():
-    dag = DAG('dag')
+def fna1(product):
+    print('running fna1')
+    Path(str(product)).touch()
+    # time.sleep(3)
 
-    a1 = BashCommand('echo "a" > {{product}}', File('a1.txt'), dag, 'a1')
-    a2 = BashCommand('echo "a" > {{product}}', File('a1.txt'), dag, 'a2')
-    b = BashCommand('cat {{upstream["a1"]}} > {{product}}',
-                     File('b.txt'), dag, 'b')
-    c = BashCommand('cat {{upstream["b"]}} > {{product}}',
-                     File('c.txt'), dag, 'c')
+
+def fna2(product):
+    print('running fna2')
+    # time.sleep(3)
+    Path(str(product)).touch()
+    # raise ValueError
+
+
+def fnb(upstream, product):
+    Path(str(product)).touch()
+
+
+def fnc(upstream, product):
+    Path(str(product)).touch()
+
+
+def test_parallel_execution(tmp_directory):
+    dag = DAG('dag', executor=executors.parallel)
+
+    a1 = PythonCallable(fna1, File('a1.txt'), dag, 'a1')
+    a2 = PythonCallable(fna2, File('a2.txt'), dag, 'a2')
+    b = PythonCallable(fnb, File('b.txt'), dag, 'b')
+    c = PythonCallable(fnc, File('c.txt'), dag, 'c')
 
     (a1 + a2) >> b >> c
 
-    dag.render()
-
-    a1.build()
-    a2.build()
-
-
-    for n, t in dag._dict.items():
-        print(n, t, t._status)
+    dag.build()
