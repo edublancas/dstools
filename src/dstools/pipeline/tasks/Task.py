@@ -6,6 +6,7 @@ a product (a persistent object such as a table in a database),
 it has a name (which can be infered from the source code filename)
 and lives in a DAG
 """
+import traceback
 from copy import copy
 import logging
 from datetime import datetime
@@ -187,9 +188,11 @@ class Task:
             try:
                 self.run()
             except Exception as e:
+                tb = traceback.format_exc()
+
                 if self.on_failure:
                     try:
-                        self.on_failure(self, e)
+                        self.on_failure(self, tb)
                     except Exception:
                         self._logger.exception('Error executing on_failure '
                                                'callback')
