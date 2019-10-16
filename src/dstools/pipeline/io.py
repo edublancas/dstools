@@ -60,6 +60,19 @@ class FileIO:
 
 
 class ParquetIO(FileIO):
+    """parquet handler
+
+    Notes
+    -----
+
+    going from pandas.DataFrame to parquet has an intermediate
+    apache arrow conversion (since arrow has the actual implementation
+    for writing parquet). pandas provides the pandas.DataFrame.to_parquet
+    to do this 2-step process but it gives errors with timestamps:
+    ArrowInvalid: Casting from timestamp[ns] to timestamp[ms] would lose data
+
+    This function uses the pyarrow package directly to save to parquet
+    """
 
     def __init__(self, path, chunked):
         super().__init__(path, chunked)
@@ -73,6 +86,16 @@ class ParquetIO(FileIO):
 
             if self.i == 0:
                 self.schema = schema
+
+                self._logger.info('Got first chunk, to avoid schemas '
+                                  'incompatibility, the schema from this chunk '
+                                  'will be applied to the other chunks, verify '
+                                  'that this is correct: %s. Columns might be '
+                                  'incorrectly detected as "null" if all values'
+                                  ' from the first chunk are empty, in such '
+                                  'case the only safe way to dump is in one '
+                                  'chunk (by setting chunksize to None)',
+                                  schema)
         else:
             self.write_in_path(str(self.path), df, schema=None)
 
@@ -96,7 +119,7 @@ class CSVIO(FileIO):
 
     @classmethod
     def write_in_path(cls, path, df):
-        raise df.to_csv(path)
+        raise df.to_csv(path, index=False)
 
     @property
     def extension(self):

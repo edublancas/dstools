@@ -1,5 +1,4 @@
 import warnings
-import shutil
 from pathlib import Path
 from io import StringIO
 
@@ -8,10 +7,9 @@ from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            StringPlaceholder)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
+from dstools.pipeline import io
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 
 
 class SQLInputTask(Task):
@@ -79,49 +77,6 @@ class SQLScript(SQLInputTask):
         conn.close()
 
 
-def _to_parquet(df, path, schema=None):
-    """Export a pandas.DataFrame to parquet
-
-    Notes
-    -----
-
-    going from pandas.DataFrame to parquet has an intermediate
-    apache arrow conversion (since arrow has the actual implementation
-    for writing parquet). pandas provides the pandas.DataFrame.to_parquet
-    to do this 2-step process but it gives errors with timestamps:
-    ArrowInvalid: Casting from timestamp[ns] to timestamp[ms] would lose data
-
-    This function uses the pyarrow package directly to save to parquet
-    """
-    def safe_remove(path):
-        if path.exists():
-            if path.is_file():
-                path.unlink()
-            else:
-                shutil.rmtree(path)
-
-    path = Path(path)
-
-    # if the file (or if a dir) exists, remove it...
-    if path.exists():
-        safe_remove(path)
-    # if not...
-    else:
-        # if parent is currently a file, delete
-        if path.parent.is_file():
-            path.parent.unlink()
-
-        # make sure parent exists
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-    # keeping the index causes a "KeyError: '__index_level_0__'" error,
-    # so remove it
-    table = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
-    pq.write_table(table, str(path))
-
-    return table.schema
-
-
 class SQLDump(SQLInputTask):
     """
     Dumps data from a SQL SELECT statement to parquet files (one per chunk)
@@ -147,12 +102,13 @@ class SQLDump(SQLInputTask):
     PRODUCT_IN_CODE = False
 
     def __init__(self, code, product, dag, name=None, client=None, params=None,
-                 chunksize=10000):
+                 chunksize=10000, io_handler=None):
         params = params or {}
         super().__init__(code, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
         self.chunksize = chunksize
+        self.io_handler = io_handler or io.CSVIO
 
         if self.client is None:
             raise ValueError('{} must be initialized with a client'
@@ -161,47 +117,22 @@ class SQLDump(SQLInputTask):
     def run(self):
         source_code = str(self._code)
         path = Path(str(self.params['product']))
+        handler = self.io_handler(path, chunked=bool(self.chunksize))
 
         self._logger.debug('Code: %s', source_code)
 
         if self.chunksize is None:
             df = pd.read_sql(source_code, self.client.engine,
-                             chunksize=self.chunksize)
+                             chunksize=None)
             self._logger.info('Fetching data...')
-            _to_parquet(df, path)
+            handler.write(df)
         else:
-            if path.exists():
-                shutil.rmtree(path)
-
-            path.mkdir()
-
             self._logger.debug('Fetching first chunk...')
-
-            # during the first chunk, we pass None as schema, so it's inferred
-            schema = None
 
             for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
                                                chunksize=self.chunksize)):
-
                 self._logger.info('Fetched chunk {i}'.format(i=i))
-
-                s = _to_parquet(df, path / '{i}.parquet'.format(i=i), schema)
-
-                # save the inferred schema, following iterations will use this
-                # to avoid incompatibility between schemas:
-                # https://github.com/dask/dask/issues/4194
-                if i == 0:
-                    schema = s
-                    self._logger.info('Got first chunk, to avoid schemas '
-                                      'incompatibility, the schema from this chunk '
-                                      'will be applied to the other chunks, verify '
-                                      'that this is correct: %s. Columns might be '
-                                      'incorrectly detected as "null" if all values'
-                                      ' from the first chunk are empty, in such '
-                                      'case the only safe way to dump is in one '
-                                      'chunk (by setting chunksize to None)',
-                                      schema)
-
+                handler.write(df)
                 self._logger.info('Fetching chunk {j}...'.format(j=i + 1))
 
 
