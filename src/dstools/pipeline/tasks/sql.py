@@ -122,12 +122,13 @@ class SQLDump(SQLInputTask):
         self._logger.debug('Code: %s', source_code)
 
         if self.chunksize is None:
+            self._logger.info('Fetching data...')
             df = pd.read_sql(source_code, self.client.engine,
                              chunksize=None)
-            self._logger.info('Fetching data...')
+            self._logger.info('Saving data...')
             handler.write(df)
         else:
-            self._logger.debug('Fetching first chunk...')
+            self._logger.info('Fetching first chunk...')
 
             for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
                                                chunksize=self.chunksize)):
