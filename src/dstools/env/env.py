@@ -140,7 +140,7 @@ class Env:
         s = Template(env_content).render(**params)
 
         with StringIO(s) as f:
-            content = yaml.load(f)
+            content = yaml.load(f, loader=yaml.SafeLoader)
 
         env = FrozenJSON(content)
 
