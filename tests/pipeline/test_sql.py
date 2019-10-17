@@ -4,6 +4,7 @@ from dstools.pipeline import DAG
 from dstools.pipeline.tasks import SQLDump, SQLTransfer
 from dstools.pipeline.products import File, SQLiteRelation
 from dstools.pipeline.clients import SQLAlchemyClient
+from dstools.pipeline import io
 
 import pandas as pd
 import numpy as np
@@ -28,7 +29,8 @@ def test_can_dump_sqlite(tmp_directory):
             dag,
             name='dump',
             client=client,
-            chunksize=10)
+            chunksize=10,
+            io_handler=io.ParquetIO)
     dag.build()
 
     # load dumped data and data from the db
@@ -58,7 +60,8 @@ def test_can_dump_postgres(tmp_directory, pg_client):
             dag,
             name='dump',
             client=pg_client,
-            chunksize=10)
+            chunksize=10,
+            io_handler=io.ParquetIO)
     dag.build()
 
     # load dumped data and data from the db
