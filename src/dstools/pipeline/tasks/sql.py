@@ -96,6 +96,13 @@ class SQLDump(SQLInputTask):
     chunksize: int, optional
         Size of each chunk, one parquet file will be generated per chunk. If
         None, only one file is created
+
+
+    Notes
+    -----
+    The chunksize parameter is set in cursor.arraysize object, this parameter
+    can greatly speed up the dump for some databases when the driver uses
+    cursors.arraysize as the number of rows to fetch on a single call
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
@@ -121,23 +128,36 @@ class SQLDump(SQLInputTask):
 
         self._logger.debug('Code: %s', source_code)
 
-        if self.chunksize is None:
-            self._logger.info('Fetching data...')
-            df = pd.read_sql(source_code, self.client.engine,
-                             chunksize=None)
-            self._logger.info('Saving data...')
-            handler.write(df)
-        else:
-            self._logger.info('Fetching chunk 0...')
+        cursor = self.client.raw_connection().cursor()
+        cursor.execute(source_code)
 
-            for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
-                                               chunksize=self.chunksize),
-                                   start=1):
+        if self.chunksize:
+            i = 1
+            headers = None
+            cursor.arraysize = self.chunksize
+
+            while True:
                 self._logger.info('Fetching chunk {}...'.format(i))
-                handler.write(df)
+                data = cursor.fetchmany()
                 self._logger.info('Fetched chunk {}'.format(i))
 
+                if i == 1:
+                    headers = [c[0] for c in cursor.description]
 
+                if not data:
+                    break
+
+                handler.write(data, headers)
+
+                i = i + 1
+        else:
+            data = cursor.fetchall()
+            headers = [c[0] for c in cursor.description]
+            handler.write(data, headers)
+
+
+# FIXME: this can be a lot faster for clients that transfer chunksize
+# rows over the network
 class SQLTransfer(SQLInputTask):
     """Transfers data from a SQL statement to a SQL relation
     """
