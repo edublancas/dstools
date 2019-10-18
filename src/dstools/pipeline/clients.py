@@ -63,6 +63,9 @@ class Client:
 
 
 class SQLAlchemyClient(Client):
+    """Client for connecting with any SQLAlchemy supported database
+
+    """
 
     def __init__(self, uri):
 

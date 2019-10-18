@@ -1,6 +1,7 @@
 """
 Handling file I/O
 """
+import csv
 from pathlib import Path
 import shutil
 
@@ -42,16 +43,16 @@ class FileIO:
         # only used when chunked
         self.i = 0
 
-    def write(self, df):
+    def write(self, data, headers):
         if self.chunked:
             path = self.path / '{i}.{ext}'.format(i=self.i, ext=self.extension)
-            self.write_in_path(str(path), df)
+            self.write_in_path(str(path), data, headers)
             self.i = self.i + 1
         else:
-            self.write_in_path(str(self.path), df)
+            self.write_in_path(str(self.path), data, headers)
 
     @classmethod
-    def write_in_path(cls, path, df):
+    def write_in_path(cls, path, data, headers):
         raise NotImplementedError
 
     @property
@@ -78,10 +79,10 @@ class ParquetIO(FileIO):
         super().__init__(path, chunked)
         self.schema = None
 
-    def write(self, df):
+    def write(self, data, headers):
         if self.chunked:
             path = self.path / '{i}.{ext}'.format(i=self.i, ext=self.extension)
-            schema = self.write_in_path(str(path), df, self.schema)
+            schema = self.write_in_path(str(path), data, headers, self.schema)
             self.i = self.i + 1
 
             if self.i == 0:
@@ -97,17 +98,13 @@ class ParquetIO(FileIO):
                                   'chunk (by setting chunksize to None)',
                                   schema)
         else:
-            self.write_in_path(str(self.path), df, schema=None)
+            self.write_in_path(str(self.path), data, headers, schema=None)
 
     @classmethod
-    def write_in_path(cls, path, df, schema):
-        # keeping the index causes a "KeyError: '__index_level_0__'" error,
-        # so remove it
-        table = pa.Table.from_pandas(df,
-                                     schema=schema,
-                                     preserve_index=False)
+    def write_in_path(cls, path, data, headers, schema):
+        arrays = [pa.array(col) for col in map(list, zip(*data))]
+        table = pa.Table.from_arrays(arrays, names=headers, schema=schema)
         pq.write_table(table, str(path))
-
         return table.schema
 
     @property
@@ -118,8 +115,11 @@ class ParquetIO(FileIO):
 class CSVIO(FileIO):
 
     @classmethod
-    def write_in_path(cls, path, df):
-        return df.to_csv(path, index=False)
+    def write_in_path(cls, path, data, headers):
+        with open(path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, dialect=csv.unix_dialect)
+            writer.writerow(headers)
+            writer.writerows(data)
 
     @property
     def extension(self):
