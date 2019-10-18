@@ -100,8 +100,9 @@ class SQLDump(SQLInputTask):
 
     Notes
     -----
-    The chunksize parameter is set in cursor.arraysize object, see
-    https://www.python.org/dev/peps/pep-0249/#arraysize for more details
+    The chunksize parameter is set in cursor.arraysize object, this parameter
+    can greatly speed up the dump for some databases when the driver uses
+    cursors.arraysize as the number of rows to fetch on a single call
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
@@ -136,9 +137,9 @@ class SQLDump(SQLInputTask):
             cursor.arraysize = self.chunksize
 
             while True:
-                self._logger.info('Fetching chunk {j}...'.format(j=i + 1))
-                self._logger.info('Fetched chunk {i}'.format(i=i))
+                self._logger.info('Fetching chunk {i}...'.format(i))
                 data = cursor.fetchmany()
+                self._logger.info('Fetched chunk {i}'.format(i=i))
 
                 if i == 0:
                     headers = [c[0] for c in cursor.description]
