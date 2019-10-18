@@ -128,13 +128,14 @@ class SQLDump(SQLInputTask):
             self._logger.info('Saving data...')
             handler.write(df)
         else:
-            self._logger.info('Fetching first chunk...')
+            self._logger.info('Fetching chunk 0...')
 
             for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
-                                               chunksize=self.chunksize)):
-                self._logger.info('Fetched chunk {i}'.format(i=i))
+                                               chunksize=self.chunksize),
+                                   start=1):
+                self._logger.info('Fetching chunk {}...'.format(i))
                 handler.write(df)
-                self._logger.info('Fetching chunk {j}...'.format(j=i + 1))
+                self._logger.info('Fetched chunk {}'.format(i))
 
 
 class SQLTransfer(SQLInputTask):
