@@ -62,6 +62,22 @@ class Client:
                                                         type(self).__name__))
 
 
+class DrillClient(Client):
+    def __init__(self, params=dict(host='localhost', port=8047)):
+        self.params = params
+        self._set_logger()
+        self.drill = None
+
+    def connect(self):
+        from pydrill.client import PyDrill
+        self.drill = PyDrill(self.params)
+
+    def run(self, code):
+        """Run code
+        """
+        self.drill.query(code)
+
+
 class SQLAlchemyClient(Client):
     """Client for connecting with any SQLAlchemy supported database
 
