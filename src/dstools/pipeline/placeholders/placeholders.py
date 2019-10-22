@@ -85,8 +85,13 @@ class StringPlaceholder(TemplatedPlaceholder):
     def __str__(self):
         return self._rendered
 
-    # FIXME: add doc, doc_short and loc, otherwise dag.status()
-    # will break for tasks that have this as "code" such as PostgresCopy
+    @property
+    def doc_short(self):
+        return None
+
+    @property
+    def loc(self):
+        return None
 
 
 class ClientCodePlaceholder(StringPlaceholder):
@@ -222,6 +227,7 @@ class PythonCodePlaceholder:
 
         self._source = source
         self._source_as_str = inspect.getsource(source)
+        _, self._source_lineno = inspect.getsourcelines(source)
 
         self._params = None
         self._loc = inspect.getsourcefile(source)
@@ -251,4 +257,4 @@ class PythonCodePlaceholder:
 
     @property
     def loc(self):
-        return self._loc
+        return '{}:{}'.format(self._loc, self._source_lineno)

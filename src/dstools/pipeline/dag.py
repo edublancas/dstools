@@ -4,40 +4,90 @@ DAG module
 A DAG is collection of tasks that makes sure they are executed in
 the right order
 """
+from pathlib import Path
 import warnings
 import logging
 import collections
 import subprocess
 import tempfile
 
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    # backported
+    import importlib_resources
+
+
+try:
+    import mistune
+except ImportError:
+    mistune = None
+
+
+try:
+    import pygments
+    from pygments import highlight
+    from pygments.lexers import get_lexer_by_name
+    from pygments.formatters import html
+except ImportError:
+    pygments = None
+
 import networkx as nx
 from tqdm.auto import tqdm
+from jinja2 import Template
 
-from dstools.pipeline.Table import Table, BuildReport
+from dstools.pipeline.Table import Table
 from dstools.pipeline.products import MetaProduct
+from dstools.pipeline.util import image_bytes2html
+from dstools.pipeline.CodeDiffer import CodeDiffer
+from dstools.pipeline import resources
+from dstools.pipeline import executors
+
+
+class HighlightRenderer(mistune.Renderer):
+    """mistune renderer with syntax highlighting
+
+    Notes
+    -----
+    Source: https://github.com/lepture/mistune#renderer
+    """
+
+    def block_code(self, code, lang):
+        if not lang:
+            return '\n<pre><code>%s</code></pre>\n' % \
+                mistune.escape(code)
+        lexer = get_lexer_by_name(lang, stripall=True)
+        formatter = html.HtmlFormatter()
+        return highlight(code, lexer, formatter)
 
 
 class DAG(collections.abc.Mapping):
     """A DAG is a collection of tasks with dependencies
 
-    Attributes
+    Parameters
     ----------
-    build_report: BuildStatus
-        A dict-like object with tasks as keys and BuildStatus objects for each
-        task as values. str(BuildStatus) returns a table in plain text. This
-        object is created after build() is run, otherwise is None
+    differ: CodeDiffer
+        An object to determine whether two pieces of code are the same and
+        to output a diff, defaults to CodeDiffer() (default parameters)
+
     """
     # TODO: use the networkx.DiGraph structure directly to avoid having to
     # re-build the graph every time
 
-    def __init__(self, name=None, clients=None):
+    def __init__(self, name=None, clients=None, differ=None,
+                 on_task_finish=None, on_task_failure=None,
+                 executor=executors.serial):
         self._dict = {}
         self.name = name or 'No name'
+        self.differ = differ or CodeDiffer()
         self._logger = logging.getLogger(__name__)
-        self.build_report = None
 
         self._clients = clients or {}
         self._rendered = False
+        self._executor = executor
+
+        self._on_task_finish = on_task_finish
+        self._on_task_failure = on_task_failure
 
     @property
     def product(self):
@@ -80,32 +130,12 @@ class DAG(collections.abc.Mapping):
 
         Returns
         -------
-        DAGStats
+        BuildReport
             A dict-like object with tasks as keys and dicts with task
-            status as values. str(DAGStats) returns a table in plain text
+            status as values
         """
         self.render()
-
-        # attributes docs:
-        # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
-
-        status_all = []
-
-        g = self._to_graph()
-        pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
-
-        for t in pbar:
-            pbar.set_description('Building task "{}"'.format(t.name))
-            t.build()
-            status_all.append(t.build_report)
-
-        self.build_report = BuildReport(status_all)
-        self._logger.info(' DAG status:\n{}'.format(self.build_report))
-
-        for client in self.clients.values():
-            client.close()
-
-        return self.build_report
+        return self._executor(self)
 
     def status(self, **kwargs):
         """Returns a table with tasks status
@@ -115,11 +145,63 @@ class DAG(collections.abc.Mapping):
         return Table([t.status(**kwargs)
                       for k, t in self._dict.items()])
 
-    def plot(self, open_image=True):
+    def to_dict(self, include_plot=False):
+        """Returns a dict representation of the dag's Tasks,
+        only includes a few attributes.
+
+        Parameters
+        ----------
+        include_plot: bool, optional
+            If True, the path to a PNG file with the plot in "_plot"
+        """
+        d = {name: task.to_dict() for name, task in self._dict.items()}
+
+        if include_plot:
+            d['_plot'] = self.plot(open_image=False)
+
+        return d
+
+    def to_markup(self, path=None, fmt='html'):
+        """Returns a str (md or html) with the pipeline's description
+        """
+        if fmt not in ['html', 'md']:
+            raise ValueError('fmt must be html or md, got {}'.format(fmt))
+
+        status = self.status().to_format('html')
+        path_to_plot = Path(self.plot(open_image=False))
+        plot = image_bytes2html(path_to_plot.read_bytes())
+
+        template_md = importlib_resources.read_text(resources, 'dag.md')
+        out = Template(template_md).render(plot=plot, status=status, dag=self)
+
+        if fmt == 'html':
+            if not mistune or not pygments:
+                raise ImportError('mistune and pygments are '
+                                  'required to export to HTML')
+
+            renderer = HighlightRenderer()
+            out = mistune.markdown(out, escape=False, renderer=renderer)
+
+            # add css
+            html = importlib_resources.read_text(resources,
+                                                 'github-markdown.html')
+            out = Template(html).render(content=out)
+        if path is not None:
+            Path(path).write_text(out)
+
+        return out
+
+    def plot(self, open_image=True, path=None):
         """Plot the DAG
         """
+        # attributes docs:
+        # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
+
         # FIXME: add tests for this
         self.render()
+
+        if not path:
+            path = tempfile.mktemp(suffix='.png')
 
         G = self._to_graph()
 
@@ -131,7 +213,6 @@ class DAG(collections.abc.Mapping):
         # # http://graphviz.org/doc/info/attrs.html
         # NOTE: requires pygraphviz and pygraphviz
         G_ = nx.nx_agraph.to_agraph(G)
-        path = tempfile.mktemp(suffix='.png')
         G_.draw(path, prog='dot', args='-Grankdir=LR')
 
         if open_image:
@@ -211,6 +292,8 @@ class DAG(collections.abc.Mapping):
         return self._dict[key]
 
     def __iter__(self):
+        # TODO: raise a warning if this any of this dag tasks have tasks
+        # from other tasks as dependencies (they won't show up here)
         for name in self._dict.keys():
             yield name
 
@@ -228,3 +311,17 @@ class DAG(collections.abc.Mapping):
 
     def _ipython_key_completions_(self):
         return list(self)
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger is not pickable, so we remove them and build
+        # them again in __setstate__
+        del state['_logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))

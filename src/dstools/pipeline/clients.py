@@ -28,8 +28,7 @@ class Client:
 
     def __init__(self, uri):
         self._uri = uri
-        self._logger = logging.getLogger('{}.{}'.format(__name__,
-                                                        type(self).__name__))
+        self._set_logger()
 
     def connect(self):
         raise NotImplementedError("This method must be implemented in the "
@@ -45,8 +44,44 @@ class Client:
         raise NotImplementedError("This method must be implemented in the "
                                   "subclasses")
 
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger is not pickable, so we remove them and build it
+        # again in __setstate__
+        del state['_logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._set_logger()
+
+    def _set_logger(self):
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
+
+
+class DrillClient(Client):
+    def __init__(self, params=dict(host='localhost', port=8047)):
+        self.params = params
+        self._set_logger()
+        self.drill = None
+
+    def connect(self):
+        from pydrill.client import PyDrill
+        self.drill = PyDrill(self.params)
+
+    def run(self, code):
+        """Run code
+        """
+        self.drill.query(code)
+
 
 class SQLAlchemyClient(Client):
+    """Client for connecting with any SQLAlchemy supported database
+
+    """
 
     def __init__(self, uri):
 
@@ -154,11 +189,24 @@ class RemoteShellClient(Client):
 
     @property
     def raw_client(self):
+        # client has not been created
         if self._raw_client is None:
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(**self.connect_kwargs)
-            self._raw_client = client
+            self._raw_client = paramiko.SSHClient()
+            self._raw_client.set_missing_host_key_policy(
+                paramiko.AutoAddPolicy())
+            self._raw_client.connect(**self.connect_kwargs)
+
+        # client has been created but still have to check if it's active:
+        else:
+
+            is_active = False
+
+            # this might not always work: https://stackoverflow.com/a/28288598
+            if self._raw_client.get_transport() is not None:
+                is_active = self._raw_client.get_transport().is_active()
+
+            if not is_active:
+                self._raw_client.connect(**self.connect_kwargs)
 
         return self._raw_client
 

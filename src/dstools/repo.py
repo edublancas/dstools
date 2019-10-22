@@ -1,5 +1,6 @@
 import json
 import subprocess
+from subprocess import CalledProcessError
 from shlex import quote
 import sys
 from pathlib import Path
@@ -42,7 +43,15 @@ def get_git_timestamp(path):
 
 
 def current_branch(path):
-    return _run_command(path, 'git branch --show-current')
+    # seems like the most reliable way is to do:
+    # git branch --show-current, but that was added in a recent git
+    # version 2.22, for older versions, the one below works
+    try:
+        return _run_command(path, 'git symbolic-ref --short HEAD')
+    except CalledProcessError:
+        # if detached head, the command above does not work, since there is
+        # no current branch
+        return None
 
 
 def get_version(package_name):
@@ -71,8 +80,11 @@ def get_env_metadata(path):
     git_timestamp = get_git_timestamp(path)
     git_branch = current_branch(path)
 
+    git_location = git_branch or hash_
+
     return dict(git_summary=git_summary, git_hash=hash_, git_diff=git_diff,
-                git_timestamp=git_timestamp, git_branch=git_branch)
+                git_timestamp=git_timestamp, git_branch=git_branch,
+                git_location=git_location)
 
 
 def save_env_metadata(env, path_to_output):

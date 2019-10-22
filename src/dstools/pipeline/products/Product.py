@@ -27,7 +27,8 @@ class Product:
         self._identifier = self.IDENTIFIERCLASS(identifier)
         self.did_download_metadata = False
         self.task = None
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger('{}.{}'.format(__name__,
+                                                       type(self).__name__))
 
     @property
     def timestamp(self):
@@ -99,7 +100,10 @@ class Product:
         return outdated
 
     def _outdated_code_dependency(self):
-        return self.stored_source_code != self.task.source_code
+        dag = self.task.dag
+        return dag.differ.code_is_different(self.stored_source_code,
+                                            self.task.source_code,
+                                            language=self.task.language)
 
     def _get_metadata(self):
         """
@@ -138,11 +142,25 @@ class Product:
             t = ceil(len(s) / 20)
 
             for i in range(t):
-                s_short += s[(20*i):(20*(i+1))] + '\n'
+                s_short += s[(20 * i):(20 * (i + 1))] + '\n'
         else:
             s_short = s
 
         return s_short
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # logger is not pickable, so we remove them and build
+        # them again in __setstate__
+        del state['logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.logger = logging.getLogger('{}.{}'.format(__name__,
+                                                       type(self).__name__))
 
     # Subclasses must implement the following methods
 

@@ -1,5 +1,4 @@
 import warnings
-import shutil
 from pathlib import Path
 from io import StringIO
 
@@ -8,13 +7,21 @@ from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            StringPlaceholder)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
+from dstools.pipeline import io
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 
 
-class SQLScript(Task):
+class SQLInputTask(Task):
+    """Tasks whose code is SQL code
+    """
+
+    @property
+    def language(self):
+        return 'sql'
+
+
+class SQLScript(SQLInputTask):
     """
     A tasks represented by a SQL script run agains a database this Task
     does not make any assumptions about the underlying SQL engine, it should
@@ -70,42 +77,45 @@ class SQLScript(Task):
         conn.close()
 
 
-def _to_parquet(df, path, schema=None):
-    """Export a pandas.DataFrame to parquet
+class SQLDump(SQLInputTask):
+    """
+    Dumps data from a SQL SELECT statement to parquet files (one per chunk)
+
+    Parameters
+    ----------
+    code: str
+        The SQL query to run in the database
+    product: File
+        The directory location for the output parquet files
+    dag: DAG
+        The DAG for this task
+    name: str, optional
+        Name for this task
+    params: dict, optional
+        Extra parameters for the task's code
+    chunksize: int, optional
+        Size of each chunk, one parquet file will be generated per chunk. If
+        None, only one file is created
+
 
     Notes
     -----
-
-    going from pandas.DataFrame to parquet has an intermediate
-    apache arrow conversion (since arrow has the actual implementation
-    for writing parquet). pandas provides the pandas.DataFrame.to_parquet
-    to do this 2-step process but it gives errors with timestamps:
-    ArrowInvalid: Casting from timestamp[ns] to timestamp[ms] would lose data
-
-    This function uses the pyarrow package directly to save to parquet
-    """
-    # keeping the index causes a "KeyError: '__index_level_0__'" error,
-    # so remove it
-    table = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
-    pq.write_table(table, str(path))
-    return table.schema
-
-
-class SQLDump(Task):
-    """
-    Dumps data from a SQL SELECT statement to parquet files (one per chunk)
+    The chunksize parameter is set in cursor.arraysize object, this parameter
+    can greatly speed up the dump for some databases when the driver uses
+    cursors.arraysize as the number of rows to fetch on a single call
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
     PRODUCT_IN_CODE = False
 
     def __init__(self, code, product, dag, name=None, client=None, params=None,
-                 chunksize=10000):
+                 chunksize=10000, io_handler=None):
         params = params or {}
         super().__init__(code, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
         self.chunksize = chunksize
+        self.io_handler = io_handler or io.CSVIO
 
         if self.client is None:
             raise ValueError('{} must be initialized with a client'
@@ -114,42 +124,41 @@ class SQLDump(Task):
     def run(self):
         source_code = str(self._code)
         path = Path(str(self.params['product']))
+        handler = self.io_handler(path, chunked=bool(self.chunksize))
 
         self._logger.debug('Code: %s', source_code)
 
-        if self.chunksize is None:
-            df = pd.read_sql(source_code, self.client.engine,
-                             chunksize=self.chunksize)
-            self._logger.info('Fetching data...')
-            _to_parquet(df, path)
+        cursor = self.client.raw_connection().cursor()
+        cursor.execute(source_code)
+
+        if self.chunksize:
+            i = 1
+            headers = None
+            cursor.arraysize = self.chunksize
+
+            while True:
+                self._logger.info('Fetching chunk {}...'.format(i))
+                data = cursor.fetchmany()
+                self._logger.info('Fetched chunk {}'.format(i))
+
+                if i == 1:
+                    headers = [c[0] for c in cursor.description]
+
+                if not data:
+                    break
+
+                handler.write(data, headers)
+
+                i = i + 1
         else:
-            if path.exists():
-                shutil.rmtree(path)
-
-            path.mkdir()
-
-            self._logger.debug('Fetching first chunk...')
-
-            # during the first chunk, we pass None as schema, so it's inferred
-            schema = None
-
-            for i, df in enumerate(pd.read_sql(source_code, self.client.engine,
-                                               chunksize=self.chunksize)):
-
-                self._logger.info('Fetched chunk {i}'.format(i=i))
-
-                s = _to_parquet(df, path / '{i}.parquet'.format(i=i), schema)
-
-                # save the inferred schema, following iterations will use this
-                # to avoid incompatibility between schemas:
-                # https://github.com/dask/dask/issues/4194
-                if i == 0:
-                    schema = s
-
-                self._logger.info('Fetching chunk {j}...'.format(j=i + 1))
+            data = cursor.fetchall()
+            headers = [c[0] for c in cursor.description]
+            handler.write(data, headers)
 
 
-class SQLTransfer(Task):
+# FIXME: this can be a lot faster for clients that transfer chunksize
+# rows over the network
+class SQLTransfer(SQLInputTask):
     """Transfers data from a SQL statement to a SQL relation
     """
     CODECLASS = ClientCodePlaceholder
@@ -190,6 +199,11 @@ class SQLTransfer(Task):
 
 class SQLUpload(Task):
     """Upload data to a database from a parquet file
+
+    Parameters
+    ----------
+    code: str
+        Path to parquet file to upload
     """
     CODECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
@@ -221,7 +235,13 @@ class SQLUpload(Task):
 
 
 class PostgresCopy(Task):
-    """Efficiently copy data to a postgres database using COPY
+    """Efficiently copy data to a postgres database using COPY (better
+    alternative to SQLUpload for postgres)
+
+    Parameters
+    ----------
+    code: str
+        Path to parquet file to upload
     """
     CODECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)

@@ -6,15 +6,15 @@ a product (a persistent object such as a table in a database),
 it has a name (which can be infered from the source code filename)
 and lives in a DAG
 """
+import traceback
 from copy import copy
 import logging
 from datetime import datetime
-from dstools.pipeline.tasks import util
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.dag import DAG
 from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
-from dstools.pipeline.tasks.TaskStatus import TaskStatus
+from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Params import Params
 from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            TemplatedPlaceholder)
@@ -85,6 +85,14 @@ class Task:
 
         self._status = TaskStatus.WaitingRender
 
+        self._on_finish = None
+        self._on_failure = None
+
+    @property
+    def language(self):
+        # this is used for determining how to normalize code before comparing
+        return None
+
     @property
     def name(self):
         return self._name
@@ -104,6 +112,30 @@ class Task:
         # always return a copy to prevent global state if contents
         # are modified (e.g. by using pop)
         return copy(self._upstream)
+
+    @property
+    def on_finish(self):
+        """
+        Callable to be executed after this task is built successfully
+        (passes Task as parameter)
+        """
+        return self._on_finish
+
+    @on_finish.setter
+    def on_finish(self, value):
+        self._on_finish = value
+
+    @property
+    def on_failure(self):
+        """
+        Callable to be executed if task fails (passes Task as first parameter
+        and the exception as second parameter)
+        """
+        return self._on_failure
+
+    @on_failure.setter
+    def on_failure(self, value):
+        self._on_failure = value
 
     def run(self):
         raise NotImplementedError('You have to implement this method')
@@ -153,14 +185,22 @@ class Task:
 
             then = datetime.now()
 
-            self.run()
+            try:
+                self.run()
+            except Exception as e:
+                tb = traceback.format_exc()
+
+                if self.on_failure:
+                    try:
+                        self.on_failure(self, tb)
+                    except Exception:
+                        self._logger.exception('Error executing on_failure '
+                                               'callback')
+                raise e
 
             now = datetime.now()
             elapsed = (now - then).total_seconds()
             self._logger.info(f'Done. Operation took {elapsed:.1f} seconds')
-
-            # TODO: should check if job ran successfully, if not,
-            # stop execution
 
             # update metadata
             self.product.timestamp = datetime.now().timestamp()
@@ -177,6 +217,13 @@ class Task:
                                      'the task ran successfully but product '
                                      f'"{self.product}" does not exist yet '
                                      '(task.product.exist() returned False)')
+
+            if self.on_finish:
+                try:
+                    self.on_finish(self)
+                except Exception:
+                    self._logger.exception('Error executing on_finish '
+                                           'callback')
 
         else:
             self._logger.info(f'No need to run {repr(self)}')
@@ -273,8 +320,11 @@ class Task:
         data['Outdated code'] = outd_code
 
         if outd_code and return_code_diff:
-            data['Code diff'] = util.diff_strings(p.stored_source_code,
-                                                  self.source_code)
+            data['Code diff'] = (self.dag
+                                 .differ
+                                 .get_diff(p.stored_source_code,
+                                           self.source_code,
+                                           language=self.language))
         else:
             outd_code = ''
 
@@ -283,6 +333,14 @@ class Task:
         data['Location'] = self._code.loc
 
         return Row(data)
+
+    def to_dict(self):
+        """
+        Returns a dict representation of the Task, only includes a few
+        attributes
+        """
+        return dict(name=self.name, product=str(self.product),
+                    source_code=self.source_code)
 
     def _render_product(self):
         params_names = list(self.params)
@@ -346,3 +404,17 @@ class Task:
             return s if len(s) <= max_l else s[:max_l - 3] + '...'
 
         return f'{short(self.name)} -> \n{self.product._short_repr()}'
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger is not pickable, so we remove them and build
+        # them again in __setstate__
+        del state['_logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._logger = logging.getLogger('{}.{}'.format(__name__,
+                                                        type(self).__name__))
