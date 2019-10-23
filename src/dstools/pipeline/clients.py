@@ -20,6 +20,13 @@ import paramiko
 CLIENTS = []
 
 # TODO: make all clients expose the same API
+# TODO: I might need to to define two APIs, clients whose underlying
+# implemenation relies on a DBAPI object. tasks.sql and products.sql
+# currently use that, for products.sql I think I should remove references
+# to raw connections and just use the client.run method, for tasks.sql
+# i have to decide, some tasks actually need access to a raw connection,
+# such as SQLDump since they rely on modifying a cursor object, others such
+# as SQLTransfer need a sqlalchemy engine object
 
 
 class Client:
