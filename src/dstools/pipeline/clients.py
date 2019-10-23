@@ -133,7 +133,7 @@ class SQLAlchemyClient(Client):
     def run(self, code):
         conn = self.raw_connection()
         cur = conn.cursor()
-        cur.execute(self.source_code)
+        cur.execute(code)
         conn.commit()
         conn.close()
 
