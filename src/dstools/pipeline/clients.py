@@ -130,6 +130,13 @@ class SQLAlchemyClient(Client):
             self._engine.dispose()
             self._engine = None
 
+    def run(self, code):
+        conn = self.raw_connection()
+        cur = conn.cursor()
+        cur.execute(self.source_code)
+        conn.commit()
+        conn.close()
+
 
 class ShellClient(Client):
     """Client to run command in the local shell
