@@ -3,18 +3,11 @@ Handling file I/O
 """
 import csv
 from pathlib import Path
-import shutil
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-
-def safe_remove(path):
-    if path.exists():
-        if path.is_file():
-            path.unlink()
-        else:
-            shutil.rmtree(path)
+from dstools.pipeline.util import safe_remove
 
 
 class FileIO:
