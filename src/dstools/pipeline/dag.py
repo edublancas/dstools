@@ -98,6 +98,11 @@ class DAG(collections.abc.Mapping):
     def clients(self):
         return self._clients
 
+    def pop(self, name):
+        """Remove a task from the dag
+        """
+        return self._dict.pop(name)
+
     def render(self, show_progress=True, force=False):
         """Render the graph
         """
