@@ -20,6 +20,13 @@ import paramiko
 CLIENTS = []
 
 # TODO: make all clients expose the same API
+# TODO: I might need to to define two APIs, clients whose underlying
+# implemenation relies on a DBAPI object. tasks.sql and products.sql
+# currently use that, for products.sql I think I should remove references
+# to raw connections and just use the client.run method, for tasks.sql
+# i have to decide, some tasks actually need access to a raw connection,
+# such as SQLDump since they rely on modifying a cursor object, others such
+# as SQLTransfer need a sqlalchemy engine object
 
 
 class Client:
@@ -68,14 +75,14 @@ class DrillClient(Client):
         self._set_logger()
         self.drill = None
 
-    def connect(self):
-        from pydrill.client import PyDrill
-        self.drill = PyDrill(self.params)
-
     def run(self, code):
         """Run code
         """
-        self.drill.query(code)
+        if self.drill is None:
+            from pydrill.client import PyDrill
+            self.drill = PyDrill(**self.params)
+
+        return self.drill.query(code)
 
 
 class SQLAlchemyClient(Client):
@@ -129,6 +136,13 @@ class SQLAlchemyClient(Client):
             self._logger.info(f'Disposing engine {self._engine}')
             self._engine.dispose()
             self._engine = None
+
+    def run(self, code):
+        conn = self.raw_connection()
+        cur = conn.cursor()
+        cur.execute(code)
+        conn.commit()
+        conn.close()
 
 
 class ShellClient(Client):
