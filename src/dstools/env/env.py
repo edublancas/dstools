@@ -49,8 +49,9 @@ class Env:
     >>> env.path.raw # returns an absolute path to the raw data
     """
     __path_to_env = None
+    wildcards_replace = None
 
-    def __init__(self, path_to_env=None, wildcards_replace=None):
+    def __init__(self, path_to_env=None):
         self.logger = logging.getLogger(__name__)
 
         # if not env has been set...
@@ -68,6 +69,8 @@ class Env:
 
             # resolve it
             path_to_env = Path(path_to_env).resolve()
+
+            # and save a reference to the file
             Env.__path_to_env = path_to_env
 
         # if an environment has been set...
@@ -78,7 +81,7 @@ class Env:
                 self.logger.info('Already instantiated Env, loading it from '
                                  f'{path_to_env}...')
 
-            # otherwise, resolve argument and warng the user if there is
+            # otherwise, resolve argument and warn the user if there is
             # conflcit
             else:
                 path_to_env = Path(path_to_env).resolve()
@@ -92,7 +95,7 @@ class Env:
 
         self._path_to_env = path_to_env
 
-        self._env_content = self.load(path_to_env)
+        self._env_content = self.load(path_to_env, self.wildcards_replace)
 
         self._name = _get_name(path_to_env)
         self._path = PathManager(path_to_env, self)
