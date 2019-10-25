@@ -27,7 +27,7 @@ class SQLScript(SQLInputTask):
     does not make any assumptions about the underlying SQL engine, it should
     work witn all DBs supported by SQLAlchemy
     """
-    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation, File)
 
     def __init__(self, code, product, dag, name=None, client=None,
                  params=None):
@@ -69,12 +69,11 @@ class SQLScript(SQLInputTask):
                                       name=name, product=self.product))
 
     def run(self):
-        self._validate()
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
-        cur.execute(self.source_code)
-        conn.commit()
-        conn.close()
+        if (isinstance(self.product, PostgresRelation)
+                or isinstance(self.product, SQLiteRelation)):
+            self._validate()
+
+        return self.client.run(self.source_code)
 
 
 class SQLDump(SQLInputTask):

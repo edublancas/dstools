@@ -61,7 +61,7 @@ def fnc(upstream, product):
 
 
 def test_parallel_execution(tmp_directory):
-    dag = DAG('dag', executor=executors.parallel)
+    dag = DAG('dag', executor=executors.Parallel)
 
     a1 = PythonCallable(fna1, File('a1.txt'), dag, 'a1')
     a2 = PythonCallable(fna2, File('a2.txt'), dag, 'a2')
