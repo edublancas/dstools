@@ -50,7 +50,7 @@ class Env:
     """
     __path_to_env = None
 
-    def __init__(self, path_to_env=None):
+    def __init__(self, path_to_env=None, wildcards_replace=None):
         self.logger = logging.getLogger(__name__)
 
         # if not env has been set...
@@ -125,16 +125,21 @@ class Env:
         """
         return repo.get_env_metadata(self.path.home)
 
-    def load(self, path_to_env):
+    def load(self, path_to_env, wildcards_replace=None):
+        wildcards_replace = wildcards_replace or {}
+
         path_to_env = Path(path_to_env)
         home = path_to_env.parent
         env_content = path_to_env.read_text()
 
-        params = dict(user=getpass.getuser())
+        params = dict(user=wildcards_replace.get('user') or getpass.getuser())
 
         # only try to find git location if {{git_location is used}}
         if '{{git_location}}' in env_content:
-            params['git_location'] = (repo
+            if wildcards_replace.get('git_location'):
+                params['git_location'] = wildcards_replace['git_location']
+            else:
+                params['git_location'] = (repo
                                       .get_env_metadata(home)['git_location'])
 
         s = Template(env_content).render(**params)
