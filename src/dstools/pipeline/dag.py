@@ -71,12 +71,12 @@ class DAG(collections.abc.Mapping):
         to output a diff, defaults to CodeDiffer() (default parameters)
 
     """
-    # TODO: use the networkx.DiGraph structure directly to avoid having to
+    # TODO: use the networkx.DiGraph struecture directly to avoid having to
     # re-build the graph every time
 
     def __init__(self, name=None, clients=None, differ=None,
                  on_task_finish=None, on_task_failure=None,
-                 executor=executors.serial):
+                 executor=executors.Serial):
         self._dict = {}
         self.name = name or 'No name'
         self.differ = differ or CodeDiffer()
@@ -84,7 +84,7 @@ class DAG(collections.abc.Mapping):
 
         self._clients = clients or {}
         self._rendered = False
-        self._executor = executor
+        self._Executor = executor
 
         self._on_task_finish = on_task_finish
         self._on_task_failure = on_task_failure
@@ -140,7 +140,8 @@ class DAG(collections.abc.Mapping):
             status as values
         """
         self.render()
-        return self._executor(self)
+        executor = self._Executor(self)
+        return executor()
 
     def status(self, **kwargs):
         """Returns a table with tasks status
