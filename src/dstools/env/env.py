@@ -1,6 +1,7 @@
 """
 Environment management
 """
+import weakref
 import logging
 from warnings import warn
 from itertools import chain
@@ -48,8 +49,10 @@ class Env:
     >>> env.db.uri # traverse the yaml tree structure using dot notation
     >>> env.path.raw # returns an absolute path to the raw data
     """
+    _instances = set()
+
     __path_to_env = None
-    __wildcards_replace = None
+    __wildcards_replace = {}
 
     def __init__(self, path_to_env=None):
         self.logger = logging.getLogger(__name__)
@@ -97,7 +100,8 @@ class Env:
         self._name = _get_name(path_to_env)
         self._path = PathManager(path_to_env, self)
 
-        self._env_content = self.load(path_to_env, self.__wildcards_replace)
+        self._env_content = self.load(path_to_env)
+        self._instances.add(weakref.ref(self))
 
     def __repr__(self):
         return f'Env loaded from {self._path_to_env}'
@@ -127,22 +131,21 @@ class Env:
         """
         return repo.get_env_metadata(self.path.home)
 
-    def load(self, path_to_env, wildcards_replace=None):
-        wildcards_replace = wildcards_replace or {}
-
+    def load(self, path_to_env):
         path_to_env = Path(path_to_env)
         home = path_to_env.parent
         env_content = path_to_env.read_text()
 
-        params = dict(user=wildcards_replace.get('user') or getpass.getuser())
+        params = dict(user=self.__wildcards_replace.get(
+            'user') or getpass.getuser())
 
         # only try to find git location if {{git_location is used}}
         if '{{git_location}}' in env_content:
-            if wildcards_replace.get('git_location'):
-                params['git_location'] = wildcards_replace['git_location']
+            if self.__wildcards_replace.get('git_location'):
+                params['git_location'] = self.__wildcards_replace['git_location']
             else:
                 params['git_location'] = (repo
-                                      .get_env_metadata(home)['git_location'])
+                                          .get_env_metadata(home)['git_location'])
 
         s = Template(env_content).render(**params)
 
@@ -153,10 +156,25 @@ class Env:
 
         return env
 
-    def _set_wildcards(d):
-        Env.__wildcards_replace = d
+    @classmethod
+    def getinstances(cls):
+        # TODO: use a singleton instead of this?
+        # http://effbot.org/pyfaq/how-do-i-get-a-list-of-all-instances-of-a-given-class.htm
+        dead = set()
+        for ref in cls._instances:
+            obj = ref()
+            if obj is not None:
+                yield obj
+            else:
+                dead.add(ref)
+        cls._instances -= dead
+
+    @classmethod
+    def _set_wildcards(cls, d):
+        cls.__wildcards_replace = d
         # re-initialize content
-        self._env_content = self.load(path_to_env, self.__wildcards_replace)
+        for obj in cls.getinstances():
+            obj._env_content = obj.load(obj._path_to_env)
 
 
 def find_env_w_name(name):
