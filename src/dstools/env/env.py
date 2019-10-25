@@ -49,7 +49,7 @@ class Env:
     >>> env.path.raw # returns an absolute path to the raw data
     """
     __path_to_env = None
-    wildcards_replace = None
+    __wildcards_replace = None
 
     def __init__(self, path_to_env=None):
         self.logger = logging.getLogger(__name__)
@@ -94,11 +94,10 @@ class Env:
                          'have more than one environment per project')
 
         self._path_to_env = path_to_env
-
-        self._env_content = self.load(path_to_env, self.wildcards_replace)
-
         self._name = _get_name(path_to_env)
         self._path = PathManager(path_to_env, self)
+
+        self._env_content = self.load(path_to_env, self.__wildcards_replace)
 
     def __repr__(self):
         return f'Env loaded from {self._path_to_env}'
@@ -153,6 +152,11 @@ class Env:
         env = FrozenJSON(content)
 
         return env
+
+    def _set_wildcards(d):
+        Env.__wildcards_replace = d
+        # re-initialize content
+        self._env_content = self.load(path_to_env, self.__wildcards_replace)
 
 
 def find_env_w_name(name):
