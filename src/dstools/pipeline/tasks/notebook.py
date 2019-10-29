@@ -21,13 +21,18 @@ try:
 except ImportError:
     nbconvert = None
 
+try:
+    from jupyter_client import kernelspec
+except ImportError:
+    kernelspec = None
+
 
 from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks.Task import Task
 
 
-def _to_ipynb(source, extension):
+def _to_ipynb(source, extension, kernelspec_name=None):
     """Convert to jupyter notebook via jupytext
     """
     nb = jupytext.reads(source, fmt={'extension': extension})
@@ -36,6 +41,21 @@ def _to_ipynb(source, extension):
 
     # tag the first cell as "parameters" for papermill to inject them
     nb.cells[0]['metadata']['tags'] = ["parameters"]
+
+    if nb.metadata.get('kernelspec') is None and kernelspec_name is None:
+        raise ValueError('juptext could not load kernelspec from file and '
+                         'kernelspec_name was not specified, either add '
+                         'kernelspec info to your source file or specify '
+                         'a kernelspec by name')
+
+    if kernelspec_name is not None:
+        k = kernelspec.get_kernel_spec('python3')
+
+        nb.metadata.kernelspec = {
+            "display_name": k.display_name,
+            "language": k.language,
+            "name": "python3"
+        }
 
     out = mktemp()
     Path(out).write_text(nbformat.v4.writes(nb))
@@ -65,9 +85,10 @@ class NotebookRunner(Task):
     PRODUCT_IN_CODE = False
 
     def __init__(self, code, product, dag, name=None, params=None,
-                 papermill_params=None):
+                 papermill_params=None, kernelspec_name=None):
         params = params or {}
         self.papermill_params = papermill_params or {}
+        self.kernelspec_name = kernelspec_name
         super().__init__(code, product, dag, name, params)
 
     def run(self):
@@ -79,7 +100,7 @@ class NotebookRunner(Task):
 
         # need to convert to ipynb using jupytext
         if ext_in != '.ipynb':
-            path_to_in = _to_ipynb(source, ext_in)
+            path_to_in = _to_ipynb(source, ext_in, self.kernelspec_name)
         else:
             # otherwise just save rendered code in a tmp file
             path_to_in = mktemp()
@@ -88,9 +109,9 @@ class NotebookRunner(Task):
         # papermill only allows JSON serializable parameters
         self.params['product'] = str(self.params['product'])
 
-        _ = pm.execute_notebook(path_to_in, path_to_out,
-                                parameters=self.params,
-                                **self.papermill_params)
+        pm.execute_notebook(path_to_in, path_to_out,
+                            parameters=self.params,
+                            **self.papermill_params)
 
         # if output format other than ipynb, convert using nbconvert
         # and overwrite
