@@ -4,6 +4,7 @@ Task implementations
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
+from multiprocessing import Process
 import shlex
 import subprocess
 from subprocess import CalledProcessError
@@ -49,7 +50,7 @@ class BashCommand(Task):
 
 
 class PythonCallable(Task):
-    """A task that runs a Python callabel (i.e.  a function)
+    """A task that runs a Python callable (i.e.  a function)
     """
     CODECLASS = PythonCodePlaceholder
 
@@ -57,7 +58,12 @@ class PythonCallable(Task):
         super().__init__(code, product, dag, name, params)
 
     def run(self):
-        self._code._source(**self.params)
+        if self.dag._Executor.TASKS_CAN_CREATE_CHILD_PROCESSES:
+            p = Process(target=self._code._source, kwargs=self.params)
+            p.start()
+            p.join()
+        else:
+            self._code._source(**self.params)
 
     @property
     def language(self):

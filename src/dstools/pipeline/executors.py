@@ -9,98 +9,113 @@ from dstools.pipeline.Table import BuildReport
 from dstools.pipeline.constants import TaskStatus
 
 
-def serial(dag):
+class Serial:
     """Runs a DAG serially
     """
-    status_all = []
+    TASKS_CAN_CREATE_CHILD_PROCESSES = True
 
-    g = dag._to_graph()
-    pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
+    def __init__(self, dag):
+        self.dag = dag
 
-    for t in pbar:
-        pbar.set_description('Building task "{}"'.format(t.name))
+    def __call__(self):
+        status_all = []
 
-        try:
-            t.build()
-        except Exception as e:
-            if dag._on_task_failure:
-                dag._on_task_failure(t)
+        g = self.dag._to_graph()
+        pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
 
-            raise e
-        else:
-            if dag._on_task_finish:
-                dag._on_task_finish(t)
+        for t in pbar:
+            pbar.set_description('Building task "{}"'.format(t.name))
 
-        status_all.append(t.build_report)
+            try:
+                t.build()
+            except Exception as e:
+                if self.dag._on_task_failure:
+                    self.dag._on_task_failure(t)
 
-    build_report = BuildReport(status_all)
-    dag._logger.info(' DAG report:\n{}'.format(repr(build_report)))
+                raise e
+            else:
+                if self.dag._on_task_finish:
+                    self.dag._on_task_finish(t)
 
-    for client in dag.clients.values():
-        client.close()
+            status_all.append(t.build_report)
 
-    return build_report
+        build_report = BuildReport(status_all)
+        self.dag._logger.info(' DAG report:\n{}'.format(repr(build_report)))
+
+        for client in self.dag.clients.values():
+            client.close()
+
+        return build_report
 
 
-def parallel(dag):
+class Parallel:
     """Runs a DAG in parallel using the multiprocessing module
     """
-    # TODO: Have to test this with other Tasks, especially the ones that use
-    # clients - have to make sure they are serialized correctly
-    done = []
-    started = []
+    # Tasks cannot create child processes, see documention:
+    # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Process.daemon
+    TASKS_CAN_CREATE_CHILD_PROCESSES = False
 
-    def callback(task):
-        """Keep track of finished tasks
-        """
-        done.append(task)
+    def __init__(self, dag):
+        self.dag = dag
 
-    def next_task():
-        """
-        Return the next Task to execute, returns None if no Tasks are available
-        for execution (cause their dependencies are not done yet) and raises
-        a StopIteration exception if there are no more tasks to run, which means
-        the DAG is done
-        """
-        if done:
-            for task in done:
-                task = dag[task.name]
-                # TODO: must check for esxecution status - if there is an error
-                # is this status updated automatically? cause it will be better
-                # for tasks to update their status by themselves, then have a
-                # manager to update the other tasks statuses whenever one finishes
-                # to know which ones are available for execution
-                task._status = TaskStatus.Executed
+    def __call__(self):
+        # TODO: Have to test this with other Tasks, especially the ones that use
+        # clients - have to make sure they are serialized correctly
+        done = []
+        started = []
 
-                # update other tasks status, should abstract this in a execution
-                # manager, also make the _get_downstream more efficient by
-                # using the networkx data structure directly
-                for t in task._get_downstream():
-                    t._update_status()
+        def callback(task):
+            """Keep track of finished tasks
+            """
+            done.append(task)
 
-        # iterate over tasks to find which is ready for execution
-        for task_name in dag:
-            # ignore tasks that are already started, I should probably add an
-            # executing status but that cannot exist in the task itself,
-            # maybe in the manaer?
-            if (dag[task_name]._status == TaskStatus.WaitingExecution
-                    and dag[task_name] not in started):
-                t = dag[task_name]
-                return t
+        def next_task():
+            """
+            Return the next Task to execute, returns None if no Tasks are available
+            for execution (cause their dependencies are not done yet) and raises
+            a StopIteration exception if there are no more tasks to run, which means
+            the DAG is done
+            """
+            if done:
+                for task in done:
+                    task = self.dag[task.name]
+                    # TODO: must check for esxecution status - if there is an error
+                    # is this status updated automatically? cause it will be better
+                    # for tasks to update their status by themselves, then have a
+                    # manager to update the other tasks statuses whenever one finishes
+                    # to know which ones are available for execution
+                    task._status = TaskStatus.Executed
 
-        # if all tasks are done, stop
-        if set([t.name for t in done]) == set(dag):
-            raise StopIteration
+                    # update other tasks status, should abstract this in a execution
+                    # manager, also make the _get_downstream more efficient by
+                    # using the networkx data structure directly
+                    for t in task._get_downstream():
+                        t._update_status()
 
-    with Pool(processes=4) as pool:
-        while True:
-            try:
-                task = next_task()
-            except StopIteration:
-                break
-            else:
-                if task is not None:
-                    res = pool.apply_async(task.build, [], callback=callback)
-                    started.append(task)
-                    print('started', task.name)
-                    # time.sleep(3)
+            # iterate over tasks to find which is ready for execution
+            for task_name in self.dag:
+                # ignore tasks that are already started, I should probably add an
+                # executing status but that cannot exist in the task itself,
+                # maybe in the manaer?
+                if (self.dag[task_name]._status == TaskStatus.WaitingExecution
+                        and self.dag[task_name] not in started):
+                    t = self.dag[task_name]
+                    return t
+
+            # if all tasks are done, stop
+            if set([t.name for t in done]) == set(self.dag):
+                raise StopIteration
+
+        with Pool(processes=4) as pool:
+            while True:
+                try:
+                    task = next_task()
+                except StopIteration:
+                    break
+                else:
+                    if task is not None:
+                        res = pool.apply_async(
+                            task.build, [], callback=callback)
+                        started.append(task)
+                        print('started', task.name)
+                        # time.sleep(3)
