@@ -221,9 +221,9 @@ class Task:
             if self.on_finish:
                 try:
                     self.on_finish(self)
-                except Exception:
-                    self._logger.exception('Error executing on_finish '
-                                           'callback')
+                except Exception as e:
+                    raise TaskBuildError('Exception when running on_finish '
+                                         'for task {}: {}'.format(self, e))
 
         else:
             self._logger.info(f'No need to run {repr(self)}')
