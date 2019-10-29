@@ -102,7 +102,8 @@ class ClientCodePlaceholder(StringPlaceholder):
     Notes
     -----
     This is really just a StrictTemplate object that stores its rendered
-    version in the same object and raises an Exception if attempted
+    version in the same object and raises an Exception if attempted. It also
+    passes some of its attributes
     """
 
     def __init__(self, source):
@@ -128,6 +129,10 @@ class ClientCodePlaceholder(StringPlaceholder):
     @property
     def loc(self):
         return str(self._source.path)
+
+    @property
+    def path(self):
+        return self._source.path
 
 
 class SQLRelationPlaceholder(TemplatedPlaceholder):
