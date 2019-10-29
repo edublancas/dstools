@@ -27,6 +27,7 @@ except ImportError:
     kernelspec = None
 
 
+from dstools.exceptions import TaskBuildError
 from dstools.pipeline.placeholders import ClientCodePlaceholder
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks.Task import Task
@@ -63,13 +64,24 @@ def _to_ipynb(source, extension, kernelspec_name=None):
     return out
 
 
-def _from_ipynb(path_to_nb, extension):
-    # TODO: support more extensions, also pass custom parameters
-    ext_map = {'.html': nbconvert.HTMLExporter}
+def _from_ipynb(path_to_nb, extension, nbconvert_exporter_name):
+    if nbconvert_exporter_name is not None:
+        exporter = nbconvert.get_exporter(nbconvert_exporter_name)
+    else:
+        try:
+            exporter = nbconvert.get_exporter(extension.replace('.', ''))
+        except ValueError:
+            raise TaskBuildError('Could not determine nbconvert exporter '
+                                 'either specify in the path extension '
+                                 'or pass a valid exporter name in '
+                                 'the NotebookRunner constructor, '
+                                 'valid expoers are: {}'
+                                 .format(nbconvert.get_export_names()))
+
     path = Path(path_to_nb)
 
     nb = nbformat.v4.reads(path.read_text())
-    content, _ = nbconvert.export(ext_map[extension], nb,
+    content, _ = nbconvert.export(exporter, nb,
                                   exclude_input=True)
 
     path.write_text(content)
@@ -85,10 +97,12 @@ class NotebookRunner(Task):
     PRODUCT_IN_CODE = False
 
     def __init__(self, code, product, dag, name=None, params=None,
-                 papermill_params=None, kernelspec_name=None):
+                 papermill_params=None, kernelspec_name=None,
+                 nbconvert_exporter_name=None):
         params = params or {}
         self.papermill_params = papermill_params or {}
         self.kernelspec_name = kernelspec_name
+        self.nbconvert_exporter_name = nbconvert_exporter_name
         super().__init__(code, product, dag, name, params)
 
     def run(self):
@@ -115,5 +129,5 @@ class NotebookRunner(Task):
 
         # if output format other than ipynb, convert using nbconvert
         # and overwrite
-        if ext_out != '.ipynb':
-            _from_ipynb(path_to_out, ext_out)
+        if ext_out != '.ipynb' or self.nbconvert_exporter_name is not None:
+            _from_ipynb(path_to_out, ext_out, self.nbconvert_exporter_name)
