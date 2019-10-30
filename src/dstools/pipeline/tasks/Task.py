@@ -10,7 +10,8 @@ and lives in a DAG
 
 Required:
 
-* params vs constructor parameters
+* params (Param object) vs constructor parameters
+* params on render vs params on run
 * Implementing Task.run (using the _code object, product, TaskBuildError)
 
 Optional:

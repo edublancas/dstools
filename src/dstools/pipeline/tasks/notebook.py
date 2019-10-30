@@ -99,11 +99,10 @@ class NotebookRunner(Task):
     def __init__(self, code, product, dag, name=None, params=None,
                  papermill_params=None, kernelspec_name=None,
                  nbconvert_exporter_name=None):
-        params = params or {}
         self.papermill_params = papermill_params or {}
         self.kernelspec_name = kernelspec_name
         self.nbconvert_exporter_name = nbconvert_exporter_name
-        super().__init__(code, product, dag, name, params)
+        super().__init__(code, product, dag, name, params or {})
 
     def run(self):
         path_to_out = str(self.product)
@@ -122,9 +121,10 @@ class NotebookRunner(Task):
 
         # papermill only allows JSON serializable parameters
         self.params['product'] = str(self.params['product'])
+        params_dict = self.params.to_dict()
 
         pm.execute_notebook(path_to_in, path_to_out,
-                            parameters=self.params,
+                            parameters=params_dict,
                             **self.papermill_params)
 
         # if output format other than ipynb, convert using nbconvert
