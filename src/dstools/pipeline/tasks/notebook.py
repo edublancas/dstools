@@ -123,7 +123,10 @@ class NotebookRunner(Task):
         # papermill only allows JSON serializable parameters
         params = copy(self.params)
         params['product'] = str(params['product'])
-        params['upstream'] = {k: str(n) for k, n in params['upstream'].items()}
+
+        if params.get('upstream'):
+            params['upstream'] = {k: str(n) for k, n
+                                  in params['upstream'].items()}
 
         pm.execute_notebook(path_to_in, path_to_out,
                             parameters=params,
