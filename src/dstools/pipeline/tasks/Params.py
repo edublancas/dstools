@@ -1,3 +1,4 @@
+from copy import copy
 import warnings
 from collections import defaultdict, abc
 
@@ -36,6 +37,9 @@ class Params(abc.Mapping):
 
     def pop(self, key):
         return self._dict.pop(key)
+
+    def to_dict(self):
+        return copy(self._dict)
 
     def __getitem__(self, key):
         if self._in_context:
