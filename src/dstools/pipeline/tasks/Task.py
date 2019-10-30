@@ -5,6 +5,22 @@ A Task is a unit of work, it has associated source code and
 a product (a persistent object such as a table in a database),
 it has a name (which can be infered from the source code filename)
 and lives in a DAG
+
+[WIP] On subclassing Tasks
+
+Required:
+
+* params vs constructor parameters
+* Implementing Task.run (using the _code object, product, TaskBuildError)
+
+Optional:
+
+* Validating PRODUCT_CLASSES_ALLOWED
+* Validating CODECLASS
+* Validating upstream, product and params in code
+* Using a client parameter
+* The language property
+
 """
 import traceback
 from copy import copy
@@ -26,7 +42,6 @@ import humanize
 
 class Task:
     """A task represents a unit of work
-
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = None
