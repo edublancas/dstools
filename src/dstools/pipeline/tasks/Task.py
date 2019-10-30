@@ -8,9 +8,13 @@ and lives in a DAG
 
 [WIP] On subclassing Tasks
 
+Implementation details:
+
+* params (dict), upstream (Param object)
+
 Required:
 
-* params (Param object) vs constructor parameters
+* params vs constructor parameters
 * params on render vs params on run
 * Implementing Task.run (using the _code object, product, TaskBuildError)
 

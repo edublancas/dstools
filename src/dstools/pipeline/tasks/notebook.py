@@ -1,3 +1,4 @@
+from copy import copy
 from tempfile import mktemp
 from pathlib import Path
 
@@ -120,11 +121,12 @@ class NotebookRunner(Task):
             Path(path_to_in).write_text(source)
 
         # papermill only allows JSON serializable parameters
-        self.params['product'] = str(self.params['product'])
-        params_dict = self.params.to_dict()
+        params = copy(self.params)
+        params['product'] = str(params['product'])
+        params['upstream'] = {k: str(n) for k, n in params['upstream'].items()}
 
         pm.execute_notebook(path_to_in, path_to_out,
-                            parameters=params_dict,
+                            parameters=params,
                             **self.papermill_params)
 
         # if output format other than ipynb, convert using nbconvert
