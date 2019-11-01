@@ -39,8 +39,6 @@ def _to_ipynb(source, extension, kernelspec_name=None):
     """
     nb = jupytext.reads(source, fmt={'extension': extension})
 
-    # what if the file does not contain kernelspec info?
-
     # tag the first cell as "parameters" for papermill to inject them
     nb.cells[0]['metadata']['tags'] = ["parameters"]
 
