@@ -1,11 +1,20 @@
+import pytest
 from pathlib import Path
 from dstools.pipeline import DAG
 from dstools.pipeline.tasks import PythonCallable
 from dstools.pipeline.products import File
 
 
+class MyException(Exception):
+    pass
+
+
 def fn(product, a):
     Path(str(product)).write_text('things')
+
+
+def fn_w_exception(product):
+    raise MyException
 
 
 def test_params_are_accesible_after_init():
@@ -31,3 +40,12 @@ def test_can_execute_python_callable(tmp_directory):
     PythonCallable(fn, File('file.txt'), dag, 'callable',
                    params=dict(a=1))
     assert dag.build()
+
+
+def test_exceptions_are_raised_with_serial_executor():
+    dag = DAG()
+    PythonCallable(fn_w_exception, File('file.txt'),
+                   dag, 'callable')
+
+    with pytest.raises(MyException):
+        dag.build()
