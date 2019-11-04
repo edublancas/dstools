@@ -31,7 +31,6 @@ def clean_up_files(dag, interactive=True):
 
     """
     # WIP
-
     # get products that generate Files
     paths = [Path(str(t.product)) for t in dag.values()
              if isinstance(t.product, File)]
@@ -58,8 +57,6 @@ def clean_up_files(dag, interactive=True):
 
         extra = set(existing) - set(products)
         extra_all.extend(list(extra))
-
-    paths
 
     for p in extra_all:
         if interactive:
