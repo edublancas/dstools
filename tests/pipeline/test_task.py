@@ -22,6 +22,15 @@ def my_fn(product, upstream):
     pass
 
 
+# have to declare this here, otherwise it won't work with pickle
+def touch(product):
+        Path('file').touch()
+
+
+def on_finish(task):
+    Path('file').write_text('hello')
+
+
 def test_task_can_infer_name_from_product():
     dag = DAG()
     t = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
@@ -171,13 +180,6 @@ def test_shows_warning_if_unused_dependencies():
 
 
 def test_on_finish(tmp_directory):
-
-    def touch(product):
-        Path('file').touch()
-
-    def on_finish(task):
-        Path('file').write_text('hello')
-
     dag = DAG()
 
     t = PythonCallable(touch, File('file'), dag)
