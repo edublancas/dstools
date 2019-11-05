@@ -90,6 +90,8 @@ setup(
         'mistune',
         # python<3.7 backported library
         'importlib_resources',
+        # for NotebookRunner
+        'papermill', 'jupytext', 'jupyter',
 
     ],
     extras_require={

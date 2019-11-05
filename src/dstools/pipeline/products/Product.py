@@ -11,6 +11,18 @@ product, the simplest case is a string, which can identify many types of
 resources via a URI. The other (current) structure is a SQLRelationPlaceholder
 which identifies a relation in a database, it is different than a string
 since it contains a schema and a name fields.
+
+[WIP] On subclassing Product:
+
+Required:
+
+* IDENTIFIERCLASS
+* fetch_metadata
+* save_metadata
+* exists
+* delete
+* name
+
 """
 import logging
 from math import ceil

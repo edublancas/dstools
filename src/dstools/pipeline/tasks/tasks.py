@@ -4,7 +4,7 @@ Task implementations
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
-from multiprocessing import Process
+from multiprocessing import Pool
 import shlex
 import subprocess
 from subprocess import CalledProcessError
@@ -59,8 +59,20 @@ class PythonCallable(Task):
 
     def run(self):
         if self.dag._Executor.TASKS_CAN_CREATE_CHILD_PROCESSES:
-            p = Process(target=self._code._source, kwargs=self.params)
-            p.start()
+            p = Pool()
+            res = p.apply_async(func=self._code._source, kwds=self.params)
+
+            # calling this make sure we catch the exception, from the docs:
+            # Return the result when it arrives. If timeout is not None and
+            # the result does not arrive within timeout seconds then
+            # multiprocessing.TimeoutError is raised. If the remote call
+            # raised an exception then that exception will be reraised by
+            # get().
+            # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.AsyncResult.get
+            if self.dag._Executor.STOP_ON_EXCEPTION:
+                res.get()
+
+            p.close()
             p.join()
         else:
             self._code._source(**self.params)

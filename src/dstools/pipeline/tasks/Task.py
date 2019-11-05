@@ -5,6 +5,27 @@ A Task is a unit of work, it has associated source code and
 a product (a persistent object such as a table in a database),
 it has a name (which can be infered from the source code filename)
 and lives in a DAG
+
+[WIP] On subclassing Tasks
+
+Implementation details:
+
+* params (dict), upstream (Param object)
+
+Required:
+
+* params vs constructor parameters
+* params on render vs params on run
+* Implementing Task.run (using the _code object, product, TaskBuildError)
+
+Optional:
+
+* Validating PRODUCT_CLASSES_ALLOWED
+* Validating CODECLASS
+* Validating upstream, product and params in code
+* Using a client parameter
+* The language property
+
 """
 import traceback
 from copy import copy
@@ -26,7 +47,6 @@ import humanize
 
 class Task:
     """A task represents a unit of work
-
     """
     CODECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = None
@@ -221,9 +241,9 @@ class Task:
             if self.on_finish:
                 try:
                     self.on_finish(self)
-                except Exception:
-                    self._logger.exception('Error executing on_finish '
-                                           'callback')
+                except Exception as e:
+                    raise TaskBuildError('Exception when running on_finish '
+                                         'for task {}: {}'.format(self, e))
 
         else:
             self._logger.info(f'No need to run {repr(self)}')

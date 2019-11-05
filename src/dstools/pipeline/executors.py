@@ -13,6 +13,7 @@ class Serial:
     """Runs a DAG serially
     """
     TASKS_CAN_CREATE_CHILD_PROCESSES = True
+    STOP_ON_EXCEPTION = True
 
     def __init__(self, dag):
         self.dag = dag
@@ -51,9 +52,10 @@ class Serial:
 class Parallel:
     """Runs a DAG in parallel using the multiprocessing module
     """
-    # Tasks cannot create child processes, see documention:
+    # Tasks should not create child processes, see documention:
     # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.Process.daemon
     TASKS_CAN_CREATE_CHILD_PROCESSES = False
+    STOP_ON_EXCEPTION = False
 
     def __init__(self, dag):
         self.dag = dag

@@ -127,7 +127,8 @@ class SQLDump(SQLInputTask):
 
         self._logger.debug('Code: %s', source_code)
 
-        cursor = self.client.raw_connection().cursor()
+        conn = self.client.raw_connection()
+        cursor = conn.cursor()
         cursor.execute(source_code)
 
         if self.chunksize:
@@ -153,6 +154,8 @@ class SQLDump(SQLInputTask):
             data = cursor.fetchall()
             headers = [c[0] for c in cursor.description]
             handler.write(data, headers)
+
+        conn.close()
 
 
 # FIXME: this can be a lot faster for clients that transfer chunksize
