@@ -45,12 +45,7 @@ class SQLiteRelation(Product):
             metadata BLOB
         )
         """
-
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
-        cur.execute(create_metadata)
-        conn.commit()
-        conn.close()
+        self.client.execute(create_metadata)
 
     def fetch_metadata(self):
         self._create_metadata_relation()
@@ -60,11 +55,10 @@ class SQLiteRelation(Product):
         WHERE name = '{name}'
         """.format(name=self._identifier.name)
 
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+        cur = self.client.connection.cursor()
         cur.execute(query)
         records = cur.fetchone()
-        conn.close()
+        cur.close()
 
         if records:
             metadata_bin = records[0]
@@ -81,12 +75,11 @@ class SQLiteRelation(Product):
             REPLACE INTO _metadata(metadata, name)
             VALUES(?, ?)
         """
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+        cur = self.client.connection.cursor()
         cur.execute(query, (sqlite3.Binary(metadata_bin),
                             self._identifier.name))
-        conn.commit()
-        conn.close()
+        self.client.connection.commit()
+        cur.close()
 
     def exists(self):
         query = """
@@ -97,11 +90,10 @@ class SQLiteRelation(Product):
         """.format(kind=self._identifier.kind,
                    name=self._identifier.name)
 
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+        cur = self.client.connection.cursor()
         cur.execute(query)
         exists = cur.fetchone() is not None
-        conn.close()
+        cur.close()
         return exists
 
     def delete(self):
@@ -112,11 +104,7 @@ class SQLiteRelation(Product):
                          relation=str(self)))
         self.logger.debug('Running "{query}" on the databse...'
                           .format(query=query))
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
-        cur.execute(query)
-        conn.commit()
-        conn.close()
+        self.client.execute(query)
 
     @property
     def name(self):
@@ -162,12 +150,11 @@ class PostgresRelation(Product):
         WHERE nspname = %(schema)s
         AND relname = %(name)s
         """
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+        cur = self.client.connection.cursor()
         cur.execute(query, dict(schema=self._identifier.schema,
                                 name=self._identifier.name))
         metadata = cur.fetchone()
-        conn.close()
+        cur.close()
 
         # no metadata saved
         if metadata is None:
@@ -188,11 +175,10 @@ class PostgresRelation(Product):
             query = (sql.SQL("COMMENT ON VIEW {} IS %(metadata)s;"
                              .format(self._identifier)))
 
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+        cur = self.client.connection.cursor()
         cur.execute(query, dict(metadata=metadata))
-        conn.commit()
-        conn.close()
+        self.client.connection.commit()
+        cur.close()
 
     def exists(self):
         # https://stackoverflow.com/a/24089729/709975
@@ -205,13 +191,12 @@ class PostgresRelation(Product):
             AND    c.relname = %(name)s
         );
         """
-
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+)
+        cur = self.client.connection.cursor()
         cur.execute(query, dict(schema=self._identifier.schema,
                                 name=self._identifier.name))
         exists = cur.fetchone()[0]
-        conn.close()
+        cur.close()
         return exists
 
     def delete(self, force=False):
@@ -220,11 +205,11 @@ class PostgresRelation(Product):
         cascade = 'CASCADE' if force else ''
         query = f"DROP {self._identifier.kind} IF EXISTS {self} {cascade}"
         self.logger.debug(f'Running "{query}" on the databse...')
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+
+        cur = self.client.connection.cursor()
         cur.execute(query)
-        conn.commit()
-        conn.close()
+        cur.close()
+        self.client.connection.commit()
 
     @property
     def name(self):

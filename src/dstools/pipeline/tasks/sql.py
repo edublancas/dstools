@@ -73,7 +73,7 @@ class SQLScript(SQLInputTask):
                 or isinstance(self.product, SQLiteRelation)):
             self._validate()
 
-        return self.client.run(self.source_code)
+        return self.client.execute(self.source_code)
 
 
 class SQLDump(SQLInputTask):
@@ -127,8 +127,7 @@ class SQLDump(SQLInputTask):
 
         self._logger.debug('Code: %s', source_code)
 
-        conn = self.client.raw_connection()
-        cursor = conn.cursor()
+        cursor = self.client.connection.cursor()
         cursor.execute(source_code)
 
         if self.chunksize:
@@ -155,8 +154,7 @@ class SQLDump(SQLInputTask):
             headers = [c[0] for c in cursor.description]
             handler.write(data, headers)
 
-        conn.close()
-
+        cursor.close()
 
 # FIXME: this can be a lot faster for clients that transfer chunksize
 # rows over the network
@@ -286,8 +284,7 @@ class PostgresCopy(Task):
         f.seek(0)
 
         # upload using copy
-        conn = self.client.raw_connection()
-        cur = conn.cursor()
+        cur = self.client.connection.cursor()
 
         self._logger.info('Copying data...')
         cur.copy_from(f,
@@ -296,5 +293,4 @@ class PostgresCopy(Task):
                       null='\\N')
 
         f.close()
-        conn.commit()
-        conn.close()
+        cur.close()

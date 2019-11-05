@@ -30,7 +30,27 @@ import paramiko
 
 
 class Client:
-    """Abstract class
+    """
+    Clients are classes that communicate with another system (usually a
+    database), they provide a thin wrapper around libraries that implement
+    clients to avoid managing connections directly. The most common use
+    case by far is for a Task/Product to submit some code to a system,
+    a client just provides a way of doing so without dealing with connection
+    details.
+
+    A Client is reponsible for making sure an open connection is available
+    at any point (open a connection if none is available).
+
+    However, clients are not strictly necessary, a Task/Product could manage
+    their own client connections. For example the NotebookRunner task does have
+    a Client since it only calls an external library to run.
+
+
+    Notes
+    -----
+    Method's names were chosen to resemble the ones in the Python DB API Spec
+    2.0 (PEP 249)
+
     """
 
     def __init__(self, uri):
@@ -45,7 +65,7 @@ class Client:
     def uri(self):
         return self._uri
 
-    def run(self, code):
+    def execute(self, code):
         """Run code
         """
         raise NotImplementedError("This method must be implemented in the "
@@ -67,6 +87,49 @@ class Client:
     def _set_logger(self):
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
+
+
+class DBAPIClient(Client):
+    """A client for a module following the PEP 214 DB API spec
+    """
+
+    def __init__(self, connect_fn, **connect_kwargs):
+        self.connect_fn = connect_fn
+        self.connect_kwargs = connect_kwargs
+
+        # there is no open connection by default
+        self._connection = None
+
+    def _connect(self):
+        """Open a new connection and return it
+        """
+        return self.connect_fn(**self.connect_kwargs)
+
+    def execute(self, code):
+        """Execute code with the existing connection
+        """
+        cur = self.connection.cursor()
+        cur.execute(code)
+        conn.commit()
+        cur.close()
+
+    @property
+    def connection(self):
+        """Return a connection, open one if there isn't any
+        """
+        # if there isn't an open connection, open one...
+        if self._connection is None:
+            self._connection = self._connect()
+
+        return self._connection
+
+    def close(self):
+        """Close connection if there is one active
+        """
+        if self._connection is not None:
+            self._connection.close()
+
+
 
 
 class DrillClient(Client):
@@ -132,7 +195,7 @@ class SQLAlchemyClient(Client):
             self._engine.dispose()
             self._engine = None
 
-    def run(self, code):
+    def execute(self, code):
         conn = self.raw_connection()
         cur = conn.cursor()
         cur.execute(code)
