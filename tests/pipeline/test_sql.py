@@ -1,3 +1,4 @@
+from sqlite3 import connect
 from pathlib import Path
 
 from dstools.pipeline import DAG
@@ -14,17 +15,18 @@ def test_can_dump_sqlite_to_csv(tmp_directory):
     tmp = Path(tmp_directory)
 
     # create a db
+    conn = connect(str(tmp / "database.db"))
     client = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
     # dump output path
     out = tmp / 'dump'
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', client.engine)
+    df.to_sql('numbers', conn)
 
-    cur = client.raw_connection().cursor()
-    cur.arraysize = 10
-    cur.execute('select * from numbers')
+    # cur = conn.cursor()
+    # cur.arraysize = 10
+    # cur.execute('select * from numbers')
 
     # create the task and run it
     dag = DAG()
@@ -39,9 +41,9 @@ def test_can_dump_sqlite_to_csv(tmp_directory):
 
     # load dumped data and data from the db
     dump = pd.read_csv(out)
-    db = pd.read_sql_query('SELECT * FROM numbers', client.engine)
+    db = pd.read_sql_query('SELECT * FROM numbers', conn)
 
-    client.close()
+    conn.close()
 
     # make sure they are the same
     assert dump.equals(db)
@@ -51,15 +53,16 @@ def test_can_dump_sqlite_to_parquet(tmp_directory):
     tmp = Path(tmp_directory)
 
     # create a db
+    conn = connect(str(tmp / "database.db"))
     client = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
     # dump output path
     out = tmp / 'dump'
 
     # make some data and save it in the db
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
-    df.to_sql('numbers', client.engine)
+    df.to_sql('numbers', conn)
 
-    cur = client.raw_connection().cursor()
+    cur = conn.cursor()
     cur.execute('select * from numbers')
 
     # create the task and run it
@@ -75,9 +78,9 @@ def test_can_dump_sqlite_to_parquet(tmp_directory):
 
     # load dumped data and data from the db
     dump = pd.read_parquet(out)
-    db = pd.read_sql_query('SELECT * FROM numbers', client.engine)
+    db = pd.read_sql_query('SELECT * FROM numbers', conn)
 
-    client.close()
+    conn.close()
 
     # make sure they are the same
     assert dump.equals(db)
