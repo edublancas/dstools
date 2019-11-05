@@ -17,7 +17,7 @@ from dstools.templates.StrictTemplate import StrictTemplate
 from sqlalchemy import create_engine
 import paramiko
 
-CLIENTS = []
+# CLIENTS = []
 
 # TODO: make all clients expose the same API
 # TODO: I might need to to define two APIs, clients whose underlying
@@ -95,9 +95,8 @@ class SQLAlchemyClient(Client):
         super().__init__(uri)
 
         self._engine = None
-        # self._conn = None
 
-        CLIENTS.append(self)
+        # CLIENTS.append(self)
 
     @property
     def engine(self):
@@ -113,16 +112,12 @@ class SQLAlchemyClient(Client):
         """
         # answer on engines, connections, etc:
         # https://stackoverflow.com/a/8705750/709975
-        self._conn = self.engine.connect()
-
-        return self._conn
+        return self.engine.connect()
 
     def raw_connection(self):
         """Uses engine to return a raw connection
         """
-        self._conn = self.engine.raw_connection()
-
-        return self._conn
+        return self.engine.raw_connection()
 
     def __del__(self):
         """Same as client.close()
@@ -143,6 +138,21 @@ class SQLAlchemyClient(Client):
         cur.execute(code)
         conn.commit()
         conn.close()
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger is not pickable, so we remove them and build it
+        # again in __setstate__
+        del state['_logger']
+        del state['_engine']
+
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._set_logger()
 
 
 class ShellClient(Client):
@@ -199,7 +209,7 @@ class RemoteShellClient(Client):
         self._raw_client = None
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
-        CLIENTS.append(self)
+        # CLIENTS.append(self)
 
     @property
     def raw_client(self):
@@ -303,8 +313,8 @@ class RemoteShellClient(Client):
             self._raw_client = None
 
 
-@atexit.register
-def close_all_clients():
-    for client in CLIENTS:
-        print(f'Closing client {client}')
-        client.close()
+# @atexit.register
+# def close_all_clients():
+    # for client in CLIENTS:
+#         print(f'Closing client {client}')
+#         client.close()

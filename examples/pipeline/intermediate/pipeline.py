@@ -117,7 +117,7 @@ dataset_task >> training_task
 
 
 testing_table = PostgresRelation(('public', 'testing', 'table'))
-testing_table.tests = [testing.Postgres.no_nas_in_column('label')]
+# testing_table.tests = [testing.Postgres.no_nas_in_column('label')]
 testing_task = SQLScript(home / 'sql' / 'create_testing.sql',
                          testing_table, dag)
 
