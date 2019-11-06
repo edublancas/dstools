@@ -17,16 +17,7 @@ from sqlalchemy import create_engine
 import paramiko
 
 
-# TODO: make all clients expose the same API
-# TODO: I might need to to define two APIs, clients whose underlying
-# implemenation relies on a DBAPI object. tasks.sql and products.sql
-# currently use that, for products.sql I think I should remove references
-# to raw connections and just use the client.run method, for tasks.sql
-# i have to decide, some tasks actually need access to a raw connection,
-# such as SQLDump since they rely on modifying a cursor object, others such
-# as SQLTransfer need a sqlalchemy engine object
-
-
+# FIXME: make this an abstract classs (abc.ABC)
 class Client:
     """
     Clients are classes that communicate with another system (usually a
@@ -51,20 +42,24 @@ class Client:
 
     """
 
-    def __init__(self, uri):
-        self._uri = uri
+    def __init__(self):
         self._set_logger()
 
-    def connect(self):
+    def execute(self, code):
+        """Execute code
+        """
         raise NotImplementedError("This method must be implemented in the "
                                   "subclasses")
 
     @property
-    def uri(self):
-        return self._uri
+    def connection(self):
+        """Return a connection, open one if there isn't any
+        """
+        raise NotImplementedError("This method must be implemented in the "
+                                  "subclasses")
 
-    def execute(self, code):
-        """Run code
+    def close(self):
+        """Close connection if there is one active
         """
         raise NotImplementedError("This method must be implemented in the "
                                   "subclasses")
@@ -92,16 +87,12 @@ class DBAPIClient(Client):
     """
 
     def __init__(self, connect_fn, **connect_kwargs):
+        super().__init__()
         self.connect_fn = connect_fn
         self.connect_kwargs = connect_kwargs
 
         # there is no open connection by default
         self._connection = None
-
-    def _connect(self):
-        """Open a new connection and returns it
-        """
-        return self.connect_fn(**self.connect_kwargs)
 
     def execute(self, code):
         """Execute code with the existing connection
@@ -117,7 +108,7 @@ class DBAPIClient(Client):
         """
         # if there isn't an open connection, open one...
         if self._connection is None:
-            self._connection = self._connect()
+            self._connection = self.connect_fn(**self.connect_kwargs)
 
         return self._connection
 
@@ -150,7 +141,8 @@ class SQLAlchemyClient(Client):
     """
 
     def __init__(self, uri):
-        super().__init__(uri)
+        super().__init__()
+        self._uri = uri
         self._engine = None
         self._connection = None
 
@@ -159,7 +151,7 @@ class SQLAlchemyClient(Client):
         """Returns a SQLAlchemy engine
         """
         if self._engine is None:
-            self._engine = create_engine(self.uri)
+            self._engine = create_engine(self._uri)
 
         return self._engine
 
