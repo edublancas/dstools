@@ -203,6 +203,7 @@ class SQLAlchemyClient(Client):
         # again in __setstate__
         del state['_logger']
         del state['_engine']
+        del state['_connection']
 
         return state
 
