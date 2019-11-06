@@ -37,7 +37,7 @@ def test_passing_upstream_and_product_in_bashcommand(tmp_directory):
 
 
 def test_passing_upstream_and_product_in_postgres(pg_client, dag):
-    conn = pg_client.raw_connection()
+    conn = pg_client.connection
     cur = conn.cursor()
     cur.execute('drop table if exists public.series;')
     conn.commit()

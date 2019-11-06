@@ -7,7 +7,6 @@ from pathlib import Path
 import random
 import string
 import logging
-import atexit
 import shlex
 import subprocess
 from subprocess import CalledProcessError
@@ -17,7 +16,6 @@ from dstools.templates.StrictTemplate import StrictTemplate
 from sqlalchemy import create_engine
 import paramiko
 
-# CLIENTS = []
 
 # TODO: make all clients expose the same API
 # TODO: I might need to to define two APIs, clients whose underlying
@@ -101,7 +99,7 @@ class DBAPIClient(Client):
         self._connection = None
 
     def _connect(self):
-        """Open a new connection and return it
+        """Open a new connection and returns it
         """
         return self.connect_fn(**self.connect_kwargs)
 
@@ -110,7 +108,7 @@ class DBAPIClient(Client):
         """
         cur = self.connection.cursor()
         cur.execute(code)
-        conn.commit()
+        self.connection.commit()
         cur.close()
 
     @property
@@ -128,8 +126,6 @@ class DBAPIClient(Client):
         """
         if self._connection is not None:
             self._connection.close()
-
-
 
 
 class DrillClient(Client):
@@ -154,53 +150,50 @@ class SQLAlchemyClient(Client):
     """
 
     def __init__(self, uri):
-
         super().__init__(uri)
-
         self._engine = None
-
-        # CLIENTS.append(self)
+        self._connection = None
 
     @property
     def engine(self):
-        """Returns a SQLAlchemy engine, creates one if one does not exist
+        """Returns a SQLAlchemy engine
         """
         if self._engine is None:
             self._engine = create_engine(self.uri)
 
         return self._engine
 
-    def connect(self):
-        """Use the engine to return a connection object
+    @property
+    def connection(self):
+        """Return a connection from the pool
         """
-        # answer on engines, connections, etc:
-        # https://stackoverflow.com/a/8705750/709975
-        return self.engine.connect()
+        # we have to keep this reference here,
+        # if we just return self.engine.raw_connection(),
+        # any cursor from that connection will fail
+        # doing: engine.raw_connection().cursor().execute('') fails!
+        if self._connection is None:
+            self._connection = self.engine.raw_connection()
 
-    def raw_connection(self):
-        """Uses engine to return a raw connection
-        """
-        return self.engine.raw_connection()
+        # if a task or product calls client.connection.close(), we have to
+        # re-open the connection
+        if not self._connection.is_valid:
+            self._connection = self.engine.raw_connection()
 
-    def __del__(self):
-        """Same as client.close()
-        """
-        self.close()
+        return self._connection
 
     def close(self):
-        """Disposes the engine if it exists
+        """Closes all connections
         """
+        self._logger.info(f'Disposing engine {self._engine}')
         if self._engine is not None:
-            self._logger.info(f'Disposing engine {self._engine}')
             self._engine.dispose()
             self._engine = None
 
     def execute(self, code):
-        conn = self.raw_connection()
-        cur = conn.cursor()
+        cur = self.connection.cursor()
         cur.execute(code)
-        conn.commit()
-        conn.close()
+        self.connection.commit()
+        cur.close()
 
     # __getstate__ and __setstate__ are needed to make this picklable
 
@@ -374,10 +367,3 @@ class RemoteShellClient(Client):
             self._logger.info(f'Closing client {self._raw_client}')
             self._raw_client.close()
             self._raw_client = None
-
-
-# @atexit.register
-# def close_all_clients():
-    # for client in CLIENTS:
-#         print(f'Closing client {client}')
-#         client.close()

@@ -24,10 +24,6 @@ def test_can_dump_sqlite_to_csv(tmp_directory):
     df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
     df.to_sql('numbers', conn)
 
-    # cur = conn.cursor()
-    # cur.arraysize = 10
-    # cur.execute('select * from numbers')
-
     # create the task and run it
     dag = DAG()
     SQLDump('SELECT * FROM numbers -- {{product}}',
@@ -37,6 +33,7 @@ def test_can_dump_sqlite_to_csv(tmp_directory):
             client=client,
             chunksize=None,
             io_handler=io.CSVIO)
+
     dag.build()
 
     # load dumped data and data from the db

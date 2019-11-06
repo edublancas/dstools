@@ -191,7 +191,7 @@ class PostgresRelation(Product):
             AND    c.relname = %(name)s
         );
         """
-)
+
         cur = self.client.connection.cursor()
         cur.execute(query, dict(schema=self._identifier.schema,
                                 name=self._identifier.name))

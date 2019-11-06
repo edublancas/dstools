@@ -1,2 +1,0 @@
-def fn_w_exception(product):
-    raise MyException
