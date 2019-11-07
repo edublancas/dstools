@@ -33,16 +33,17 @@ def test_can_execute_from_py(path_to_assets, tmp_directory):
     dag.build()
 
 
-# def test_can_execute_with_parameters(path_to_assets, tmp_directory):
-#     dag = DAG()
+def test_can_execute_with_parameters(path_to_assets, tmp_directory):
+    dag = DAG()
 
-#     code = """
-#     1 + 1
-#     """
+    code = """
+    1 + 1
+    """
 
-#     NotebookRunner(code,
-#                    product=File(Path(tmp_directory, 'out.ipynb')),
-#                    dag=dag,
-#                    kernelspec_name='python3',
-#                    params={'var': 1})
-#     dag.build()
+    NotebookRunner(code,
+                   product=File(Path(tmp_directory, 'out.ipynb')),
+                   dag=dag,
+                   kernelspec_name='python3',
+                   params={'var': 1},
+                   ext_in='py')
+    dag.build()

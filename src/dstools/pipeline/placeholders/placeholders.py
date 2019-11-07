@@ -263,3 +263,35 @@ class PythonCodePlaceholder:
     @property
     def loc(self):
         return '{}:{}'.format(self._loc, self._source_lineno)
+
+
+class LiteralCodePlaceholder:
+    def __init__(self, source):
+        if isinstance(source, Path):
+            self._source = source.read_text()
+            self._path = source
+        else:
+            self._source = source
+            self._path = None
+
+    def render(self, params, **kwargs):
+        pass
+
+    def __str__(self):
+        return self._source
+
+    @property
+    def doc(self):
+        return ''
+
+    @property
+    def doc_short(self):
+        return ''
+
+    @property
+    def loc(self):
+        return ''
+
+    @property
+    def path(self):
+        return self._path

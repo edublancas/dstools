@@ -29,7 +29,7 @@ except ImportError:
 
 
 from dstools.exceptions import TaskBuildError
-from dstools.pipeline.placeholders import ClientCodePlaceholder
+from dstools.pipeline.placeholders import LiteralCodePlaceholder
 from dstools.pipeline.products import File
 from dstools.pipeline.tasks.Task import Task
 
@@ -91,23 +91,33 @@ def _from_ipynb(path_to_nb, extension, nbconvert_exporter_name):
 class NotebookRunner(Task):
     """Run a notebook using papermill
     """
-    CODECLASS = ClientCodePlaceholder
+    CODECLASS = LiteralCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
     PRODUCT_IN_CODE = False
 
     def __init__(self, code, product, dag, name=None, params=None,
                  papermill_params=None, kernelspec_name=None,
-                 nbconvert_exporter_name=None):
+                 nbconvert_exporter_name=None, ext_in=None):
         self.papermill_params = papermill_params or {}
         self.kernelspec_name = kernelspec_name
         self.nbconvert_exporter_name = nbconvert_exporter_name
+        self.ext_in = ext_in
         super().__init__(code, product, dag, name, params or {})
 
     def run(self):
         path_to_out = str(self.product)
 
         source = str(self._code)
-        ext_in = Path(self._code.path).suffix
+
+        if self._code.path is None:
+            if self.ext_in is None:
+                raise ValueError('If the code was loaded from a string '
+                                 'you need to pass the ext_in parameter')
+
+            ext_in = '.'+self.ext_in
+        else:
+            ext_in = Path(self._code.path).suffix
+
         ext_out = Path(path_to_out).suffix
 
         # need to convert to ipynb using jupytext

@@ -2,8 +2,10 @@ from dstools.pipeline.placeholders.placeholders import (PythonCodePlaceholder,
                                                         ClientCodePlaceholder,
                                                         SQLRelationPlaceholder,
                                                         StringPlaceholder,
-                                                        TemplatedPlaceholder)
+                                                        TemplatedPlaceholder,
+                                                        LiteralCodePlaceholder)
 
 __all__ = ['PythonCodePlaceholder', 'ClientCodePlaceholder',
            'SQLRelationPlaceholder',
-           'StringPlaceholder', 'TemplatedPlaceholder']
+           'StringPlaceholder', 'TemplatedPlaceholder',
+           'LiteralCodePlaceholder']
