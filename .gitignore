@@ -1,3 +1,10 @@
+a.txt
+b.txt
+c.txt
+a.txt.source
+b.txt.source
+c.txt.source
+
 .pytest_cache/
 
 #### joe made this: https://goel.io/joe

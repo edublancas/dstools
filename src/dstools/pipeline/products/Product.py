@@ -24,11 +24,12 @@ Required:
 * name
 
 """
+import abc
 import logging
 from math import ceil
 
 
-class Product:
+class Product(abc.ABC):
     """
     A product is a persistent triggered by a Task, this is an abstract
     class for all products
@@ -176,31 +177,36 @@ class Product:
 
     # Subclasses must implement the following methods
 
+    @abc.abstractmethod
     def fetch_metadata(self):
-        raise NotImplementedError('You have to implement this method')
+        pass
 
     # TODO: this should have metadata as parameter, it is confusing
     # when writing a new product to know that the metaada to save is
     # in self.metadata
+    @abc.abstractmethod
     def save_metadata(self):
-        raise NotImplementedError('You have to implement this method')
+        pass
 
+    @abc.abstractmethod
     def exists(self):
         """
         This method returns True if the product exists, it is not part
         of the metadata, so there is no cached status
         """
-        raise NotImplementedError('You have to implement this method')
+        pass
 
+    @abc.abstractmethod
     def delete(self, force=False):
         """Deletes the product
         """
-        raise NotImplementedError('You have to implement this method')
+        pass
 
     @property
+    @abc.abstractmethod
     def name(self):
         """
         Product name, this is used as Task.name default if no name
         is provided
         """
-        raise NotImplementedError('You have to implement this property')
+        pass
