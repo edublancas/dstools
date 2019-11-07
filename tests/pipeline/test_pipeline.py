@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import Task, BashCommand
+from dstools.pipeline.tasks import BashCommand, BashCommand
 from dstools.pipeline.products import File
 
 kwargs = {'stderr': subprocess.PIPE,
@@ -13,7 +13,7 @@ kwargs = {'stderr': subprocess.PIPE,
 def test_non_existent_file():
     dag = DAG()
     f = File('file.txt')
-    ta = Task('echo hi > {{product}}', f, dag, 'ta')
+    ta = BashCommand('echo hi > {{product}}', f, dag, 'ta')
     ta.render()
 
     assert not f.exists()
@@ -120,7 +120,7 @@ def test_can_create_task_with_many_products():
     dag = DAG()
     fa1 = File('a1.txt')
     fa2 = File('a2.txt')
-    ta = Task('echo {{product}}', [fa1, fa2], dag, 'ta')
+    ta = BashCommand('echo {{product}}', [fa1, fa2], dag, 'ta')
     ta.render()
 
     assert not ta.product.exists()

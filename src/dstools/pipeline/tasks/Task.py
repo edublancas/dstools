@@ -27,6 +27,7 @@ Optional:
 * The language property
 
 """
+import abc
 import traceback
 from copy import copy
 import logging
@@ -45,7 +46,7 @@ from dstools.util import isiterable
 import humanize
 
 
-class Task:
+class Task(abc.ABC):
     """A task represents a unit of work
     """
     CODECLASS = ClientCodePlaceholder
@@ -115,19 +116,27 @@ class Task:
 
     @property
     def name(self):
+        """A str that represents the name of the task
+        """
         return self._name
 
     @property
     def source_code(self):
+        """
+        A str with the source for that this task will run on execution, if
+        templated, it is only available after rendering
+        """
         return str(self._code)
 
     @property
     def product(self):
+        """The product this task will create upon execution
+        """
         return self._product
 
     @property
     def upstream(self):
-        """{'task_name': task} dict
+        """{task names} -> [task objects] mapping for upstream dependencies
         """
         # always return a copy to prevent global state if contents
         # are modified (e.g. by using pop)
@@ -146,6 +155,10 @@ class Task:
 
     @property
     def _lineage(self):
+        """
+        Set with task names of all the dependencies for this task
+        (including dependencies of dependencies)
+        """
         # if no upstream deps, there is no lineage
         if not len(self.upstream):
             return None
@@ -181,8 +194,9 @@ class Task:
     def on_failure(self, value):
         self._on_failure = value
 
+    @abc.abstractmethod
     def run(self):
-        raise NotImplementedError('You have to implement this method')
+        pass
 
     def build(self, force=False):
         """Run the task if needed by checking its dependencies
@@ -392,7 +406,7 @@ class Task:
         # add upstream product identifiers to params, if any
         if self.upstream:
             self.params['upstream'] = Upstream({n: t.product for n, t
-                                              in self.upstream.items()})
+                                                in self.upstream.items()})
 
         # render the current product
         try:
