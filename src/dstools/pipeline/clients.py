@@ -2,6 +2,7 @@
 A client reflects a connection to a system that performs the actual
 computations
 """
+import abc
 import tempfile
 from pathlib import Path
 import random
@@ -17,8 +18,7 @@ from sqlalchemy import create_engine
 import paramiko
 
 
-# FIXME: make this an abstract classs (abc.ABC)
-class Client:
+class Client(abc.ABC):
     """
     Clients are classes that communicate with another system (usually a
     database), they provide a thin wrapper around libraries that implement
@@ -45,24 +45,24 @@ class Client:
     def __init__(self):
         self._set_logger()
 
-    def execute(self, code):
-        """Execute code
-        """
-        raise NotImplementedError("This method must be implemented in the "
-                                  "subclasses")
-
     @property
+    @abc.abstractmethod
     def connection(self):
         """Return a connection, open one if there isn't any
         """
-        raise NotImplementedError("This method must be implemented in the "
-                                  "subclasses")
+        pass
 
+    @abc.abstractmethod
+    def execute(self, code):
+        """Execute code
+        """
+        pass
+
+    @abc.abstractmethod
     def close(self):
         """Close connection if there is one active
         """
-        raise NotImplementedError("This method must be implemented in the "
-                                  "subclasses")
+        pass
 
     # __getstate__ and __setstate__ are needed to make this picklable
 
@@ -94,14 +94,6 @@ class DBAPIClient(Client):
         # there is no open connection by default
         self._connection = None
 
-    def execute(self, code):
-        """Execute code with the existing connection
-        """
-        cur = self.connection.cursor()
-        cur.execute(code)
-        self.connection.commit()
-        cur.close()
-
     @property
     def connection(self):
         """Return a connection, open one if there isn't any
@@ -112,27 +104,19 @@ class DBAPIClient(Client):
 
         return self._connection
 
+    def execute(self, code):
+        """Execute code with the existing connection
+        """
+        cur = self.connection.cursor()
+        cur.execute(code)
+        self.connection.commit()
+        cur.close()
+
     def close(self):
         """Close connection if there is one active
         """
         if self._connection is not None:
             self._connection.close()
-
-
-class DrillClient(Client):
-    def __init__(self, params=dict(host='localhost', port=8047)):
-        self.params = params
-        self._set_logger()
-        self.drill = None
-
-    def run(self, code):
-        """Run code
-        """
-        if self.drill is None:
-            from pydrill.client import PyDrill
-            self.drill = PyDrill(**self.params)
-
-        return self.drill.query(code)
 
 
 class SQLAlchemyClient(Client):
@@ -145,15 +129,6 @@ class SQLAlchemyClient(Client):
         self._uri = uri
         self._engine = None
         self._connection = None
-
-    @property
-    def engine(self):
-        """Returns a SQLAlchemy engine
-        """
-        if self._engine is None:
-            self._engine = create_engine(self._uri)
-
-        return self._engine
 
     @property
     def connection(self):
@@ -173,6 +148,12 @@ class SQLAlchemyClient(Client):
 
         return self._connection
 
+    def execute(self, code):
+        cur = self.connection.cursor()
+        cur.execute(code)
+        self.connection.commit()
+        cur.close()
+
     def close(self):
         """Closes all connections
         """
@@ -181,11 +162,14 @@ class SQLAlchemyClient(Client):
             self._engine.dispose()
             self._engine = None
 
-    def execute(self, code):
-        cur = self.connection.cursor()
-        cur.execute(code)
-        self.connection.commit()
-        cur.close()
+    @property
+    def engine(self):
+        """Returns a SQLAlchemy engine
+        """
+        if self._engine is None:
+            self._engine = create_engine(self._uri)
+
+        return self._engine
 
     # __getstate__ and __setstate__ are needed to make this picklable
 
@@ -218,7 +202,11 @@ class ShellClient(Client):
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
 
-    def run(self, code, run_template='bash {{path_to_code}}'):
+    @property
+    def connection(self):
+        raise NotImplementedError('ShellClient does not need a connection')
+
+    def execute(self, code, run_template='bash {{path_to_code}}'):
         """Run code
         """
         _, path_to_tmp = tempfile.mkstemp()
@@ -238,6 +226,9 @@ class ShellClient(Client):
         else:
             self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
                               f' stderr: {res.stderr}')
+
+    def close(self):
+        pass
 
 
 class RemoteShellClient(Client):
@@ -261,7 +252,7 @@ class RemoteShellClient(Client):
         # CLIENTS.append(self)
 
     @property
-    def raw_client(self):
+    def connection(self):
         # client has not been created
         if self._raw_client is None:
             self._raw_client = paramiko.SSHClient()
@@ -289,7 +280,7 @@ class RemoteShellClient(Client):
         return filename
 
     def read_file(self, path):
-        ftp = self.raw_client.open_sftp()
+        ftp = self.connection.open_sftp()
 
         _, path_to_tmp = tempfile.mkstemp()
         ftp.get(path, path_to_tmp)
@@ -304,7 +295,7 @@ class RemoteShellClient(Client):
         return content
 
     def write_to_file(self, content, path):
-        ftp = self.raw_client.open_sftp()
+        ftp = self.connection.open_sftp()
 
         _, path_to_tmp = tempfile.mkstemp()
         path_to_tmp = Path(path_to_tmp)
@@ -314,10 +305,10 @@ class RemoteShellClient(Client):
         ftp.close()
         path_to_tmp.unlink()
 
-    def run(self, code, run_template='bash {{path_to_code}}'):
+    def execute(self, code, run_template='bash {{path_to_code}}'):
         """Run code
         """
-        ftp = self.raw_client.open_sftp()
+        ftp = self.connection.open_sftp()
         path_remote = self.path_to_directory + self._random_name()
 
         _, path_to_tmp = tempfile.mkstemp()
@@ -332,7 +323,7 @@ class RemoteShellClient(Client):
         # stream stdout. related: https://stackoverflow.com/q/31834743
         # using pty is not ideal, fabric has a clean implementation for this
         # worth checking out
-        stdin, stdout, stderr = self.raw_client.exec_command(source,
+        stdin, stdout, stderr = self.connection.exec_command(source,
                                                              get_pty=True)
 
         for line in iter(stdout.readline, ""):
@@ -360,3 +351,27 @@ class RemoteShellClient(Client):
             self._logger.info(f'Closing client {self._raw_client}')
             self._raw_client.close()
             self._raw_client = None
+
+
+class DrillClient(Client):
+    def __init__(self, params=dict(host='localhost', port=8047)):
+        self.params = params
+        self._set_logger()
+        self._connection = None
+
+    @property
+    def connection(self):
+        from pydrill.client import PyDrill
+
+        if self._connection is None:
+            self._connection = PyDrill(**self.params)
+
+        return self._connection
+
+    def execute(self, code):
+        """Run code
+        """
+        return self.connection.query(code)
+
+    def close(self):
+        pass

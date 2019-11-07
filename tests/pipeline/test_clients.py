@@ -12,6 +12,6 @@ def test_shell_client(tmp_directory):
     """
     assert not path.exists()
 
-    client.run(code)
+    client.execute(code)
 
     assert path.exists()
