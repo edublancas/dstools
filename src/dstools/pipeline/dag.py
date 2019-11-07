@@ -143,6 +143,15 @@ class DAG(collections.abc.Mapping):
         executor = self._Executor(self)
         return executor()
 
+    def build_partially(self, target):
+        """Partially build a dag until certain task
+        """
+        # TODO: add task.lineage that will return all immediate and
+        # non-immediate upstream dependencies
+        # copy dag, create a new sub dag only with the {lineage} + {target}
+        # execute sub dag
+        pass
+
     def status(self, **kwargs):
         """Returns a table with tasks status
         """

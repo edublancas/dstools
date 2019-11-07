@@ -186,3 +186,17 @@ def test_on_finish(tmp_directory):
     t.on_finish = on_finish
 
     dag.build()
+
+
+def test_lineage():
+    dag = DAG('dag')
+
+    ta = BashCommand('touch a.txt', File(Path('a.txt')), dag, 'ta')
+    tb = BashCommand('touch b.txt', File(Path('b.txt')), dag, 'tb')
+    tc = BashCommand('touch c.txt', File(Path('c.txt')), dag, 'tc')
+
+    ta >> tb >> tc
+
+    assert ta._lineage is None
+    assert tb._lineage == {ta}
+    assert tc._lineage == {ta, tb}

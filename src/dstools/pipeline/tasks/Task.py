@@ -134,6 +134,19 @@ class Task:
         return copy(self._upstream)
 
     @property
+    def _lineage(self):
+        # if no upstream deps, there is no lineage
+        if not len(self.upstream):
+            return None
+        else:
+            # retrieve lineage: upstream tasks + lineage from upstream tasks
+            up = list(self.upstream.values())
+            lineage_up = [up._lineage for up in self.upstream.values() if
+                          up._lineage]
+            lineage = up + [task for lineage in lineage_up for task in lineage]
+            return set(lineage)
+
+    @property
     def on_finish(self):
         """
         Callable to be executed after this task is built successfully
