@@ -36,7 +36,7 @@ from dstools.pipeline.dag import DAG
 from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
-from dstools.pipeline.tasks.Params import Params
+from dstools.pipeline.tasks.Upstream import Upstream
 from dstools.pipeline.placeholders import (ClientCodePlaceholder,
                                            TemplatedPlaceholder)
 from dstools.pipeline.Table import Row
@@ -61,9 +61,9 @@ class Task:
                                         self.PRODUCT_CLASSES_ALLOWED,
                                         type(product).__name__))
 
-        self._upstream = Params()
+        self._upstream = Upstream()
+        self._params = params or {}
 
-        self.params = params or {}
         self.build_report = None
 
         self._code = self.CODECLASS(code)
@@ -132,6 +132,17 @@ class Task:
         # always return a copy to prevent global state if contents
         # are modified (e.g. by using pop)
         return copy(self._upstream)
+
+    @property
+    def params(self):
+        """
+        dict that holds the parameter that will be passed to the task upon
+        execution. Before rendering, this will only hold parameters passed
+        in the Task constructor. After rendering, this will hold new keys:
+        "product" contained the rendered product and "upstream" holding
+        upstream parameters if there is any
+        """
+        return self._params
 
     @property
     def _lineage(self):
@@ -380,7 +391,7 @@ class Task:
 
         # add upstream product identifiers to params, if any
         if self.upstream:
-            self.params['upstream'] = Params({n: t.product for n, t
+            self.params['upstream'] = Upstream({n: t.product for n, t
                                               in self.upstream.items()})
 
         # render the current product

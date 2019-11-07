@@ -1,8 +1,9 @@
 import pytest
-from dstools.pipeline.tasks.Params import Params
+from dstools.pipeline.tasks.Upstream import Upstream
+
 
 def test_can_get_first():
-    p = Params()
+    p = Upstream()
 
     p['a'] = 0
     p['b'] = 1
@@ -11,7 +12,7 @@ def test_can_get_first():
 
 
 def test_shows_warning_if_unused_parameters():
-    p = Params()
+    p = Upstream()
 
     p['a'] = 0
     p['b'] = 1
@@ -19,5 +20,3 @@ def test_shows_warning_if_unused_parameters():
     with pytest.warns(UserWarning):
         with p:
             p['a']
-
-

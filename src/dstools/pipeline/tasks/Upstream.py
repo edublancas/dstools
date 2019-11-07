@@ -3,14 +3,14 @@ import warnings
 from collections import defaultdict, abc
 
 
-class Params(abc.Mapping):
+class Upstream(abc.Mapping):
     """
-    Mapping for representing parameters, it's a collections.OrderedDict
+    Mapping for representing upstream tasks, it's a collections.OrderedDict
     under the hood with an added .pop(key) method (like the one in a regular
     dictionary) and with a .first attribute, that returns the first value,
     useful when there is only one key-value pair.
 
-    Currently used for task upstream dependencies, used as a context manager,
+    Used for task upstream dependencies, when employed as a context manager,
     it raises a warning if any of the elements was not used at least once,
     which means there are unused upstream dependencies
     """
@@ -32,6 +32,10 @@ class Params(abc.Mapping):
 
     @property
     def first(self):
+        if not self._dict:
+            raise KeyError('Cannot obtain first upstream task, the Task has '
+                           'no upstream dependencies declared')
+
         first_key = next(iter(self._dict))
         return self._dict[first_key]
 
@@ -44,7 +48,13 @@ class Params(abc.Mapping):
     def __getitem__(self, key):
         if self._in_context:
             self._counts[key] += 1
-        return self._dict[key]
+
+        try:
+            return self._dict[key]
+        except KeyError:
+            raise KeyError('Cannot obtain upstream dependency named '
+                           '{}, declared dependencies are: {}'
+                           .format(key, self))
 
     def __setitem__(self, key, value):
         self._dict[key] = value
@@ -60,6 +70,12 @@ class Params(abc.Mapping):
         self._in_context = True
         self._init_counts()
         return self
+
+    def __str__(self):
+        return str(self._dict)
+
+    def __repr__(self):
+        return 'Upstream({})'.format(repr(self._dict))
 
     def __exit__(self, *exc):
         self._in_context = False
