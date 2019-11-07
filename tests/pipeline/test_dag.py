@@ -68,7 +68,7 @@ def test_partial_build(tmp_directory):
     code = 'cat {{upstream.first}} >> {{product}}'
     tb = BashCommand(code, File(Path('b.txt')), dag, 'tb')
     tc = BashCommand(code, File(Path('c.txt')), dag, 'tc')
-    td = BashCommand(code, File(Path('c.txt')), dag, 'td')
+    td = BashCommand(code, File(Path('d.txt')), dag, 'td')
     te = BashCommand(code, File(Path('e.txt')), dag, 'te')
 
     ta >> tb >> tc
