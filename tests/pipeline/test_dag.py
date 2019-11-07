@@ -58,3 +58,23 @@ def test_can_access_tasks_inside_dag_using_getitem():
     td >> ta >> tb >> tc >> te
 
     assert set(dag) == {'ta', 'tb', 'tc'}
+
+
+def test_partial_build(tmp_directory):
+    dag = DAG('dag')
+
+    ta = BashCommand('echo "hi" >> {{product}}',
+                     File(Path('a.txt')), dag, 'ta')
+    code = 'cat {{upstream.first}} >> {{product}}'
+    tb = BashCommand(code, File(Path('b.txt')), dag, 'tb')
+    tc = BashCommand(code, File(Path('c.txt')), dag, 'tc')
+    td = BashCommand(code, File(Path('c.txt')), dag, 'td')
+    te = BashCommand(code, File(Path('e.txt')), dag, 'te')
+
+    ta >> tb >> tc
+    tb >> td >> te
+
+    table = dag.build_partially('tc')
+
+    assert {row['name'] for row in table} == {'ta', 'tb'}
+    assert all(row['Ran?'] for row in table)

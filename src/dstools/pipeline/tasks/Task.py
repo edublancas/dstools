@@ -140,7 +140,7 @@ class Task:
             return None
         else:
             # retrieve lineage: upstream tasks + lineage from upstream tasks
-            up = list(self.upstream.values())
+            up = list(self.upstream.keys())
             lineage_up = [up._lineage for up in self.upstream.values() if
                           up._lineage]
             lineage = up + [task for lineage in lineage_up for task in lineage]

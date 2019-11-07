@@ -198,5 +198,5 @@ def test_lineage():
     ta >> tb >> tc
 
     assert ta._lineage is None
-    assert tb._lineage == {ta}
-    assert tc._lineage == {ta, tb}
+    assert tb._lineage == {'ta'}
+    assert tc._lineage == {'ta', 'tb'}

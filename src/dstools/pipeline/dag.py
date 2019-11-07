@@ -4,6 +4,7 @@ DAG module
 A DAG is collection of tasks that makes sure they are executed in
 the right order
 """
+from copy import copy
 from pathlib import Path
 import warnings
 import logging
@@ -146,11 +147,17 @@ class DAG(collections.abc.Mapping):
     def build_partially(self, target):
         """Partially build a dag until certain task
         """
-        # TODO: add task.lineage that will return all immediate and
-        # non-immediate upstream dependencies
-        # copy dag, create a new sub dag only with the {lineage} + {target}
-        # execute sub dag
-        pass
+        lineage = self[target]._lineage
+        dag = copy(self)
+
+        to_pop = set(dag) - {self.name} - lineage
+
+        for task in to_pop:
+            dag.pop(task)
+
+        dag.render()
+        executor = self._Executor(dag)
+        return executor()
 
     def status(self, **kwargs):
         """Returns a table with tasks status
