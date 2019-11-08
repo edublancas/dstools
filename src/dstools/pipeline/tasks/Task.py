@@ -54,6 +54,29 @@ class Task(abc.ABC):
     PRODUCT_IN_CODE = True
 
     def __init__(self, source, product, dag, name=None, params=None):
+        """
+        All subclasses must implement the same constuctor to keep the API
+        consistent, optional parameters after "params" are ok
+
+        Parameters
+        ----------
+        source: str or pathlib.Path
+            Source code for the task, for tasks that do not take source code
+            as input (such as PostgresCopy), this can be other thing. The
+            source can be a template and can make references to any parameter
+            in "params", "upstream" parameters or its own "product", not all
+            Tasks have templated source (templating code is mostly used by
+            Tasks that take SQL source code as input)
+        product: Product
+            The product that this task will create upon completion
+        dag: DAG
+            The DAG holding this task
+        name: str
+            A name for this task, if None a default will be assigned
+        params: dict
+            Extra parameters passed to the task on rendering (if templated
+            source) or during execution (if not templated source)
+        """
         if self.PRODUCT_CLASSES_ALLOWED is not None:
             if not isinstance(product, self.PRODUCT_CLASSES_ALLOWED):
                 raise TypeError('{} only supports the following product '
