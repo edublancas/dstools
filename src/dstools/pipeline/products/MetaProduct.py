@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 import warnings
 
 
@@ -102,6 +103,14 @@ class MetaProduct:
     def __str__(self):
         strs = ', '.join([str(p) for p in self.products])
         return f'{type(self).__name__}: {strs}'
+
+    def __iter__(self):
+        if isinstance(self.products, Mapping):
+            for product in self.products.values():
+                yield product
+        else:
+            for product in self.products:
+                yield product
 
     def __getitem__(self, key):
         return self.products[key]

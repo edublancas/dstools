@@ -77,14 +77,6 @@ class Task(abc.ABC):
             Extra parameters passed to the task on rendering (if templated
             source) or during execution (if not templated source)
         """
-        if self.PRODUCT_CLASSES_ALLOWED is not None:
-            if not isinstance(product, self.PRODUCT_CLASSES_ALLOWED):
-                raise TypeError('{} only supports the following product '
-                                'classes: {}, got {}'
-                                .format(type(self).__name__,
-                                        self.PRODUCT_CLASSES_ALLOWED,
-                                        type(product).__name__))
-
         self._upstream = Upstream()
         self._params = params or {}
 
@@ -94,9 +86,26 @@ class Task(abc.ABC):
 
         if isinstance(product, Product):
             self._product = product
+
+            if self.PRODUCT_CLASSES_ALLOWED is not None:
+                if not isinstance(self._product, self.PRODUCT_CLASSES_ALLOWED):
+                    raise TypeError('{} only supports the following product '
+                                    'classes: {}, got {}'
+                                    .format(type(self).__name__,
+                                            self.PRODUCT_CLASSES_ALLOWED,
+                                            type(self._product).__name__))
         else:
             # if assigned a tuple/list of products, create a MetaProduct
             self._product = MetaProduct(product)
+
+            if self.PRODUCT_CLASSES_ALLOWED is not None:
+                if not all(isinstance(p, self.PRODUCT_CLASSES_ALLOWED)
+                           for p in self._product):
+                    raise TypeError('{} only supports the following product '
+                                    'classes: {}, got {}'
+                                    .format(type(self).__name__,
+                                            self.PRODUCT_CLASSES_ALLOWED,
+                                            type(self._product).__name__))
 
         # if passed a name, just use it
         if name is not None:
