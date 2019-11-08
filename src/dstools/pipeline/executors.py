@@ -18,7 +18,7 @@ class Serial:
     def __init__(self, dag):
         self.dag = dag
 
-    def __call__(self):
+    def __call__(self, **kwargs):
         status_all = []
 
         g = self.dag._to_graph()
@@ -28,7 +28,7 @@ class Serial:
             pbar.set_description('Building task "{}"'.format(t.name))
 
             try:
-                t.build()
+                t.build(**kwargs)
             except Exception as e:
                 if self.dag._on_task_failure:
                     self.dag._on_task_failure(t)
@@ -60,7 +60,7 @@ class Parallel:
     def __init__(self, dag):
         self.dag = dag
 
-    def __call__(self):
+    def __call__(self, **kwargs):
         # TODO: Have to test this with other Tasks, especially the ones that use
         # clients - have to make sure they are serialized correctly
         done = []
@@ -117,7 +117,7 @@ class Parallel:
                 else:
                     if task is not None:
                         res = pool.apply_async(
-                            task.build, [], callback=callback)
+                            task.build, [], kwds=kwargs, callback=callback)
                         started.append(task)
                         print('started', task.name)
                         # time.sleep(3)

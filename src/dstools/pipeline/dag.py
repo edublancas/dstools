@@ -129,7 +129,7 @@ class DAG(collections.abc.Mapping):
 
         return self
 
-    def build(self):
+    def build(self, force=False):
         """
         Runs the DAG in order so that all upstream dependencies are run for
         every task
@@ -142,7 +142,7 @@ class DAG(collections.abc.Mapping):
         """
         self.render()
         executor = self._Executor(self)
-        return executor()
+        return executor(force=force)
 
     def build_partially(self, target):
         """Partially build a dag until certain task
