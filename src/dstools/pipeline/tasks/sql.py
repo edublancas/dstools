@@ -44,17 +44,17 @@ class SQLScript(SQLInputTask):
         infered_relations = infer.created_relations(self.source_code)
 
         if not infered_relations:
-            warnings.warn('It seems like your task "{self}" will not create '
+            warnings.warn('It seems like your task "{task}" will not create '
                           'any tables or views but the task has product '
                           '"{product}"'
-                          .format(self=self,
+                          .format(task=self.name,
                                   product=self.product))
         # FIXME: check when product is metaproduct
         elif len(infered_relations) > 1:
-            warnings.warn('It seems like your task "{self}" will create '
+            warnings.warn('It seems like your task "{task}" will create '
                           'more than one table or view but you only declared '
                           ' one product: "{self.product}"'
-                          .format(self=self,
+                          .format(sk=self.name,
                                   product=self.product))
         else:
             schema, name, kind = infered_relations[0]
@@ -62,10 +62,10 @@ class SQLScript(SQLInputTask):
 
             if ((schema != id_.schema) or (name != id_.name)
                     or (kind != id_.kind)):
-                warnings.warn('It seems like your task "{self}" create '
+                warnings.warn('It seems like your task "{task}" create '
                               'a {kind} "{schema}.{name}" but your product '
                               'did not match: "{product}"'
-                              .format(self=self, kind=kind, schema=schema,
+                              .format(task=self.name, kind=kind, schema=schema,
                                       name=name, product=self.product))
 
     def run(self):
