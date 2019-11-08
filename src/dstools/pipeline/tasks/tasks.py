@@ -17,12 +17,12 @@ class BashCommand(Task):
     """A task that runs an inline bash command
     """
 
-    def __init__(self, code, product, dag, name=None, params=None,
+    def __init__(self, source, product, dag, name=None, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
                                         'shell': True},
                  split_source_code=False):
-        super().__init__(code, product, dag, name, params)
+        super().__init__(source, product, dag, name, params)
         self.split_source_code = split_source_code
         self.subprocess_run_kwargs = subprocess_run_kwargs
         self._logger = logging.getLogger(__name__)
@@ -52,15 +52,15 @@ class BashCommand(Task):
 class PythonCallable(Task):
     """A task that runs a Python callable (i.e.  a function)
     """
-    CODECLASS = PythonCodePlaceholder
+    SOURCECLASS = PythonCodePlaceholder
 
-    def __init__(self, code, product, dag, name=None, params=None):
-        super().__init__(code, product, dag, name, params)
+    def __init__(self, source, product, dag, name=None, params=None):
+        super().__init__(source, product, dag, name, params)
 
     def run(self):
         if self.dag._Executor.TASKS_CAN_CREATE_CHILD_PROCESSES:
             p = Pool()
-            res = p.apply_async(func=self._code._source, kwds=self.params)
+            res = p.apply_async(func=self.source._source, kwds=self.params)
 
             # calling this make sure we catch the exception, from the docs:
             # Return the result when it arrives. If timeout is not None and
@@ -75,7 +75,7 @@ class PythonCallable(Task):
             p.close()
             p.join()
         else:
-            self._code._source(**self.params)
+            self.source._source(**self.params)
 
     @property
     def language(self):
@@ -85,9 +85,9 @@ class PythonCallable(Task):
 class ShellScript(Task):
     """A task to run a shell script
     """
-    def __init__(self, code, product, dag, name=None, params=None,
+    def __init__(self, source, product, dag, name=None, params=None,
                  client=None):
-        super().__init__(code, product, dag, name, params)
+        super().__init__(source, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
 
@@ -96,7 +96,7 @@ class ShellScript(Task):
                              .format(type(self).__name__))
 
     def run(self):
-        self.client.execute(str(self._code))
+        self.client.execute(str(self.source))
 
     @property
     def language(self):

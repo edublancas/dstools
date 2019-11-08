@@ -61,7 +61,7 @@ def test_python_callable_with_file():
     t.render()
 
     assert str(t.product) == '/path/to/file'
-    assert str(t._code) == 'def my_fn(product, upstream):\n    pass\n'
+    assert str(t.source) == 'def my_fn(product, upstream):\n    pass\n'
 
 
 def test_postgresscript_with_relation():
@@ -77,7 +77,7 @@ def test_postgresscript_with_relation():
     t.render()
 
     assert str(t.product) == '"user"."table"'
-    assert (str(t._code)
+    assert (str(t.source)
             == 'CREATE TABLE "user"."table" AS SELECT * FROM some_table')
 
 

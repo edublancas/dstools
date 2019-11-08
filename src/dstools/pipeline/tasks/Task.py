@@ -21,7 +21,7 @@ Required:
 Optional:
 
 * Validating PRODUCT_CLASSES_ALLOWED
-* Validating CODECLASS
+* Validating SOURCECLASS
 * Validating upstream, product and params in code
 * Using a client parameter
 * The language property
@@ -49,11 +49,11 @@ import humanize
 class Task(abc.ABC):
     """A task represents a unit of work
     """
-    CODECLASS = ClientCodePlaceholder
+    SOURCECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = None
     PRODUCT_IN_CODE = True
 
-    def __init__(self, code, product, dag, name=None, params=None):
+    def __init__(self, source, product, dag, name=None, params=None):
         if self.PRODUCT_CLASSES_ALLOWED is not None:
             if not isinstance(product, self.PRODUCT_CLASSES_ALLOWED):
                 raise TypeError('{} only supports the following product '
@@ -67,7 +67,7 @@ class Task(abc.ABC):
 
         self.build_report = None
 
-        self._code = self.CODECLASS(code)
+        self._source = self.SOURCECLASS(source)
 
         if isinstance(product, Product):
             self._product = product
@@ -121,12 +121,21 @@ class Task(abc.ABC):
         return self._name
 
     @property
+    def source(self):
+        """
+        A code object which represents what will be run upn task execution,
+        for tasks that do not take source code as parameter (such as
+        PostgresCopy), the source object will be a different thing
+        """
+        return self._source
+
+    @property
     def source_code(self):
         """
         A str with the source for that this task will run on execution, if
         templated, it is only available after rendering
         """
-        return str(self._code)
+        return str(self.source)
 
     @property
     def product(self):
@@ -322,11 +331,11 @@ class Task(abc.ABC):
             # types of code objects we cannot determine parameter
             # use at render time
             if (params.get('upstream')
-                    and isinstance(self._code, TemplatedPlaceholder)):
+                    and isinstance(self.source, TemplatedPlaceholder)):
                 with params.get('upstream'):
-                    self._code.render(params, optional=opt)
+                    self.source.render(params, optional=opt)
             else:
-                self._code.render(params, optional=opt)
+                self.source.render(params, optional=opt)
         except Exception as e:
             raise type(e)('Error rendering code from Task "{}", '
                           ' check the full traceback above for details'
@@ -387,8 +396,8 @@ class Task(abc.ABC):
             outd_code = ''
 
         data['Product'] = str(self.product)
-        data['Doc (short)'] = self._code.doc_short
-        data['Location'] = self._code.loc
+        data['Doc (short)'] = self.source.doc_short
+        data['Location'] = self.source.loc
 
         return Row(data)
 

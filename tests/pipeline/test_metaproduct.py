@@ -28,7 +28,4 @@ def test_can_create_task_with_more_than_one_product(tmp_directory):
 
     dag.render()
 
-    str(ta._code)
-    str(tc._code)
-
     dag.build()

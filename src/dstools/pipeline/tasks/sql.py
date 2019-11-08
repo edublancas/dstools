@@ -29,10 +29,10 @@ class SQLScript(SQLInputTask):
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation, File)
 
-    def __init__(self, code, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name=None, client=None,
                  params=None):
         params = params or {}
-        super().__init__(code, product, dag, name, params)
+        super().__init__(source, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
 
@@ -82,7 +82,7 @@ class SQLDump(SQLInputTask):
 
     Parameters
     ----------
-    code: str
+    source: str
         The SQL query to run in the database
     product: File
         The directory location for the output parquet files
@@ -91,7 +91,7 @@ class SQLDump(SQLInputTask):
     name: str, optional
         Name for this task
     params: dict, optional
-        Extra parameters for the task's code
+        Extra parameters for the task
     chunksize: int, optional
         Size of each chunk, one parquet file will be generated per chunk. If
         None, only one file is created
@@ -103,14 +103,15 @@ class SQLDump(SQLInputTask):
     can greatly speed up the dump for some databases when the driver uses
     cursors.arraysize as the number of rows to fetch on a single call
     """
-    CODECLASS = ClientCodePlaceholder
+    SOURCECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
     PRODUCT_IN_CODE = False
 
-    def __init__(self, code, product, dag, name=None, client=None, params=None,
+    def __init__(self, source, product, dag, name=None, client=None,
+                 params=None,
                  chunksize=10000, io_handler=None):
         params = params or {}
-        super().__init__(code, product, dag, name, params)
+        super().__init__(source, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
         self.chunksize = chunksize
@@ -121,7 +122,7 @@ class SQLDump(SQLInputTask):
                              .format(type(self).__name__))
 
     def run(self):
-        source_code = str(self._code)
+        source_code = str(self.source)
         path = Path(str(self.params['product']))
         handler = self.io_handler(path, chunked=bool(self.chunksize))
 
@@ -158,17 +159,19 @@ class SQLDump(SQLInputTask):
 
 # FIXME: this can be a lot faster for clients that transfer chunksize
 # rows over the network
+
+
 class SQLTransfer(SQLInputTask):
     """Transfers data from a SQL statement to a SQL relation
     """
-    CODECLASS = ClientCodePlaceholder
+    SOURCECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
     PRODUCT_IN_CODE = False
 
-    def __init__(self, code, product, dag, name=None, client=None, params=None,
-                 chunksize=10000):
+    def __init__(self, source, product, dag, name=None, client=None,
+                 params=None, chunksize=10000):
         params = params or {}
-        super().__init__(code, product, dag, name, params)
+        super().__init__(source, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
 
@@ -179,7 +182,7 @@ class SQLTransfer(SQLInputTask):
         self.chunksize = chunksize
 
     def run(self):
-        source_code = str(self._code)
+        source_code = str(self.source)
         product = self.params['product']
 
         # read from source_code, use connection from the Task
@@ -202,17 +205,17 @@ class SQLUpload(Task):
 
     Parameters
     ----------
-    code: str
+    source: str or pathlib.Path
         Path to parquet file to upload
     """
-    CODECLASS = StringPlaceholder
+    SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
     PRODUCT_IN_CODE = False
 
-    def __init__(self, code, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name=None, client=None,
                  params=None):
         params = params or {}
-        super().__init__(code, product, dag, name, params)
+        super().__init__(source, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
 
@@ -224,7 +227,7 @@ class SQLUpload(Task):
         product = self.params['product']
 
         self._logger.info('Reading data...')
-        df = pd.read_parquet(str(self._code))
+        df = pd.read_parquet(str(self.source))
         self._logger.info('Done reading data...')
 
         df.to_sql(name=product.name,
@@ -240,17 +243,17 @@ class PostgresCopy(Task):
 
     Parameters
     ----------
-    code: str
+    source: str or pathlib.Path
         Path to parquet file to upload
     """
-    CODECLASS = StringPlaceholder
+    SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)
     PRODUCT_IN_CODE = False
 
-    def __init__(self, code, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name=None, client=None,
                  params=None, sep='\t', null='\\N', columns=None):
         params = params or {}
-        super().__init__(code, product, dag, name, params)
+        super().__init__(source, product, dag, name, params)
 
         self.client = client or self.dag.clients.get(type(self))
 
@@ -264,7 +267,7 @@ class PostgresCopy(Task):
 
     def run(self):
         product = self.params['product']
-        df = pd.read_parquet(str(self._code))
+        df = pd.read_parquet(str(self.source))
 
         # create the table
         self._logger.info('Creating table...')
