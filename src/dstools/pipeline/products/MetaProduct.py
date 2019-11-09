@@ -3,6 +3,12 @@ import warnings
 
 
 class ProductsContainer:
+    """
+    An iterator that when initialized with a sequence behaves just like it
+    but when initialized with a mapping, iterates over values (instead of
+    keys), this non-standard behavior but it is needed to simpplify the
+    MetaProduct API
+    """
 
     def __init__(self, products):
         self.products = products
@@ -30,12 +36,13 @@ class ProductsContainer:
 
 class MetaProduct:
     """
-    Exposes a Product-like API for a list of products, used internally
-    when a Task is declared to have more than one product so they can be
-    easily accesed via product[0] or product['name'] if initialized with a
-    mapping object, it is also used in a DAG to expose
-    a limited version of a Product API which is used when a DAG is declared
-    as an upstream dependency of a Task
+    Exposes a Product-like API to allow Tasks to create more than one Product,
+    it is automatically instantiated when a Task is initialized with a
+    sequence or a mapping object in the product parameter. While it is
+    recommended for Tasks to only have one Product (to keep them simple),
+    in some cases it makes sense. For example, a Jupyter notebook
+    (executed via NotebookRunner), for fitting a model might as well serialize
+    the things such as the model and any data preprocessors
     """
 
     def __init__(self, products):
