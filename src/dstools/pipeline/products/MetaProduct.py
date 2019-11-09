@@ -2,17 +2,44 @@ from collections.abc import Mapping
 import warnings
 
 
+class ProductsContainer:
+
+    def __init__(self, products):
+        self.products = products
+
+    def __iter__(self):
+        if isinstance(self.products, Mapping):
+            for product in self.products.values():
+                yield product
+        else:
+            for product in self.products:
+                yield product
+
+    def __getitem__(self, key):
+        return self.products[key]
+
+    def _to_json_serializable(self):
+        """Returns a JSON serializable version of this product
+        """
+        if isinstance(self.products, Mapping):
+            return {name: str(product) for name, product
+                    in self.products.items()}
+        else:
+            return list(str(product) for product in self.products)
+
+
 class MetaProduct:
     """
     Exposes a Product-like API for a list of products, used internally
     when a Task is declared to have more than one product so they can be
-    easily accesed via product[0], it is also used in a DAG to expose
+    easily accesed via product[0] or product['name'] if initialized with a
+    mapping object, it is also used in a DAG to expose
     a limited version of a Product API which is used when a DAG is declared
-    as an upstream dependency of a Taks
+    as an upstream dependency of a Task
     """
 
     def __init__(self, products):
-        self.products = products
+        self.products = ProductsContainer(products)
 
     @property
     def metadata(self):
@@ -85,6 +112,13 @@ class MetaProduct:
         return any([p._outdated_code_dependency()
                     for p in self.products])
 
+    def _to_json_serializable(self):
+        """Returns a JSON serializable version of this product
+        """
+        # NOTE: this is used in tasks where only JSON serializable parameters
+        # are supported such as NotebookRunner that depends on papermill
+        return self.products._to_json_serializable()
+
     def save_metadata(self):
         for p in self.products:
             p.save_metadata()
@@ -105,12 +139,8 @@ class MetaProduct:
         return f'{type(self).__name__}: {strs}'
 
     def __iter__(self):
-        if isinstance(self.products, Mapping):
-            for product in self.products.values():
-                yield product
-        else:
-            for product in self.products:
-                yield product
+        for product in self.products:
+            yield product
 
     def __getitem__(self, key):
         return self.products[key]

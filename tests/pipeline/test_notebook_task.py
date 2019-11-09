@@ -33,7 +33,7 @@ def test_can_execute_from_py(path_to_assets, tmp_directory):
     dag.build()
 
 
-def test_can_execute_with_parameters(path_to_assets, tmp_directory):
+def test_can_execute_with_parameters(tmp_directory):
     dag = DAG()
 
     code = """
@@ -46,4 +46,27 @@ def test_can_execute_with_parameters(path_to_assets, tmp_directory):
                    kernelspec_name='python3',
                    params={'var': 1},
                    ext_in='py')
+    dag.build()
+
+
+def test_can_execute_when_product_is_metaproduct(tmp_directory):
+    dag = DAG()
+
+    code = """product = None
+
+from pathlib import Path
+
+Path(product['model']).touch()
+    """
+
+    product = {'nb': File(Path(tmp_directory, 'out.ipynb')),
+               'model': File(Path(tmp_directory, 'model.pkl'))}
+
+    NotebookRunner(code,
+                   product=product,
+                   dag=dag,
+                   kernelspec_name='python3',
+                   params={'var': 1},
+                   ext_in='py',
+                   nb_product_key='nb')
     dag.build()

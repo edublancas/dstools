@@ -30,7 +30,7 @@ except ImportError:
 
 from dstools.exceptions import TaskBuildError
 from dstools.pipeline.placeholders import LiteralCodePlaceholder
-from dstools.pipeline.products import File
+from dstools.pipeline.products import File, MetaProduct
 from dstools.pipeline.tasks.Task import Task
 
 
@@ -97,15 +97,26 @@ class NotebookRunner(Task):
 
     def __init__(self, source, product, dag, name=None, params=None,
                  papermill_params=None, kernelspec_name=None,
-                 nbconvert_exporter_name=None, ext_in=None):
+                 nbconvert_exporter_name=None, ext_in=None,
+                 nb_product_key=None):
         self.papermill_params = papermill_params or {}
         self.kernelspec_name = kernelspec_name
         self.nbconvert_exporter_name = nbconvert_exporter_name
         self.ext_in = ext_in
+        self.nb_product_key = nb_product_key
         super().__init__(source, product, dag, name, params or {})
 
+        if isinstance(self.product, MetaProduct) and nb_product_key is None:
+            raise KeyError('More than one product was passed but '
+                           'nb_product_key '
+                           'is None, pass a value to locate the notebook '
+                           'save location')
+
     def run(self):
-        path_to_out = str(self.product)
+        if isinstance(self.product, MetaProduct):
+            path_to_out = str(self.product[self.nb_product_key])
+        else:
+            path_to_out = str(self.product)
 
         source = str(self.source)
 
@@ -130,7 +141,7 @@ class NotebookRunner(Task):
 
         # papermill only allows JSON serializable parameters
         params = copy(self.params)
-        params['product'] = str(params['product'])
+        params['product'] = params['product']._to_json_serializable()
 
         if params.get('upstream'):
             params['upstream'] = {k: str(n) for k, n

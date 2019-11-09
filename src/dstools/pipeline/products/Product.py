@@ -210,3 +210,10 @@ class Product(abc.ABC):
         is provided
         """
         pass
+
+    def _to_json_serializable(self):
+        """Returns a JSON serializable version of this product
+        """
+        # NOTE: this is used in tasks where only JSON serializable parameters
+        # are supported such as NotebookRunner that depends on papermill
+        return str(self)
