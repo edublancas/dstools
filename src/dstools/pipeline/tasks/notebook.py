@@ -144,7 +144,7 @@ class NotebookRunner(Task):
         params['product'] = params['product']._to_json_serializable()
 
         if params.get('upstream'):
-            params['upstream'] = {k: str(n) for k, n
+            params['upstream'] = {k: n._to_json_serializable() for k, n
                                   in params['upstream'].items()}
 
         pm.execute_notebook(path_to_in, path_to_out,
