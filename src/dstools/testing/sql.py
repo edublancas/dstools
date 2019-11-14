@@ -15,8 +15,8 @@ def nulls_in_columns(client, cols, product):
     """).render(cols=cols, product=product)
 
     cur = client.connection.cursor()
-    res = cur.execute(sql)
-    output = bool(res.fetchone()[0])
+    cur.execute(sql)
+    output = bool(cur.fetchone()[0])
     cur.close()
 
     return output
@@ -30,8 +30,8 @@ def distinct_values_in_column(client, col, product):
     """).render(col=col, product=product)
 
     cur = client.connection.cursor()
-    res = cur.execute(sql)
-    output = res.fetchall()
+    cur.execute(sql)
+    output = cur.fetchall()
     cur.close()
 
     return set(o[0] for o in output)
@@ -50,8 +50,8 @@ def duplicates_in_column(client, col, product):
     """).render(col=col, product=product)
 
     cur = client.connection.cursor()
-    res = cur.execute(sql)
-    output = bool(res.fetchone()[0])
+    cur.execute(sql)
+    output = bool(cur.fetchone()[0])
     cur.close()
 
     return output
@@ -65,8 +65,8 @@ def range_in_column(client, col, product):
     """).render(col=col, product=product)
 
     cur = client.connection.cursor()
-    res = cur.execute(sql)
-    output = res.fetchone()
+    cur.execute(sql)
+    output = cur.fetchone()
     cur.close()
 
     return output
