@@ -106,5 +106,7 @@ class ShellScript(Task):
 
 
 class DownloadFromURL(Task):
+    PRODUCT_IN_CODE = False
+
     def run(self):
         request.urlretrieve(str(self.source), filename=str(self.product))
