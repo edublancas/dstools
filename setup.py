@@ -85,7 +85,7 @@ setup(
         # other deps that should be optional
         'pandas',
         # for code normalization
-        'sqlparse', 'autopep8',
+        'sqlparse', 'autopep8', 'parso',
         # for generating dag.to_markup(fmt='html')
         'mistune',
         # python<3.7 backported library

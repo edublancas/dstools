@@ -242,6 +242,16 @@ class DAG(collections.abc.Mapping):
 
         return path
 
+    def diagnose(self):
+        """Evaluate code quality
+        """
+        for task_name in self:
+
+            doc = self[task_name].source.doc
+
+            if doc is None or doc == '':
+                warnings.warn('Task "{}" has no docstring'.format(task_name))
+
     def _render_current(self, show_progress, force):
         # only render the first time this is called, this means that
         # if the dag is modified, render won't have an effect, DAGs are meant

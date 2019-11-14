@@ -27,6 +27,7 @@ Optional:
 * The language property
 
 """
+import inspect
 import abc
 import traceback
 from copy import copy
@@ -135,6 +136,7 @@ class Task(abc.ABC):
 
         dag._add_task(self)
         self.dag = dag
+        self.client = None
 
         self._status = TaskStatus.WaitingRender
 
@@ -319,7 +321,11 @@ class Task(abc.ABC):
 
             if self.on_finish:
                 try:
-                    self.on_finish(self)
+                    if 'client' in inspect.getfullargspec(self.on_finish).args:
+                        self.on_finish(self, client=self.client)
+                    else:
+                        self.on_finish(self)
+
                 except Exception as e:
                     raise TaskBuildError('Exception when running on_finish '
                                          'for task {}: {}'.format(self, e))

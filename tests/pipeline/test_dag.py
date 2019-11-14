@@ -1,7 +1,10 @@
+from mock import Mock
 from pathlib import Path
 
+import pytest
+
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import BashCommand, PythonCallable
+from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLScript
 from dstools.pipeline.products import File
 
 
@@ -19,6 +22,54 @@ from dstools.pipeline.products import File
 #     t1 >> t2
 
 #     dag.to_html('a.html')
+
+
+def test_warn_on_python_missing_docstrings():
+    def fn1(product):
+        pass
+
+    dag = DAG()
+    PythonCallable(fn1, File('file1.txt'), dag)
+
+    with pytest.warns(UserWarning):
+        dag.diagnose()
+
+
+def test_does_not_warn_on_python_docstrings():
+    def fn1(product):
+        """This is a docstring
+        """
+        pass
+
+    dag = DAG()
+    PythonCallable(fn1, File('file1.txt'), dag)
+
+    with pytest.warns(None) as warn:
+        dag.diagnose()
+
+    assert not warn
+
+
+def test_warn_on_sql_missing_docstrings():
+    dag = DAG()
+
+    sql = 'SELECT * FROM table'
+    SQLScript(sql, File('file1.txt'), dag, client=Mock())
+
+    with pytest.warns(UserWarning):
+        dag.diagnose()
+
+
+def test_does_not_warn_on_sql_docstrings():
+    dag = DAG()
+
+    sql = '/* get data from table */\nSELECT * FROM table'
+    SQLScript(sql, File('file1.txt'), dag, client=Mock())
+
+    with pytest.warns(None) as warn:
+        dag.diagnose()
+
+    assert not warn
 
 
 def test_can_access_sub_dag():
