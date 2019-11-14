@@ -4,6 +4,7 @@ Task implementations
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
+from urllib import request
 from multiprocessing import Pool
 import shlex
 import subprocess
@@ -85,6 +86,7 @@ class PythonCallable(Task):
 class ShellScript(Task):
     """A task to run a shell script
     """
+
     def __init__(self, source, product, dag, name=None, params=None,
                  client=None):
         super().__init__(source, product, dag, name, params)
@@ -101,3 +103,8 @@ class ShellScript(Task):
     @property
     def language(self):
         return 'bash'
+
+
+class DownloadFromURL(Task):
+    def run(self):
+        request.urlretrieve(str(self.source), filename=str(self.product))
