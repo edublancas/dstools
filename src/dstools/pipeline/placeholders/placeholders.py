@@ -123,10 +123,14 @@ class SQLSource(StringPlaceholder):
 
     @property
     def doc(self):
-        return ''
-        # regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
-        # match = re.match(regex, self._source)
-        # return '' if match is None else match.group(1)
+        if self._rendered_value is None:
+            content = str(self._source)
+        else:
+            content = self._rendered_value
+
+        regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
+        match = re.match(regex, content)
+        return '' if match is None else match.group(1)
 
     @property
     def doc_short(self):
