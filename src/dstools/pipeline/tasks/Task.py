@@ -52,6 +52,12 @@ class Task(abc.ABC):
     SOURCECLASS = SQLScriptSource
     PRODUCT_CLASSES_ALLOWED = None
 
+    @abc.abstractmethod
+    def run(self):
+        """This is the only required method Task subclasses must implement
+        """
+        pass
+
     def __init__(self, source, product, dag, name=None, params=None):
         """
         All subclasses must implement the same constuctor to keep the API
@@ -229,10 +235,6 @@ class Task(abc.ABC):
     @on_failure.setter
     def on_failure(self, value):
         self._on_failure = value
-
-    @abc.abstractmethod
-    def run(self):
-        pass
 
     def build(self, force=False):
         """Run the task if needed by checking its dependencies
