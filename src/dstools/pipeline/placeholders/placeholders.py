@@ -189,6 +189,10 @@ class Source(abc.ABC):
     def render(self, params, **kwargs):
         return self.value.render(params, **kwargs)
 
+    # NOTE: should I require source ojects to implement __str__?
+    # task.source_code does str(task.source), but I tihik the implementation
+    # will be always str(self.value)
+
 
 class SQLSourceMixin:
     """A source representing SQL source code
