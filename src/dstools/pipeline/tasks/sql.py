@@ -4,8 +4,9 @@ from io import StringIO
 
 from dstools.sql import infer
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import (ClientCodePlaceholder,
-                                           StringPlaceholder)
+from dstools.pipeline.placeholders import (SQLScriptSource,
+                                           StringPlaceholder,
+                                           SQLQuerySource)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 from dstools.pipeline import io
 
@@ -27,6 +28,7 @@ class SQLScript(SQLInputTask):
     does not make any assumptions about the underlying SQL engine, it should
     work witn all DBs supported by SQLAlchemy
     """
+    SOURCECLASS = SQLScriptSource
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation, File)
 
     def __init__(self, source, product, dag, name=None, client=None,
@@ -103,7 +105,7 @@ class SQLDump(SQLInputTask):
     can greatly speed up the dump for some databases when the driver uses
     cursors.arraysize as the number of rows to fetch on a single call
     """
-    SOURCECLASS = ClientCodePlaceholder
+    SOURCECLASS = SQLQuerySource
     PRODUCT_CLASSES_ALLOWED = (File, )
     PRODUCT_IN_CODE = False
 
@@ -164,7 +166,7 @@ class SQLDump(SQLInputTask):
 class SQLTransfer(SQLInputTask):
     """Transfers data from a SQL statement to a SQL relation
     """
-    SOURCECLASS = ClientCodePlaceholder
+    SOURCECLASS = SQLQuerySource
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
     PRODUCT_IN_CODE = False
 

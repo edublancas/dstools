@@ -77,15 +77,6 @@ class StrictTemplate:
 
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
-        self._doc = self._parse_docstring()
-
-    @property
-    def doc(self):
-        return self._doc
-
-    @property
-    def doc_short(self):
-        return self.doc.split('\n')[0]
 
     @property
     def source(self):
@@ -109,14 +100,6 @@ class StrictTemplate:
         from a str
         """
         return self._path
-
-    def _parse_docstring(self):
-        """Finds the docstring at the beginning of the source
-        """
-        # [any whitespace] /* [capture] */ [any string]
-        regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
-        match = re.match(regex, self.raw)
-        return '' if match is None else match.group(1)
 
     def _check_is_literal(self):
         """

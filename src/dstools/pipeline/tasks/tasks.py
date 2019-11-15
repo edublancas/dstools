@@ -11,7 +11,7 @@ import subprocess
 from subprocess import CalledProcessError
 import logging
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import PythonCodePlaceholder
+from dstools.pipeline.placeholders import PythonCallableSource
 
 
 class BashCommand(Task):
@@ -53,7 +53,7 @@ class BashCommand(Task):
 class PythonCallable(Task):
     """A task that runs a Python callable (i.e.  a function)
     """
-    SOURCECLASS = PythonCodePlaceholder
+    SOURCECLASS = PythonCallableSource
 
     def __init__(self, source, product, dag, name=None, params=None):
         super().__init__(source, product, dag, name, params)

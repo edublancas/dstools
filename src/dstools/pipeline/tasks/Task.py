@@ -39,7 +39,7 @@ from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Upstream import Upstream
-from dstools.pipeline.placeholders import (ClientCodePlaceholder,
+from dstools.pipeline.placeholders import (SQLScriptSource,
                                            TemplatedPlaceholder)
 from dstools.pipeline.Table import Row
 from dstools.util import isiterable
@@ -50,7 +50,7 @@ import humanize
 class Task(abc.ABC):
     """A task represents a unit of work
     """
-    SOURCECLASS = ClientCodePlaceholder
+    SOURCECLASS = SQLScriptSource
     PRODUCT_CLASSES_ALLOWED = None
     PRODUCT_IN_CODE = True
 

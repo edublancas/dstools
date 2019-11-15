@@ -21,10 +21,14 @@ placeholders, arbitrary parameters can also be placeholders.
 These classes are not intended to be used by the end user, since Task and
 Product objects create placeholders from strings.
 """
+import re
 from pathlib import Path
 import inspect
 
 from dstools.templates.StrictTemplate import StrictTemplate
+
+# FIXME: move diagnose to here, task might need this as well, since
+# validation may involve checking against the product
 
 
 class TemplatedPlaceholder:
@@ -49,7 +53,7 @@ class StringPlaceholder(TemplatedPlaceholder):
     its rendered version in the same object so it can later be accesed,
     if a pathlib.Path object is used as source, it is casted to str. If the
     contents of the file represent the placeholder's content, use
-    ClientCodePlaceholder instead
+    SQLScriptSource instead
     """
 
     def __init__(self, source):
@@ -94,23 +98,15 @@ class StringPlaceholder(TemplatedPlaceholder):
         return None
 
 
-class ClientCodePlaceholder(StringPlaceholder):
-    """
-    An object that represents client code, if a pathlib.Path object is passed,
-    its contents are read and interpreted as the placeholder's content
-
-    Notes
-    -----
-    This is really just a StrictTemplate object that stores its rendered
-    version in the same object and raises an Exception if attempted. It also
-    passes some of its attributes
-    """
-
+class SQLSource(StringPlaceholder):
     def __init__(self, source):
         # the only difference between this and the original placeholder
         # is how they treat pathlib.Path
         self._source = StrictTemplate(source)
         self._rendered_value = None
+
+        # TODO: run the pre-render validation, make sure the product and
+        # upstream tags exist in the template
 
         # if source is literal, rendering without params should work, this
         # allows this template to be used without having to render the dag
@@ -120,11 +116,14 @@ class ClientCodePlaceholder(StringPlaceholder):
 
     @property
     def doc(self):
-        return self._source.doc
+        return ''
+        # regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
+        # match = re.match(regex, self._source)
+        # return '' if match is None else match.group(1)
 
     @property
     def doc_short(self):
-        return self._source.doc_short
+        return self.doc.split('\n')[0]
 
     @property
     def loc(self):
@@ -133,6 +132,34 @@ class ClientCodePlaceholder(StringPlaceholder):
     @property
     def path(self):
         return self._source.path
+
+
+class SQLScriptSource(SQLSource):
+    """
+    A SQL (templated) script, it is expected to make a persistent change in
+    the database (by using the CREATE statement), its validation verifies
+    that, if no persistent changes should be validated use SQLQuerySource
+    instead
+
+    An object that represents SQL source, if a pathlib.Path object is passed,
+    its contents are read and interpreted as the placeholder's content
+
+    Notes
+    -----
+    This is really just a StrictTemplate object that stores its rendered
+    version in the same object and raises an Exception if attempted. It also
+    passes some of its attributes
+    """
+    pass
+
+
+class SQLQuerySource(SQLSource):
+    """
+    Templated SQL query, it is not expected to make any persistent changes in
+    the database (in contrast with SQLScriptSource), so its validation is
+    different
+    """
+    pass
 
 
 class SQLRelationPlaceholder(TemplatedPlaceholder):
@@ -222,7 +249,9 @@ class SQLRelationPlaceholder(TemplatedPlaceholder):
                 .format(self.schema, self._source.raw, self.kind))
 
 
-class PythonCodePlaceholder:
+class PythonCallableSource:
+    """A source that holds a Python callable
+    """
 
     def __init__(self, source):
         if not callable(source):
@@ -265,7 +294,11 @@ class PythonCodePlaceholder:
         return '{}:{}'.format(self._loc, self._source_lineno)
 
 
-class LiteralCodePlaceholder:
+class GenericSource:
+    """
+    Generic (untemplated) source, the simplest type of source, it does
+    not render, perform any kind of parsing nor validation
+    """
     def __init__(self, source):
         if isinstance(source, Path):
             self._source = source.read_text()

@@ -1,11 +1,12 @@
-from dstools.pipeline.placeholders.placeholders import (PythonCodePlaceholder,
-                                                        ClientCodePlaceholder,
+from dstools.pipeline.placeholders.placeholders import (PythonCallableSource,
+                                                        SQLScriptSource,
+                                                        SQLQuerySource,
                                                         SQLRelationPlaceholder,
                                                         StringPlaceholder,
                                                         TemplatedPlaceholder,
-                                                        LiteralCodePlaceholder)
+                                                        GenericSource)
 
-__all__ = ['PythonCodePlaceholder', 'ClientCodePlaceholder',
-           'SQLRelationPlaceholder',
+__all__ = ['PythonCallableSource', 'SQLScriptSource',
+           'SQLRelationPlaceholder', 'SQLQuerySource',
            'StringPlaceholder', 'TemplatedPlaceholder',
-           'LiteralCodePlaceholder']
+           'GenericSource']
