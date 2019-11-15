@@ -21,6 +21,7 @@ placeholders, arbitrary parameters can also be placeholders.
 These classes are not intended to be used by the end user, since Task and
 Product objects create placeholders from strings.
 """
+import abc
 import warnings
 import re
 from pathlib import Path
@@ -38,37 +39,14 @@ from dstools.sql import infer
 # FIXME: remove opt from StrictTemplate.render
 
 
-class TemplatedPlaceholder:
+class FilePlaceholder:
     """
-    There are two types of placeholders, templated strings (whose
-    parameteters are rendered using jinja templates and then executed) and
-    native Python code (a callable object), which has no render logic, but
-    still needs to offer the same API for compatibility, this class only
-    helps identify which placeholders are from the first class since in some
-    execution points, they need to be treated differently (e.g. for templated
-    placeholders it is possible to check whether any passed parameter is
-    unused at rendering time, since python code does not have a render step,
-    this is not possible)
-
+    Placeholders are jinja2 templates that hold their rendered
+    values after Placeholder.render is called, they are used in
+    source and Product objects to hold values that are be filled
+    after a DAG is rendered
     """
-    @property
-    def needs_render(self):
-        return True
-
-
-class StringPlaceholder(TemplatedPlaceholder):
-    """
-    StringPlaceholders templated strings (using StrictTemplates) that store
-    its rendered version in the same object so it can later be accesed,
-    if a pathlib.Path object is used as source, it is casted to str. If the
-    contents of the file represent the placeholder's content, use
-    SQLScriptSource instead
-    """
-
     def __init__(self, source):
-        if isinstance(source, Path):
-            source = str(source)
-
         self._source = StrictTemplate(source)
         self._rendered_value = None
 
@@ -104,30 +82,64 @@ class StringPlaceholder(TemplatedPlaceholder):
         return self._rendered
 
     @property
-    def doc_short(self):
-        return None
+    def loc(self):
+        return self._source.path
+
+
+class StringPlaceholder(FilePlaceholder):
+    """
+    Same as FilePlaceholder but cast their argument to str before init,
+    so a Path will be interpreted literally instead of loading the file
+    """
+    def __init__(self, source):
+        super().__init__(str(source))
 
     @property
     def loc(self):
         return None
 
 
-class SQLSource(StringPlaceholder):
+class FileLiteral:
     def __init__(self, source):
-        # the only difference between this and the original placeholder
-        # is how they treat pathlib.Path
-        self._source = StrictTemplate(source)
-        self._rendered_value = None
+        self._source = Path(source).read_text()
 
-        # TODO: run the pre-render validation, make sure the product and
-        # upstream tags exist in the template - ONLY FOR SQLSCRIPT
 
-        # FIXME: some sources cannot be literals! query can be but not script
-        # it needs the product as placeholder
-        # if source is literal, assign the rendered value to the raw value
-        if self._source.is_literal:
-            # self.render({})
-            self._rendered_value = str(self._source)
+class StringLiteral:
+    @property
+    def loc(self):
+        return None
+
+
+class Source(abc.ABC):
+
+    @property
+    @abc.abstractmethod
+    def doc(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def doc_short(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def language(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def needs_render(self):
+        pass
+
+    @property
+    def loc(self):
+        return self._source.loc
+
+
+class SQLSourceMixin:
+    """A source representing SQL source code
+    """
 
     @property
     def doc(self):
@@ -145,10 +157,6 @@ class SQLSource(StringPlaceholder):
         return self.doc.split('\n')[0]
 
     @property
-    def loc(self):
-        return str(self._source.path)
-
-    @property
     def path(self):
         return self._source.path
 
@@ -157,7 +165,7 @@ class SQLSource(StringPlaceholder):
         return 'sql'
 
 
-class SQLScriptSource(SQLSource):
+class SQLScriptSource(FilePlaceholder, SQLSourceMixin, Source):
     """
     A SQL (templated) script, it is expected to make a persistent change in
     the database (by using the CREATE statement), its validation verifies
@@ -232,8 +240,12 @@ class SQLScriptSource(SQLSource):
         #                       ' {}'
         #                       .format(infered_relations, actual_len))
 
+    @property
+    def needs_render(self):
+        return True
 
-class SQLQuerySource(SQLSource):
+
+class SQLQuerySource(FilePlaceholder, SQLSourceMixin, Source):
     """
     Templated SQL query, it is not expected to make any persistent changes in
     the database (in contrast with SQLScriptSource), so its validation is
@@ -241,10 +253,12 @@ class SQLQuerySource(SQLSource):
     """
     # TODO: validate this is a SELECT statement
     # a query needs to return a result
-    pass
+    @property
+    def needs_render(self):
+        return True
 
 
-class SQLRelationPlaceholder(TemplatedPlaceholder):
+class SQLRelationPlaceholder(StringPlaceholder):
     """An identifier that represents a database relation (table or view)
     """
 
@@ -346,7 +360,7 @@ class SQLRelationPlaceholder(TemplatedPlaceholder):
         return hash((self.schema, self.name, self.kind))
 
 
-class PythonCallableSource:
+class PythonCallableSource(Source):
     """A source that holds a Python callable
     """
 
@@ -393,19 +407,11 @@ class PythonCallableSource:
         return 'python'
 
 
-class GenericSource:
+class GenericSource(Source, StringLiteral):
     """
     Generic (untemplated) source, the simplest type of source, it does
     not render, perform any kind of parsing nor validation
     """
-
-    def __init__(self, source):
-        if isinstance(source, Path):
-            self._source = source.read_text()
-            self._path = source
-        else:
-            self._source = source
-            self._path = None
 
     def __str__(self):
         return self._source
@@ -433,3 +439,13 @@ class GenericSource:
     @property
     def language(self):
         return None
+
+
+class GenericTemplatedSource(GenericSource, StringPlaceholder):
+
+    def __str__(self):
+        return self._rendered
+
+    @property
+    def needs_render(self):
+        return True

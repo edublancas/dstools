@@ -116,7 +116,7 @@ class Product(abc.ABC):
         dag = self.task.dag
         return dag.differ.code_is_different(self.stored_source_code,
                                             self.task.source_code,
-                                            language=self.task.language)
+                                            language=self.task.source.language)
 
     def _get_metadata(self):
         """

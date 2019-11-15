@@ -3,10 +3,10 @@ from dstools.pipeline.placeholders.placeholders import (PythonCallableSource,
                                                         SQLQuerySource,
                                                         SQLRelationPlaceholder,
                                                         StringPlaceholder,
-                                                        TemplatedPlaceholder,
-                                                        GenericSource)
+                                                        GenericSource,
+                                                        GenericTemplatedSource)
 
 __all__ = ['PythonCallableSource', 'SQLScriptSource',
            'SQLRelationPlaceholder', 'SQLQuerySource',
-           'StringPlaceholder', 'TemplatedPlaceholder',
-           'GenericSource']
+           'StringPlaceholder',
+           'GenericSource', 'GenericTemplatedSource']

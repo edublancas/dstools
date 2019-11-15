@@ -11,12 +11,15 @@ import subprocess
 from subprocess import CalledProcessError
 import logging
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import PythonCallableSource, GenericSource
+from dstools.pipeline.placeholders import (PythonCallableSource,
+                                           GenericTemplatedSource,
+                                           GenericSource)
 
 
 class BashCommand(Task):
     """A task that runs an inline bash command
     """
+    SOURCECLASS = GenericTemplatedSource
 
     def __init__(self, source, product, dag, name=None, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
@@ -44,10 +47,6 @@ class BashCommand(Task):
         else:
             self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
                               f' stderr: {res.stderr}')
-
-    @property
-    def language(self):
-        return 'bash'
 
 
 class PythonCallable(Task):
@@ -82,6 +81,7 @@ class PythonCallable(Task):
 class ShellScript(Task):
     """A task to run a shell script
     """
+    SOURCECLASS = GenericTemplatedSource
 
     def __init__(self, source, product, dag, name=None, params=None,
                  client=None):
@@ -98,7 +98,7 @@ class ShellScript(Task):
 
 
 class DownloadFromURL(Task):
-    SOURCECLASS = GenericSource
+    SOURCECLASS = GenericTemplatedSource
 
     def run(self):
         request.urlretrieve(str(self.source), filename=str(self.product))
