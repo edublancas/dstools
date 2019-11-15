@@ -1,8 +1,6 @@
-import warnings
 from pathlib import Path
 from io import StringIO
 
-from dstools.sql import infer
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.placeholders import (SQLScriptSource,
                                            StringPlaceholder,
@@ -33,38 +31,7 @@ class SQLScript(Task):
             raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
-    def _validate(self):
-        infered_relations = infer.created_relations(self.source_code)
-
-        if not infered_relations:
-            warnings.warn('It seems like your task "{task}" will not create '
-                          'any tables or views but the task has product '
-                          '"{product}"'
-                          .format(task=self.name,
-                                  product=self.product))
-        # FIXME: check when product is metaproduct
-        elif len(infered_relations) > 1:
-            warnings.warn('It seems like your task "{task}" will create '
-                          'more than one table or view but you only declared '
-                          ' one product: "{self.product}"'
-                          .format(sk=self.name,
-                                  product=self.product))
-        else:
-            schema, name, kind = infered_relations[0]
-            id_ = self.product._identifier
-
-            if ((schema != id_.schema) or (name != id_.name)
-                    or (kind != id_.kind)):
-                warnings.warn('It seems like your task "{task}" create '
-                              'a {kind} "{schema}.{name}" but your product '
-                              'did not match: "{product}"'
-                              .format(task=self.name, kind=kind, schema=schema,
-                                      name=name, product=self.product))
-
     def run(self):
-        # FIXME: move validation to Source object
-        self._validate()
-
         return self.client.execute(self.source_code)
 
 

@@ -21,11 +21,13 @@ placeholders, arbitrary parameters can also be placeholders.
 These classes are not intended to be used by the end user, since Task and
 Product objects create placeholders from strings.
 """
+import warnings
 import re
 from pathlib import Path
 import inspect
 
 from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.sql import infer
 
 # FIXME: move diagnose to here, task might need this as well, since
 # validation may involve checking against the product, but we can replace
@@ -159,7 +161,39 @@ class SQLScriptSource(SQLSource):
     version in the same object and raises an Exception if attempted. It also
     passes some of its attributes
     """
-    pass
+    def _validate(self):
+        infered_relations = infer.created_relations(self.source_code)
+
+        # NOTE: this can run pre-render, product is never empty,
+        # no need to get it
+        if not infered_relations:
+            warnings.warn('It seems like your task "{task}" will not create '
+                          'any tables or views but the task has product '
+                          '"{product}"'
+                          .format(task=self.name,
+                                  product=self.product))
+        # FIXME: check when product is metaproduct
+        # NOTE: this can also run pre-render but needs information about
+        # products (how many)
+        elif len(infered_relations) > 1:
+            warnings.warn('It seems like your task "{task}" will create '
+                          'more than one table or view but you only declared '
+                          ' one product: "{self.product}"'
+                          .format(sk=self.name,
+                                  product=self.product))
+        else:
+            # this needs information about the product + has to run
+            # post-render
+            schema, name, kind = infered_relations[0]
+            id_ = self.product._identifier
+
+            if ((schema != id_.schema) or (name != id_.name)
+                    or (kind != id_.kind)):
+                warnings.warn('It seems like your task "{task}" create '
+                              'a {kind} "{schema}.{name}" but your product '
+                              'did not match: "{product}"'
+                              .format(task=self.name, kind=kind, schema=schema,
+                                      name=name, product=self.product))
 
 
 class SQLQuerySource(SQLSource):
