@@ -13,16 +13,7 @@ from dstools.pipeline import io
 import pandas as pd
 
 
-class SQLInputTask(Task):
-    """Tasks whose code is SQL code
-    """
-
-    @property
-    def language(self):
-        return 'sql'
-
-
-class SQLScript(SQLInputTask):
+class SQLScript(Task):
     """
     A tasks represented by a SQL script run agains a database this Task
     does not make any assumptions about the underlying SQL engine, it should
@@ -78,7 +69,7 @@ class SQLScript(SQLInputTask):
         return self.client.execute(self.source_code)
 
 
-class SQLDump(SQLInputTask):
+class SQLDump(Task):
     """
     Dumps data from a SQL SELECT statement to parquet files (one per chunk)
 
@@ -107,7 +98,6 @@ class SQLDump(SQLInputTask):
     """
     SOURCECLASS = SQLQuerySource
     PRODUCT_CLASSES_ALLOWED = (File, )
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None,
@@ -163,12 +153,11 @@ class SQLDump(SQLInputTask):
 # rows over the network
 
 
-class SQLTransfer(SQLInputTask):
+class SQLTransfer(Task):
     """Transfers data from a SQL statement to a SQL relation
     """
     SOURCECLASS = SQLQuerySource
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None, chunksize=10000):
@@ -212,7 +201,6 @@ class SQLUpload(Task):
     """
     SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None):
@@ -250,7 +238,6 @@ class PostgresCopy(Task):
     """
     SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None, sep='\t', null='\\N', columns=None):

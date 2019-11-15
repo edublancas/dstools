@@ -93,7 +93,6 @@ class NotebookRunner(Task):
     """
     SOURCECLASS = GenericSource
     PRODUCT_CLASSES_ALLOWED = (File, )
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, params=None,
                  papermill_params=None, kernelspec_name=None,

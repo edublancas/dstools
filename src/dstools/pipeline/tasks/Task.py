@@ -39,8 +39,7 @@ from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Upstream import Upstream
-from dstools.pipeline.placeholders import (SQLScriptSource,
-                                           TemplatedPlaceholder)
+from dstools.pipeline.placeholders import SQLScriptSource
 from dstools.pipeline.Table import Row
 from dstools.util import isiterable
 
@@ -52,7 +51,6 @@ class Task(abc.ABC):
     """
     SOURCECLASS = SQLScriptSource
     PRODUCT_CLASSES_ALLOWED = None
-    PRODUCT_IN_CODE = True
 
     def __init__(self, source, product, dag, name=None, params=None):
         """
@@ -142,11 +140,6 @@ class Task(abc.ABC):
 
         self._on_finish = None
         self._on_failure = None
-
-    @property
-    def language(self):
-        # this is used for determining how to normalize code before comparing
-        return None
 
     @property
     def name(self):
@@ -357,23 +350,16 @@ class Task(abc.ABC):
 
         params = copy(self.params)
 
-        # most parameters are required, if upstream is not used, it should not
-        # have any dependencies, if any param is not used, it should not
-        # exist, the product should exist only for specific cases
-        opt = set(('product',)) if not self.PRODUCT_IN_CODE else set()
         try:
-            # if this task has upstream dependencies, render using the
-            # context manager, which will raise a warning if any of the
-            # dependencies is not used, otherwise just render, also
-            # check if the code is a TemplatedPlaceholder, for other
-            # types of code objects we cannot determine parameter
-            # use at render time
-            if (params.get('upstream')
-                    and isinstance(self.source, TemplatedPlaceholder)):
-                with params.get('upstream'):
-                    self.source.render(params, optional=opt)
-            else:
-                self.source.render(params, optional=opt)
+            if self.source.needs_render:
+                # if this task has upstream dependencies, render using the
+                # context manager, which will raise a warning if any of the
+                # dependencies is not used, otherwise just render
+                if params.get('upstream'):
+                    with params.get('upstream'):
+                        self.source.render(params)
+                else:
+                    self.source.render(params)
         except Exception as e:
             raise type(e)('Error rendering code from Task "{}", '
                           ' check the full traceback above for details'
@@ -429,7 +415,7 @@ class Task(abc.ABC):
                                  .differ
                                  .get_diff(p.stored_source_code,
                                            self.source_code,
-                                           language=self.language))
+                                           language=self.source.language))
         else:
             outd_code = ''
 

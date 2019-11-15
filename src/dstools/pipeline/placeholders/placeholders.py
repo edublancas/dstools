@@ -29,6 +29,7 @@ from dstools.templates.StrictTemplate import StrictTemplate
 
 # FIXME: move diagnose to here, task might need this as well, since
 # validation may involve checking against the product
+# FIXME: remove opt from StrictTemplate.render
 
 
 class TemplatedPlaceholder:
@@ -44,7 +45,9 @@ class TemplatedPlaceholder:
     this is not possible)
 
     """
-    pass
+    @property
+    def needs_render(self):
+        return True
 
 
 class StringPlaceholder(TemplatedPlaceholder):
@@ -106,7 +109,7 @@ class SQLSource(StringPlaceholder):
         self._rendered_value = None
 
         # TODO: run the pre-render validation, make sure the product and
-        # upstream tags exist in the template
+        # upstream tags exist in the template - ONLY FOR SQLSCRIPT
 
         # if source is literal, rendering without params should work, this
         # allows this template to be used without having to render the dag
@@ -132,6 +135,10 @@ class SQLSource(StringPlaceholder):
     @property
     def path(self):
         return self._source.path
+
+    @property
+    def language(self):
+        return 'sql'
 
 
 class SQLScriptSource(SQLSource):
@@ -266,12 +273,6 @@ class PythonCallableSource:
         self._params = None
         self._loc = inspect.getsourcefile(source)
 
-    def render(self, params, **kwargs):
-        # FIXME: we need **kwargs for compatibility, but they are not used,
-        # think what's the best thing to do
-        # TODO: verify that params match function signature
-        self._params = params
-
     def __repr__(self):
         return 'Placeholder({})'.format(self._source.raw)
 
@@ -293,12 +294,21 @@ class PythonCallableSource:
     def loc(self):
         return '{}:{}'.format(self._loc, self._source_lineno)
 
+    @property
+    def needs_render(self):
+        return False
+
+    @property
+    def language(self):
+        return 'python'
+
 
 class GenericSource:
     """
     Generic (untemplated) source, the simplest type of source, it does
     not render, perform any kind of parsing nor validation
     """
+
     def __init__(self, source):
         if isinstance(source, Path):
             self._source = source.read_text()
@@ -306,9 +316,6 @@ class GenericSource:
         else:
             self._source = source
             self._path = None
-
-    def render(self, params, **kwargs):
-        pass
 
     def __str__(self):
         return self._source
@@ -328,3 +335,11 @@ class GenericSource:
     @property
     def path(self):
         return self._path
+
+    @property
+    def needs_render(self):
+        return False
+
+    @property
+    def language(self):
+        return None
