@@ -212,6 +212,13 @@ class SQLSourceMixin:
     def loc(self):
         return None
 
+    @property
+    def needs_render(self):
+        return True
+
+    def __str__(self):
+        return str(self.value)
+
 
 class SQLScriptSource(SQLSourceMixin, Source):
     """
@@ -286,13 +293,6 @@ class SQLScriptSource(SQLSourceMixin, Source):
         #                       ' {}'
         #                       .format(infered_relations, actual_len))
 
-    @property
-    def needs_render(self):
-        return True
-
-    def __str__(self):
-        return str(self.value)
-
 
 class SQLQuerySource(SQLSourceMixin, Source):
     """
@@ -304,10 +304,7 @@ class SQLQuerySource(SQLSourceMixin, Source):
 
     # TODO: validate this is a SELECT statement
     # a query needs to return a result
-    @property
-    def needs_render(self):
-        return True
-
+    pass
 
 class SQLRelationPlaceholder(StringPlaceholder):
     """An identifier that represents a database relation (table or view)
@@ -515,6 +512,9 @@ class FileLiteralSource(Source):
         return ''
 
     # FIXME: this is not part of source but currently used in notebook
+    # they should cal loc instead, path only applies to files but
+    # loc is a more generic term (e.g. the loc of a table is the database
+    # uri, maybe we can name it uri instead of loc?)
     @property
     def path(self):
         return self.value.path
