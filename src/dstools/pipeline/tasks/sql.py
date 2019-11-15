@@ -20,7 +20,7 @@ class SQLScript(Task):
     work witn all DBs supported by SQLAlchemy
     """
     SOURCECLASS = SQLScriptSource
-    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation, File)
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None):
@@ -62,9 +62,8 @@ class SQLScript(Task):
                                       name=name, product=self.product))
 
     def run(self):
-        if (isinstance(self.product, PostgresRelation)
-                or isinstance(self.product, SQLiteRelation)):
-            self._validate()
+        # FIXME: move validation to Source object
+        self._validate()
 
         return self.client.execute(self.source_code)
 

@@ -28,7 +28,9 @@ import inspect
 from dstools.templates.StrictTemplate import StrictTemplate
 
 # FIXME: move diagnose to here, task might need this as well, since
-# validation may involve checking against the product
+# validation may involve checking against the product, but we can replace
+# this behabior for an after-render validation, and just pass the product
+# as parameter maybe from the Task? the task should not do this
 # FIXME: remove opt from StrictTemplate.render
 
 
