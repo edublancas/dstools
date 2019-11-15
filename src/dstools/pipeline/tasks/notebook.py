@@ -29,7 +29,7 @@ except ImportError:
 
 
 from dstools.exceptions import TaskBuildError
-from dstools.pipeline.placeholders import GenericSource
+from dstools.pipeline.placeholders import FileLiteralSource
 from dstools.pipeline.products import File, MetaProduct
 from dstools.pipeline.tasks.Task import Task
 
@@ -91,7 +91,7 @@ def _from_ipynb(path_to_nb, extension, nbconvert_exporter_name):
 class NotebookRunner(Task):
     """Run a notebook using papermill
     """
-    SOURCECLASS = GenericSource
+    SOURCECLASS = FileLiteralSource
     PRODUCT_CLASSES_ALLOWED = (File, )
 
     def __init__(self, source, product, dag, name=None, params=None,

@@ -39,6 +39,18 @@ from dstools.sql import infer
 # FIXME: remove opt from StrictTemplate.render
 
 
+"""
+Notes: there should be a hierarchy here, source should be the top level
+implementation and it should use another class to represent its "value",
+which can be either a placeholder or a literal. this value should have
+the same interface namely: offer a way to know if rendering is needed
+(if its a placeholder or not), we need to get rid of _rendered_value,
+as it does not make sense for literals, the way to access the value
+should be the same, the only different would be that in Placeholders
+this value wont be available until the placeholder is rendered
+"""
+
+
 class FilePlaceholder:
     """
     Placeholders are jinja2 templates that hold their rendered
@@ -47,43 +59,54 @@ class FilePlaceholder:
     after a DAG is rendered
     """
     def __init__(self, source):
-        self._source = StrictTemplate(source)
-        self._rendered_value = None
+        self.template = StrictTemplate(source)
+        self._value = None
 
         # FIXME: some sources cannot be literals! query can be but not script
         # it needs the product as placeholder
         # if source is literal, assign the rendered value to the raw value
-        if self._source.is_literal:
+        if self.template.is_literal:
             # self.render({})
-            self._rendered_value = str(self._source)
+            self._value = str(self.template)
 
     @property
-    def _rendered(self):
-        if self._rendered_value is None:
+    def value(self):
+        if self._value is None:
             raise RuntimeError('Tried to read {} {} without '
                                'rendering first'
                                .format(type(self).__name__,
                                        repr(self)))
 
-        return self._rendered_value
+        return self._value
 
     def render(self, params, **kwargs):
-        self._rendered_value = self._source.render(params, **kwargs)
-        self._post_render_validation(self._rendered_value, params)
+        self._value = self.template.render(params, **kwargs)
+        self._post_render_validation(self._value, params)
         return self
 
     def _post_render_validation(self, rendered_value, params):
         pass
 
     def __repr__(self):
-        return 'Placeholder({})'.format(self._source.raw)
+        return 'Placeholder({})'.format(self.template.raw)
 
     def __str__(self):
-        return self._rendered
+        return str(self.value)
 
     @property
     def loc(self):
-        return self._source.path
+        return self.template.path
+
+    @property
+    def safe(self):
+        if self._value is None:
+            return self.template.raw
+        else:
+            return self._value
+
+    @property
+    def path(self):
+        return self.template.path
 
 
 class StringPlaceholder(FilePlaceholder):
@@ -95,22 +118,48 @@ class StringPlaceholder(FilePlaceholder):
         super().__init__(str(source))
 
     @property
-    def loc(self):
+    def path(self):
         return None
 
 
 class FileLiteral:
     def __init__(self, source):
-        self._source = Path(source).read_text()
+        if isinstance(source, Path):
+            self.path = str(source)
+            self.value = source.read_text()
+        else:
+            self.path = None
+            self.value = source
+
+    def __str__(self):
+        return self.value
+
+    @property
+    def safe(self):
+        return self.value
 
 
 class StringLiteral:
+    def __init__(self, source):
+        self.path = None
+        self.value = str(source)
+
     @property
     def loc(self):
         return None
 
+    def __str__(self):
+        return self.value
+
+    @property
+    def safe(self):
+        return self.value
+
 
 class Source(abc.ABC):
+
+    def __init__(self, value):
+        self.value = self.VALUECLASS(value)
 
     @property
     @abc.abstractmethod
@@ -133,8 +182,12 @@ class Source(abc.ABC):
         pass
 
     @property
+    @abc.abstractmethod
     def loc(self):
-        return self._source.loc
+        pass
+
+    def render(self, params, **kwargs):
+        return self.value.render(params, **kwargs)
 
 
 class SQLSourceMixin:
@@ -143,13 +196,8 @@ class SQLSourceMixin:
 
     @property
     def doc(self):
-        if self._rendered_value is None:
-            content = str(self._source)
-        else:
-            content = self._rendered_value
-
         regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
-        match = re.match(regex, content)
+        match = re.match(regex, self.value.safe)
         return '' if match is None else match.group(1)
 
     @property
@@ -157,15 +205,15 @@ class SQLSourceMixin:
         return self.doc.split('\n')[0]
 
     @property
-    def path(self):
-        return self._source.path
-
-    @property
     def language(self):
         return 'sql'
 
+    @property
+    def loc(self):
+        return None
 
-class SQLScriptSource(FilePlaceholder, SQLSourceMixin, Source):
+
+class SQLScriptSource(SQLSourceMixin, Source):
     """
     A SQL (templated) script, it is expected to make a persistent change in
     the database (by using the CREATE statement), its validation verifies
@@ -181,14 +229,12 @@ class SQLScriptSource(FilePlaceholder, SQLSourceMixin, Source):
     version in the same object and raises an Exception if attempted. It also
     passes some of its attributes
     """
+    VALUECLASS = FilePlaceholder
 
-    def __init__(self, source):
-        # the only difference between this and the original placeholder
-        # is how they treat pathlib.Path
-        self._source = StrictTemplate(source)
-        self._rendered_value = None
+    def __init__(self, value):
+        super().__init__(value)
 
-        if self._source.is_literal:
+        if self.value.template.is_literal:
             raise SourceInitializationError(
                 '{} cannot be initialized with literals as'
                 'they are meant to create a persistent '
@@ -244,13 +290,18 @@ class SQLScriptSource(FilePlaceholder, SQLSourceMixin, Source):
     def needs_render(self):
         return True
 
+    def __str__(self):
+        return str(self.value)
 
-class SQLQuerySource(FilePlaceholder, SQLSourceMixin, Source):
+
+class SQLQuerySource(SQLSourceMixin, Source):
     """
     Templated SQL query, it is not expected to make any persistent changes in
     the database (in contrast with SQLScriptSource), so its validation is
     different
     """
+    VALUECLASS = FilePlaceholder
+
     # TODO: validate this is a SELECT statement
     # a query needs to return a result
     @property
@@ -407,14 +458,15 @@ class PythonCallableSource(Source):
         return 'python'
 
 
-class GenericSource(Source, StringLiteral):
+class GenericSource(Source):
     """
     Generic (untemplated) source, the simplest type of source, it does
     not render, perform any kind of parsing nor validation
     """
+    VALUECLASS = StringLiteral
 
     def __str__(self):
-        return self._source
+        return str(self.value)
 
     @property
     def doc(self):
@@ -430,7 +482,42 @@ class GenericSource(Source, StringLiteral):
 
     @property
     def path(self):
-        return self._path
+        return ''
+
+    @property
+    def needs_render(self):
+        return False
+
+    @property
+    def language(self):
+        return None
+
+class FileLiteralSource(Source):
+    """
+    Generic (untemplated) source, the simplest type of source, it does
+    not render, perform any kind of parsing nor validation
+    """
+    VALUECLASS = FileLiteral
+
+    def __str__(self):
+        return str(self.value)
+
+    @property
+    def doc(self):
+        return ''
+
+    @property
+    def doc_short(self):
+        return ''
+
+    @property
+    def loc(self):
+        return ''
+
+    # FIXME: this is not part of source but currently used in notebook
+    @property
+    def path(self):
+        return self.value.path
 
     @property
     def needs_render(self):
@@ -441,11 +528,33 @@ class GenericSource(Source, StringLiteral):
         return None
 
 
-class GenericTemplatedSource(GenericSource, StringPlaceholder):
+class GenericTemplatedSource(GenericSource):
+    VALUECLASS = StringPlaceholder
 
     def __str__(self):
-        return self._rendered
+        return str(self.value)
+
+    @property
+    def doc(self):
+        return ''
+
+    @property
+    def doc_short(self):
+        return ''
+
+    @property
+    def loc(self):
+        return ''
+
+    # FIXME: this is not part of source but currently used in notebook
+    @property
+    def path(self):
+        return None
 
     @property
     def needs_render(self):
         return True
+
+    @property
+    def language(self):
+        return None
