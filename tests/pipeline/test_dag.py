@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLScript
+from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLDump
 from dstools.pipeline.products import File
 
 
@@ -54,7 +54,7 @@ def test_warn_on_sql_missing_docstrings():
     dag = DAG()
 
     sql = 'SELECT * FROM table'
-    SQLScript(sql, File('file1.txt'), dag, client=Mock())
+    SQLDump(sql, File('file1.txt'), dag, client=Mock())
 
     with pytest.warns(UserWarning):
         dag.diagnose()
@@ -64,7 +64,7 @@ def test_does_not_warn_on_sql_docstrings():
     dag = DAG()
 
     sql = '/* get data from table */\nSELECT * FROM table'
-    SQLScript(sql, File('file1.txt'), dag, client=Mock())
+    SQLDump(sql, File('file1.txt'), dag, client=Mock())
 
     with pytest.warns(None) as warn:
         dag.diagnose()

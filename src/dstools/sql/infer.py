@@ -1,71 +1,67 @@
 """
 Analyzes SQL scripts to infer performed actions
 """
-import logging
-import re
+import warnings
+import sqlparse
 
 
-def find_with_positions(regex, s):
-    def clean(schema, name):
+class ParsedSQLRelation:
+    """
+    This is similar to the SQLRelationPlaceholder, it enables operations
+    such as comparisons. Not using SQLRelationPlaceholder directly to
+    avoid complex imports
+    """
+
+    def __init__(self, schema, name, kind):
         if schema is not None:
-            schema = schema.replace('.', '')
-        return schema, name
+            schema.replace('"', '')
 
-    return {clean(*m.groups()): m.start() for m in regex.finditer(s)}
+        self.schema = schema
+        self.name = name.replace('"', '')
+        self.kind = kind
 
+    def __eq__(self, other):
+        return (self.schema == other.schema
+                and self.name == other.name
+                and self.kind == other.kind)
 
-def created_tables(sql):
-    logger = logging.getLogger(__name__)
-
-    re_created = re.compile(r".*CREATE TABLE (\w+\.{1})?(\w+).*")
-    created = find_with_positions(re_created, sql)
-
-    re_dropped = re.compile(r".*DROP TABLE (?:IF EXISTS )?(\w+\.{1})?(\w+).*")
-    dropped = find_with_positions(re_dropped, sql)
-
-    stay = []
-
-    # the script might be creating temporary tables, so remove the created
-    # tables that also have drop satements but only when the DROP comes after
-    # the CREATE
-    for g, pos_created in created.items():
-        pos_dropped = dropped.get(g, -1)
-
-        if pos_created > pos_dropped:
-            stay.append((*g, 'table'))
-
-    logger.info(f'CREATE TABLE statements found: {created}')
-    logger.info(f'DROP TABLE statements found: {dropped}')
-
-    logger.info(f'Script will create the tables: {stay}')
-
-    return stay
+    def __hash__(self):
+        return hash((self.schema, self.name, self.kind))
 
 
-def created_views(sql):
-    logger = logging.getLogger(__name__)
+def parse_statement(statement):
+    # NOTE: is there a better way to look for errors?
+    errors = [t.ttype for t in statement.tokens
+              if 'Token.Error' in str(t.ttype)]
 
-    re_created = re.compile(r".*CREATE VIEW (\w+\.{1})?(\w+).*")
-    created = find_with_positions(re_created, sql)
+    if any(errors):
+        warnings.warn('Failed to parse statement: {}'.format(str(statement)))
+    else:
+        # after removing whitespace this should be [CREATE, 'TABLE|VIEW', 'ID']
+        elements = [t for t in statement.tokens if not t.is_whitespace]
 
-    re_dropped = re.compile(r".*DROP VIEW (?:IF EXISTS )?(\w+\.{1})?(\w+).*")
-    dropped = find_with_positions(re_dropped, sql)
+        identifier = str(elements[2])
+        tokens = identifier.split('.')
 
-    stay = []
+        if len(tokens) == 1:
+            schema = None
+            name = tokens[0]
+        else:
+            schema, name = tokens
 
-    for g, pos_created in created.items():
-        pos_dropped = dropped.get(g, -1)
-
-        if pos_created > pos_dropped:
-            stay.append((*g, 'view'))
-
-    logger.info(f'CREATE VIEW statements found: {created}')
-    logger.info(f'DROP VIEW statements found: {dropped}')
-
-    logger.info(f'Script will create the views: {stay}')
-
-    return stay
+        return ParsedSQLRelation(schema=schema, name=name,
+                                 kind=str(elements[1]))
 
 
 def created_relations(sql):
-    return created_tables(sql) + created_views(sql)
+    sql = sqlparse.format(sql, keyword_case='lower',
+                          identifier_case='lower',
+                          strip_comments=True)
+    statements = sqlparse.parse(sql)
+
+    drop = [parse_statement(s) for s in statements
+            if s.get_type() == 'DROP']
+    create = [parse_statement(s) for s in statements
+              if s.get_type() == 'CREATE']
+
+    return list(set(create) - set(drop))

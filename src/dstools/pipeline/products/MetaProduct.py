@@ -33,6 +33,9 @@ class ProductsContainer:
         else:
             return list(str(product) for product in self.products)
 
+    def __len__(self):
+        return len(self.products)
+
 
 class MetaProduct:
     """
@@ -151,3 +154,6 @@ class MetaProduct:
 
     def __getitem__(self, key):
         return self.products[key]
+
+    def __len__(self):
+        return len(self.products)

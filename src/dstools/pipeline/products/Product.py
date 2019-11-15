@@ -217,3 +217,8 @@ class Product(abc.ABC):
         # NOTE: this is used in tasks where only JSON serializable parameters
         # are supported such as NotebookRunner that depends on papermill
         return str(self)
+
+    def __len__(self):
+        # MetaProduct return the number of products, this is a single Product
+        # hence the 1
+        return 1

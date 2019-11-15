@@ -26,7 +26,9 @@ import re
 from pathlib import Path
 import inspect
 
+from dstools.pipeline.products import Product
 from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.exceptions import SourceInitializationError
 from dstools.sql import infer
 
 # FIXME: move diagnose to here, task might need this as well, since
@@ -70,11 +72,12 @@ class StringPlaceholder(TemplatedPlaceholder):
         self._source = StrictTemplate(source)
         self._rendered_value = None
 
-        # if source is literal, rendering without params should work, this
-        # allows this template to be used without having to render the dag
-        # first
+        # FIXME: some sources cannot be literals! query can be but not script
+        # it needs the product as placeholder
+        # if source is literal, assign the rendered value to the raw value
         if self._source.is_literal:
-            self.render({})
+            # self.render({})
+            self._rendered_value = str(self._source)
 
     @property
     def _rendered(self):
@@ -88,7 +91,11 @@ class StringPlaceholder(TemplatedPlaceholder):
 
     def render(self, params, **kwargs):
         self._rendered_value = self._source.render(params, **kwargs)
+        self._post_render_validation(self._rendered_value, params)
         return self
+
+    def _post_render_validation(self, rendered_value, params):
+        pass
 
     def __repr__(self):
         return 'Placeholder({})'.format(self._source.raw)
@@ -115,11 +122,12 @@ class SQLSource(StringPlaceholder):
         # TODO: run the pre-render validation, make sure the product and
         # upstream tags exist in the template - ONLY FOR SQLSCRIPT
 
-        # if source is literal, rendering without params should work, this
-        # allows this template to be used without having to render the dag
-        # first
+        # FIXME: some sources cannot be literals! query can be but not script
+        # it needs the product as placeholder
+        # if source is literal, assign the rendered value to the raw value
         if self._source.is_literal:
-            self.render({})
+            # self.render({})
+            self._rendered_value = str(self._source)
 
     @property
     def doc(self):
@@ -165,39 +173,64 @@ class SQLScriptSource(SQLSource):
     version in the same object and raises an Exception if attempted. It also
     passes some of its attributes
     """
-    def _validate(self):
-        infered_relations = infer.created_relations(self.source_code)
 
-        # NOTE: this can run pre-render, product is never empty,
-        # no need to get it
-        if not infered_relations:
+    def __init__(self, source):
+        # the only difference between this and the original placeholder
+        # is how they treat pathlib.Path
+        self._source = StrictTemplate(source)
+        self._rendered_value = None
+
+        if self._source.is_literal:
+            raise SourceInitializationError(
+                '{} cannot be initialized with literals as'
+                'they are meant to create a persistent '
+                'change in the database, they need to '
+                'include the {} placeholder'
+                .format(self.__class__.__name__, '{{product}}'))
+
+        # FIXME: validate {{product}} exists, does this also catch
+        # {{product['key']}} ?
+
+    def _post_render_validation(self, rendered_value, params):
+        """Analyze code and warn if issues are found
+        """
+        # print(params)
+        infered_relations = infer.created_relations(rendered_value)
+        # print(infered_relations)
+
+        if isinstance(params['product'], Product):
+            actual_rel = {params['product']._identifier}
+        else:
+            # metaproduct
+            actual_rel = {p._identifier for p in params['product']}
+
+        infered_len = len(infered_relations)
+        # print(infered_len)
+        actual_len = len(actual_rel)
+
+        # print(set(infered_relations) != set(actual_rel),
+        #         set(infered_relations) ,set(actual_rel))
+
+        if not infered_len:
             warnings.warn('It seems like your task "{task}" will not create '
                           'any tables or views but the task has product '
                           '"{product}"'
-                          .format(task=self.name,
-                                  product=self.product))
-        # FIXME: check when product is metaproduct
-        # NOTE: this can also run pre-render but needs information about
-        # products (how many)
-        elif len(infered_relations) > 1:
-            warnings.warn('It seems like your task "{task}" will create '
-                          'more than one table or view but you only declared '
-                          ' one product: "{self.product}"'
-                          .format(sk=self.name,
-                                  product=self.product))
-        else:
-            # this needs information about the product + has to run
-            # post-render
-            schema, name, kind = infered_relations[0]
-            id_ = self.product._identifier
+                          .format(task='some task',
+                                  product=params['product']))
 
-            if ((schema != id_.schema) or (name != id_.name)
-                    or (kind != id_.kind)):
-                warnings.warn('It seems like your task "{task}" create '
-                              'a {kind} "{schema}.{name}" but your product '
-                              'did not match: "{product}"'
-                              .format(task=self.name, kind=kind, schema=schema,
-                                      name=name, product=self.product))
+        elif infered_len != actual_len:
+            warnings.warn('It seems like your task "{task}" will create '
+                          '{infered_len} relation(s) but you declared '
+                          '{actual_len} product(s): "{product}"'
+                          .format(task='some task',
+                                  infered_len=infered_len,
+                                  actual_len=actual_len,
+                                  product=params['product']))
+        # parsing infered_relations is still WIP
+        # elif set(infered_relations) != set(infered_relations):
+        #         warnings.warn('Infered relations ({}) did not match products'
+        #                       ' {}'
+        #                       .format(infered_relations, actual_len))
 
 
 class SQLQuerySource(SQLSource):
@@ -206,6 +239,8 @@ class SQLQuerySource(SQLSource):
     the database (in contrast with SQLScriptSource), so its validation is
     different
     """
+    # TODO: validate this is a SELECT statement
+    # a query needs to return a result
     pass
 
 
@@ -222,7 +257,8 @@ class SQLRelationPlaceholder(TemplatedPlaceholder):
         schema, name, kind = source
 
         if schema is None:
-            raise ValueError('schema cannot be None')
+            # raise ValueError('schema cannot be None')
+            schema = ''
 
         if name is None:
             raise ValueError('name cannot be None')
@@ -230,6 +266,12 @@ class SQLRelationPlaceholder(TemplatedPlaceholder):
         if kind not in ('view', 'table'):
             raise ValueError('kind must be one of ["view", "table"] '
                              'got "{}"'.format(kind))
+
+        # ignore double quotes (will be added if needed)
+        if schema:
+            schema = schema.replace('"', '')
+
+        name = name.replace('"', '')
 
         self._source = StrictTemplate(name)
         self._rendered_value = None
@@ -292,8 +334,16 @@ class SQLRelationPlaceholder(TemplatedPlaceholder):
         return self._rendered
 
     def __repr__(self):
-        return ('Placeholder("{}"."{}")'
+        return ('SQLRelationPlaceholder("{}"."{}")'
                 .format(self.schema, self._source.raw, self.kind))
+
+    def __eq__(self, other):
+        return (self.schema == other.schema
+                and self.name == other.name
+                and self.kind == other.kind)
+
+    def __hash__(self):
+        return hash((self.schema, self.name, self.kind))
 
 
 class PythonCallableSource:

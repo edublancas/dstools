@@ -9,3 +9,9 @@ class RenderError(Exception):
     """Raise when a template fails to render
     """
     pass
+
+
+class SourceInitializationError(Exception):
+    """Raise when a source fails to initialize due to wrong parameters
+    """
+    pass
