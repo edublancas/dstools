@@ -119,14 +119,14 @@ class NotebookRunner(Task):
 
         source = str(self.source)
 
-        if self.source.path is None:
+        if self.source.loc is None:
             if self.ext_in is None:
                 raise ValueError('If the source was loaded from a string '
                                  'you need to pass the ext_in parameter')
 
             ext_in = '.'+self.ext_in
         else:
-            ext_in = Path(self.source.path).suffix
+            ext_in = Path(self.source.loc).suffix
 
         ext_out = Path(path_to_out).suffix
 

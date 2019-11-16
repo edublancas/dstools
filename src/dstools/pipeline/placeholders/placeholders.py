@@ -58,6 +58,7 @@ class FilePlaceholder:
     source and Product objects to hold values that are be filled
     after a DAG is rendered
     """
+
     def __init__(self, source):
         self.template = StrictTemplate(source)
         self._value = None
@@ -81,11 +82,7 @@ class FilePlaceholder:
 
     def render(self, params, **kwargs):
         self._value = self.template.render(params, **kwargs)
-        self._post_render_validation(self._value, params)
         return self
-
-    def _post_render_validation(self, rendered_value, params):
-        pass
 
     def __repr__(self):
         return 'Placeholder({})'.format(self.template.raw)
@@ -114,6 +111,7 @@ class StringPlaceholder(FilePlaceholder):
     Same as FilePlaceholder but cast their argument to str before init,
     so a Path will be interpreted literally instead of loading the file
     """
+
     def __init__(self, source):
         super().__init__(str(source))
 
@@ -187,7 +185,12 @@ class Source(abc.ABC):
         pass
 
     def render(self, params, **kwargs):
-        return self.value.render(params, **kwargs)
+        self.value.render(params, **kwargs)
+        self._post_render_validation(self.value.value, params)
+
+    # optional validation
+    def _post_render_validation(self, rendered_value, params):
+        pass
 
     # NOTE: should I require source ojects to implement __str__?
     # task.source_code does str(task.source), but I tihik the implementation
@@ -309,6 +312,7 @@ class SQLQuerySource(SQLSourceMixin, Source):
     # TODO: validate this is a SELECT statement
     # a query needs to return a result
     pass
+
 
 class SQLRelationPlaceholder(StringPlaceholder):
     """An identifier that represents a database relation (table or view)
@@ -482,16 +486,13 @@ class GenericSource(Source):
         return ''
 
     @property
-    def path(self):
-        return ''
-
-    @property
     def needs_render(self):
         return False
 
     @property
     def language(self):
         return None
+
 
 class FileLiteralSource(Source):
     """
@@ -513,14 +514,6 @@ class FileLiteralSource(Source):
 
     @property
     def loc(self):
-        return ''
-
-    # FIXME: this is not part of source but currently used in notebook
-    # they should cal loc instead, path only applies to files but
-    # loc is a more generic term (e.g. the loc of a table is the database
-    # uri, maybe we can name it uri instead of loc?)
-    @property
-    def path(self):
         return self.value.path
 
     @property
