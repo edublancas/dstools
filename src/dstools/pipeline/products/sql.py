@@ -5,7 +5,7 @@ from psycopg2 import sql
 
 from dstools.pipeline.products import Product
 from dstools.pipeline.products.serializers import Base64Serializer
-from dstools.pipeline.placeholders import SQLRelationPlaceholder
+from dstools.templates.StrictTemplate import SQLRelationPlaceholder
 
 
 class SQLiteRelation(Product):

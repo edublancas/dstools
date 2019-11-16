@@ -226,3 +226,109 @@ class StrictTemplate:
 class StringPlaceholder(StrictTemplate):
     def __init__(self, source):
         super().__init__(source, False)
+
+
+class SQLRelationPlaceholder:
+    """An identifier that represents a database relation (table or view)
+    """
+
+    def __init__(self, source):
+        if len(source) != 3:
+            raise ValueError('{} must be initialized with 3 elements, '
+                             'got: {}'
+                             .format(type(self).__name__, len(source)))
+
+        schema, name, kind = source
+
+        if schema is None:
+            # raise ValueError('schema cannot be None')
+            schema = ''
+
+        if name is None:
+            raise ValueError('name cannot be None')
+
+        if kind not in ('view', 'table'):
+            raise ValueError('kind must be one of ["view", "table"] '
+                             'got "{}"'.format(kind))
+
+        # ignore double quotes (will be added if needed)
+        if schema:
+            schema = schema.replace('"', '')
+
+        name = name.replace('"', '')
+
+        self._source = StrictTemplate(name)
+        self._rendered_value = None
+
+        self._kind = kind
+        self._schema = schema
+
+        # if source is literal, rendering without params should work, this
+        # allows this template to be used without having to render the dag
+        # first
+        if self._source.is_literal:
+            self.render({})
+
+    @property
+    def schema(self):
+        return self._schema
+
+    @property
+    def name(self):
+        if self._rendered_value is None:
+            raise RuntimeError('Tried to read {} {} without '
+                               'rendering first'
+                               .format(type(self).__name__, repr(self)))
+
+        return self._rendered_value
+
+    @property
+    def kind(self):
+        return self._kind
+
+    # FIXME: THIS SHOULD ONLY BE HERE IF POSTGRES
+
+    def _validate_rendered_value(self):
+        value = self._rendered_value
+        if len(value) > 63:
+            url = ('https://www.postgresql.org/docs/current/'
+                   'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
+            raise ValueError(f'"{value}" exceeds maximum length of 63 '
+                             f' (length is {len(value)}), '
+                             f'see: {url}')
+
+    @property
+    def _rendered(self):
+        if self._rendered_value is None:
+            raise RuntimeError('Tried to read {} {} without '
+                               'rendering first'
+                               .format(type(self).__name__, repr(self)))
+
+        if self.schema:
+            return f'"{self.schema}"."{self._rendered_value}"'
+        else:
+            return f'"{self._rendered_value}"'
+
+    def render(self, params, **kwargs):
+        self._rendered_value = self._source.render(params, **kwargs)
+        self._validate_rendered_value()
+        return self
+
+    def __str__(self):
+        return self._rendered
+
+    def __repr__(self):
+        return ('SQLRelationPlaceholder("{}"."{}")'
+                .format(self.schema, self._source.raw, self.kind))
+
+    @property
+    def safe(self):
+        return '"{}"."{}"'.format(self.schema, self._source.raw, self.kind)
+
+    def __eq__(self, other):
+        return (self.schema == other.schema
+                and self.name == other.name
+                and self.kind == other.kind)
+
+    def __hash__(self):
+        return hash((self.schema, self.name, self.kind))
