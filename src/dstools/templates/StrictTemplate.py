@@ -9,6 +9,7 @@ import jinja2
 from jinja2 import Environment, meta, Template, UndefinedError
 
 
+# TODO: rename this to placeholder
 class StrictTemplate:
     """
     A jinja2 Template-like object that adds the following features:
@@ -16,14 +17,18 @@ class StrictTemplate:
         * template.raw - Returns the raw template used for initialization
         * template.location - Returns a path to the Template object if available
         * strict - will not render if missing or extra parameters
-        * docstring parsing
+        * It also keeps the rendered value for later access
 
     Note that this does not implement the full jinja2.Template API
     """
 
-    def __init__(self, source):
+    def __init__(self, source, load_if_path=True):
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
+
+        if isinstance(source, Path) and not load_if_path:
+            source = str(source)
+
         if isinstance(source, Path):
             self._path = source
             self._raw = source.read_text()
@@ -75,13 +80,26 @@ class StrictTemplate:
 
         self.is_literal = self._check_is_literal()
 
+        self._value = self.raw if self.is_literal else None
+
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
+
+    @property
+    def value(self):
+        if self._value is None:
+            raise RuntimeError('Tried to read {} {} without '
+                               'rendering first'
+                               .format(type(self).__name__,
+                                       repr(self)))
+
+        return self._value
 
     @property
     def source(self):
         """jinja2.Template object
         """
+        # TODO: rename this to template
         return self._source
 
     @property
@@ -114,10 +132,10 @@ class StrictTemplate:
                 and env.block_start_string not in self.raw)
 
     def __str__(self):
-        return self.raw
+        return self.value
 
     def __repr__(self):
-        return '{}("{}")'.format(type(self).__name__, str(self))
+        return '{}("{}")'.format(type(self).__name__, self.safe)
 
     def _get_declared(self):
         if self.raw is None:
@@ -167,7 +185,8 @@ class StrictTemplate:
                               .format(repr(self), extra, self.declared))
 
         try:
-            return self.source.render(**params)
+            self._value = self.source.render(**params)
+            return self.value
         except UndefinedError as e:
             raise RenderError('in {}, jinja2 raised an UndefinedError, this '
                               'means the template is using an attribute '
@@ -177,6 +196,13 @@ class StrictTemplate:
                               'http://jinja.pocoo.org/docs/latest'
                               '/templates/#variables'
                               .format(repr(self))) from e
+
+    @property
+    def safe(self):
+        if self._value is None:
+            return self.raw
+        else:
+            return self._value
 
     # __getstate__ and __setstate__ are needed to make this picklable
 
@@ -194,3 +220,9 @@ class StrictTemplate:
                                                         type(self).__name__))
         self._source = Template(self._raw,
                                 undefined=jinja2.StrictUndefined)
+
+
+# FIXME: remove this
+class StringPlaceholder(StrictTemplate):
+    def __init__(self, source):
+        super().__init__(source, False)

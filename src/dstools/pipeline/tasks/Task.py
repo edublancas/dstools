@@ -39,7 +39,7 @@ from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Upstream import Upstream
-from dstools.pipeline.placeholders import StringPlaceholder
+from dstools.templates.StrictTemplate import StringPlaceholder
 from dstools.pipeline.Table import Row
 from dstools.util import isiterable
 

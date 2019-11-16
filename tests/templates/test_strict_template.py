@@ -1,10 +1,13 @@
+# TODO: these tests need clean up, is a merge from two files since
+# StringPlaceholder was removed and its interface was implemented directly
+# in StrictTemplate
 from pathlib import Path
-
-from dstools.templates.StrictTemplate import StrictTemplate
-from dstools.templates import SQLStore
+import tempfile
 
 import pytest
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.templates import SQLStore
+from jinja2 import Template, Environment, FileSystemLoader, StrictUndefined
 
 
 def test_raises_error_if_missing_parameter():
@@ -52,3 +55,47 @@ def test_strict_templates_initialized_from_strict_template(path_to_assets):
     env = Environment(loader=FileSystemLoader(path), undefined=StrictUndefined)
     st = StrictTemplate(env.get_template('template.sql'))
     assert StrictTemplate(st).render({'file': 1})
+
+
+def test_string_identifier_initialized_with_path():
+
+    si = StrictTemplate(Path('/path/to/file'), load_if_path=False).render({})
+
+    assert str(si) == '/path/to/file'
+
+
+def test_string_identifier_initialized_with_str():
+
+    si = StrictTemplate('things').render({})
+
+    # assert repr(si) == "StringPlaceholder('things')"
+    assert str(si) == 'things'
+
+
+def test_string_identifier_initialized_with_str_with_tags():
+
+    si = StrictTemplate('{{key}}').render(params=dict(key='things'))
+
+    # assert repr(si) == "StringPlaceholder('things')"
+    assert str(si) == 'things'
+
+
+def test_string_identifier_initialized_with_template_raises_error():
+
+    with pytest.raises(ValueError):
+        StrictTemplate(Template('{{key}}')).render(params=dict(key='things'))
+
+
+def test_string_identifier_initialized_with_template_from_env():
+
+    tmp = tempfile.mkdtemp()
+
+    Path(tmp, 'template.sql').write_text('{{key}}')
+
+    env = Environment(loader=FileSystemLoader(tmp), undefined=StrictUndefined)
+
+    template = env.get_template('template.sql')
+
+    si = StrictTemplate(template).render(params=dict(key='things'))
+
+    assert str(si) == 'things'

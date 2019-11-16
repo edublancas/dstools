@@ -49,115 +49,24 @@ as it does not make sense for literals, the way to access the value
 should be the same, the only different would be that in Placeholders
 this value wont be available until the placeholder is rendered
 """
+"""
+Same as FilePlaceholder but cast their argument to str before init,
+so a Path will be interpreted literally instead of loading the file
+"""
 
-
-class FilePlaceholder:
-    """
-    Placeholders are jinja2 templates that hold their rendered
-    values after Placeholder.render is called, they are used in
-    source and Product objects to hold values that are be filled
-    after a DAG is rendered
-    """
-
-    def __init__(self, source):
-        self.template = StrictTemplate(source)
-        self._value = None
-
-        # FIXME: some sources cannot be literals! query can be but not script
-        # it needs the product as placeholder
-        # if source is literal, assign the rendered value to the raw value
-        if self.template.is_literal:
-            # self.render({})
-            self._value = str(self.template)
-
-    @property
-    def value(self):
-        if self._value is None:
-            raise RuntimeError('Tried to read {} {} without '
-                               'rendering first'
-                               .format(type(self).__name__,
-                                       repr(self)))
-
-        return self._value
-
-    def render(self, params, **kwargs):
-        self._value = self.template.render(params, **kwargs)
-        return self
-
-    def __repr__(self):
-        return 'Placeholder({})'.format(self.template.raw)
-
-    def __str__(self):
-        return str(self.value)
-
-    @property
-    def loc(self):
-        return self.template.path
-
-    @property
-    def safe(self):
-        if self._value is None:
-            return self.template.raw
-        else:
-            return self._value
-
-    @property
-    def path(self):
-        return self.template.path
-
-
-class StringPlaceholder(FilePlaceholder):
-    """
-    Same as FilePlaceholder but cast their argument to str before init,
-    so a Path will be interpreted literally instead of loading the file
-    """
-
-    def __init__(self, source):
-        super().__init__(str(source))
-
-    @property
-    def path(self):
-        return None
-
-
-class FileLiteral:
-    def __init__(self, source):
-        if isinstance(source, Path):
-            self.path = str(source)
-            self.value = source.read_text()
-        else:
-            self.path = None
-            self.value = source
-
-    def __str__(self):
-        return self.value
-
-    @property
-    def safe(self):
-        return self.value
-
-
-class StringLiteral:
-    def __init__(self, source):
-        self.path = None
-        self.value = str(source)
-
-    @property
-    def loc(self):
-        return None
-
-    def __str__(self):
-        return self.value
-
-    @property
-    def safe(self):
-        return self.value
+"""
+Placeholders are jinja2 templates that hold their rendered
+values after Placeholder.render is called, they are used in
+source and Product objects to hold values that are be filled
+after a DAG is rendered
+"""
 
 
 class Source(abc.ABC):
 
     def __init__(self, value):
-        self.value = self.VALUECLASS(value)
+        self.value = StrictTemplate(value, load_if_path=True)
+        self._post_init_validation(self.value)
 
     @property
     @abc.abstractmethod
@@ -190,6 +99,9 @@ class Source(abc.ABC):
 
     # optional validation
     def _post_render_validation(self, rendered_value, params):
+        pass
+
+    def _post_init_validation(self, value):
         pass
 
     # NOTE: should I require source ojects to implement __str__?
@@ -243,12 +155,9 @@ class SQLScriptSource(SQLSourceMixin, Source):
     version in the same object and raises an Exception if attempted. It also
     passes some of its attributes
     """
-    VALUECLASS = FilePlaceholder
 
-    def __init__(self, value):
-        super().__init__(value)
-
-        if self.value.template.is_literal:
+    def _post_init_validation(self, value):
+        if value.is_literal:
             raise SourceInitializationError(
                 '{} cannot be initialized with literals as'
                 'they are meant to create a persistent '
@@ -307,14 +216,160 @@ class SQLQuerySource(SQLSourceMixin, Source):
     the database (in contrast with SQLScriptSource), so its validation is
     different
     """
-    VALUECLASS = FilePlaceholder
-
     # TODO: validate this is a SELECT statement
     # a query needs to return a result
     pass
 
 
-class SQLRelationPlaceholder(StringPlaceholder):
+class PythonCallableSource(Source):
+    """A source that holds a Python callable
+    """
+
+    def __init__(self, source):
+        if not callable(source):
+            raise TypeError(f'{type(self).__name__} must be initialized'
+                            'with a Python callable, got '
+                            f'"{type(source).__name__}"')
+
+        self._source = source
+        self._source_as_str = inspect.getsource(source)
+        _, self._source_lineno = inspect.getsourcelines(source)
+
+        self._params = None
+        self._loc = inspect.getsourcefile(source)
+
+    def __repr__(self):
+        return 'Placeholder({})'.format(self._source.raw)
+
+    def __str__(self):
+        return self._source_as_str
+
+    @property
+    def doc(self):
+        return self._source.__doc__
+
+    @property
+    def doc_short(self):
+        if self.doc is not None:
+            return self.doc.split('\n')[0]
+        else:
+            return None
+
+    @property
+    def loc(self):
+        return '{}:{}'.format(self._loc, self._source_lineno)
+
+    @property
+    def needs_render(self):
+        return False
+
+    @property
+    def language(self):
+        return 'python'
+
+
+class GenericSource(Source):
+    """
+    Generic (untemplated) source, the simplest type of source, it does
+    not render, perform any kind of parsing nor validation
+    """
+    def __init__(self, value):
+        self.value = StrictTemplate(value, load_if_path=False)
+        self._post_init_validation(self.value)
+
+    def __str__(self):
+        return str(self.value)
+
+    @property
+    def doc(self):
+        return ''
+
+    @property
+    def doc_short(self):
+        return ''
+
+    @property
+    def loc(self):
+        return ''
+
+    @property
+    def needs_render(self):
+        return False
+
+    @property
+    def language(self):
+        return None
+
+
+class FileLiteralSource(Source):
+    """
+    Generic (untemplated) source, the simplest type of source, it does
+    not render, perform any kind of parsing nor validation
+    """
+    def __init__(self, value):
+        self.value = StrictTemplate(value, load_if_path=True)
+        self._post_init_validation(self.value)
+
+    def __str__(self):
+        return str(self.value)
+
+    @property
+    def doc(self):
+        return ''
+
+    @property
+    def doc_short(self):
+        return ''
+
+    @property
+    def loc(self):
+        return self.value.path
+
+    @property
+    def needs_render(self):
+        return False
+
+    @property
+    def language(self):
+        return None
+
+
+class GenericTemplatedSource(Source):
+
+    def __init__(self, value):
+        self.value = StrictTemplate(value, load_if_path=False)
+        self._post_init_validation(self.value)
+
+    def __str__(self):
+        return str(self.value)
+
+    @property
+    def doc(self):
+        return ''
+
+    @property
+    def doc_short(self):
+        return ''
+
+    @property
+    def loc(self):
+        return ''
+
+    # FIXME: this is not part of source but currently used in notebook
+    @property
+    def path(self):
+        return None
+
+    @property
+    def needs_render(self):
+        return True
+
+    @property
+    def language(self):
+        return None
+
+
+class SQLRelationPlaceholder:
     """An identifier that represents a database relation (table or view)
     """
 
@@ -407,6 +462,10 @@ class SQLRelationPlaceholder(StringPlaceholder):
         return ('SQLRelationPlaceholder("{}"."{}")'
                 .format(self.schema, self._source.raw, self.kind))
 
+    @property
+    def safe(self):
+        return '"{}"."{}"'.format(self.schema, self._source.raw, self.kind)
+
     def __eq__(self, other):
         return (self.schema == other.schema
                 and self.name == other.name
@@ -414,144 +473,3 @@ class SQLRelationPlaceholder(StringPlaceholder):
 
     def __hash__(self):
         return hash((self.schema, self.name, self.kind))
-
-
-class PythonCallableSource(Source):
-    """A source that holds a Python callable
-    """
-
-    def __init__(self, source):
-        if not callable(source):
-            raise TypeError(f'{type(self).__name__} must be initialized'
-                            'with a Python callable, got '
-                            f'"{type(source).__name__}"')
-
-        self._source = source
-        self._source_as_str = inspect.getsource(source)
-        _, self._source_lineno = inspect.getsourcelines(source)
-
-        self._params = None
-        self._loc = inspect.getsourcefile(source)
-
-    def __repr__(self):
-        return 'Placeholder({})'.format(self._source.raw)
-
-    def __str__(self):
-        return self._source_as_str
-
-    @property
-    def doc(self):
-        return self._source.__doc__
-
-    @property
-    def doc_short(self):
-        if self.doc is not None:
-            return self.doc.split('\n')[0]
-        else:
-            return None
-
-    @property
-    def loc(self):
-        return '{}:{}'.format(self._loc, self._source_lineno)
-
-    @property
-    def needs_render(self):
-        return False
-
-    @property
-    def language(self):
-        return 'python'
-
-
-class GenericSource(Source):
-    """
-    Generic (untemplated) source, the simplest type of source, it does
-    not render, perform any kind of parsing nor validation
-    """
-    VALUECLASS = StringLiteral
-
-    def __str__(self):
-        return str(self.value)
-
-    @property
-    def doc(self):
-        return ''
-
-    @property
-    def doc_short(self):
-        return ''
-
-    @property
-    def loc(self):
-        return ''
-
-    @property
-    def needs_render(self):
-        return False
-
-    @property
-    def language(self):
-        return None
-
-
-class FileLiteralSource(Source):
-    """
-    Generic (untemplated) source, the simplest type of source, it does
-    not render, perform any kind of parsing nor validation
-    """
-    VALUECLASS = FileLiteral
-
-    def __str__(self):
-        return str(self.value)
-
-    @property
-    def doc(self):
-        return ''
-
-    @property
-    def doc_short(self):
-        return ''
-
-    @property
-    def loc(self):
-        return self.value.path
-
-    @property
-    def needs_render(self):
-        return False
-
-    @property
-    def language(self):
-        return None
-
-
-class GenericTemplatedSource(GenericSource):
-    VALUECLASS = StringPlaceholder
-
-    def __str__(self):
-        return str(self.value)
-
-    @property
-    def doc(self):
-        return ''
-
-    @property
-    def doc_short(self):
-        return ''
-
-    @property
-    def loc(self):
-        return ''
-
-    # FIXME: this is not part of source but currently used in notebook
-    @property
-    def path(self):
-        return None
-
-    @property
-    def needs_render(self):
-        return True
-
-    @property
-    def language(self):
-        return None

@@ -3,8 +3,8 @@ from io import StringIO
 
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.placeholders import (SQLScriptSource,
-                                           StringPlaceholder,
                                            SQLQuerySource)
+from dstools.templates.StrictTemplate import StringPlaceholder
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 from dstools.pipeline import io
 
