@@ -29,7 +29,7 @@ except ImportError:
 
 
 from dstools.exceptions import TaskBuildError
-from dstools.pipeline.placeholders import FileLiteralSource
+from dstools.pipeline.sources import FileLiteralSource
 from dstools.pipeline.products import File, MetaProduct
 from dstools.pipeline.tasks.Task import Task
 

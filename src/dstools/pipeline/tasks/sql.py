@@ -2,7 +2,7 @@ from pathlib import Path
 from io import StringIO
 
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import (SQLScriptSource,
+from dstools.pipeline.sources import (SQLScriptSource,
                                            SQLQuerySource)
 from dstools.templates.StrictTemplate import StringPlaceholder
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation

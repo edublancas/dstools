@@ -11,7 +11,7 @@ import subprocess
 from subprocess import CalledProcessError
 import logging
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import (PythonCallableSource,
+from dstools.pipeline.sources import (PythonCallableSource,
                                            GenericTemplatedSource,
                                            GenericSource)
 

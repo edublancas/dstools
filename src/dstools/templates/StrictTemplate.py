@@ -257,17 +257,15 @@ class SQLRelationPlaceholder:
 
         name = name.replace('"', '')
 
-        self._source = StrictTemplate(name)
-        self._rendered_value = None
-
-        self._kind = kind
         self._schema = schema
+        self._name_template = StrictTemplate(name)
+        self._kind = kind
 
         # if source is literal, rendering without params should work, this
         # allows this template to be used without having to render the dag
         # first
-        if self._source.is_literal:
-            self.render({})
+        if self._name_template.is_literal:
+            self._name_template.render({})
 
     @property
     def schema(self):
@@ -275,12 +273,7 @@ class SQLRelationPlaceholder:
 
     @property
     def name(self):
-        if self._rendered_value is None:
-            raise RuntimeError('Tried to read {} {} without '
-                               'rendering first'
-                               .format(type(self).__name__, repr(self)))
-
-        return self._rendered_value
+        return self._name_template.value
 
     @property
     def kind(self):
@@ -288,42 +281,33 @@ class SQLRelationPlaceholder:
 
     # FIXME: THIS SHOULD ONLY BE HERE IF POSTGRES
 
-    def _validate_rendered_value(self):
-        value = self._rendered_value
-        if len(value) > 63:
+    def _validate_name(self, name):
+        if len(name) > 63:
             url = ('https://www.postgresql.org/docs/current/'
                    'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
-            raise ValueError(f'"{value}" exceeds maximum length of 63 '
-                             f' (length is {len(value)}), '
+            raise ValueError(f'"{name}" exceeds maximum length of 63 '
+                             f' (length is {len(name)}), '
                              f'see: {url}')
 
-    @property
-    def _rendered(self):
-        if self._rendered_value is None:
-            raise RuntimeError('Tried to read {} {} without '
-                               'rendering first'
-                               .format(type(self).__name__, repr(self)))
-
-        if self.schema:
-            return f'"{self.schema}"."{self._rendered_value}"'
-        else:
-            return f'"{self._rendered_value}"'
-
     def render(self, params, **kwargs):
-        self._rendered_value = self._source.render(params, **kwargs)
-        self._validate_rendered_value()
+        name = self._name_template.render(params, **kwargs)
+        self._validate_name(name)
         return self
 
     def __str__(self):
-        return self._rendered
+        if self.schema is not None:
+            return '"{}"."{}"'.format(self.schema, self.name)
+        else:
+            return '"{}"'.format(self.name)
 
     def __repr__(self):
         return ('SQLRelationPlaceholder("{}"."{}")'
-                .format(self.schema, self._source.raw, self.kind))
+                .format(self.schema, self._name_template.raw, self.kind))
 
     @property
     def safe(self):
-        return '"{}"."{}"'.format(self.schema, self._source.raw, self.kind)
+        return '"{}"."{}"'.format(self.schema, self._name_template.raw,
+                                  self.kind)
 
     def __eq__(self, other):
         return (self.schema == other.schema

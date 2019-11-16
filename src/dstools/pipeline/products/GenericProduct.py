@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 from dstools.pipeline.products.Product import Product
-from dstools.pipeline.placeholders import StringPlaceholder
+from dstools.pipeline.sources import StringPlaceholder
 
 
 class GenericProduct(Product):

@@ -2,7 +2,7 @@ import pytest
 from mock import Mock
 
 from dstools.exceptions import SourceInitializationError
-from dstools.pipeline.placeholders import SQLQuerySource, SQLScriptSource
+from dstools.pipeline.sources import SQLQuerySource, SQLScriptSource
 from dstools.pipeline.tasks import SQLScript
 from dstools.pipeline.products import SQLiteRelation
 from dstools.pipeline import DAG

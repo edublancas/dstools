@@ -7,7 +7,7 @@ import pickle
 from dstools.pipeline import DAG
 from dstools.pipeline.tasks import PythonCallable, BashCommand
 from dstools.pipeline.products import File, PostgresRelation
-from dstools.pipeline.placeholders import SQLScriptSource
+from dstools.pipeline.sources import SQLScriptSource
 from dstools.templates.StrictTemplate import StrictTemplate, StringPlaceholder
 
 
