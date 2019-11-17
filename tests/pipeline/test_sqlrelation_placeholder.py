@@ -1,4 +1,4 @@
-from dstools.templates.StrictTemplate import SQLRelationPlaceholder
+from dstools.templates.Placeholder import SQLRelationPlaceholder
 
 
 def test_can_convert_to_str():

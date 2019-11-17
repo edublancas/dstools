@@ -11,7 +11,7 @@ import subprocess
 from subprocess import CalledProcessError
 
 from dstools.pipeline.clients.Client import Client
-from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.templates.Placeholder import Placeholder
 
 import paramiko
 
@@ -40,7 +40,7 @@ class ShellClient(Client):
         _, path_to_tmp = tempfile.mkstemp()
         Path(path_to_tmp).write_text(code)
 
-        run_template = StrictTemplate(run_template)
+        run_template = Placeholder(run_template)
         source = run_template.render(dict(path_to_code=path_to_tmp))
 
         res = subprocess.run(shlex.split(source), **self.subprocess_run_kwargs)
@@ -145,7 +145,7 @@ class RemoteShellClient(Client):
         ftp.put(path_to_tmp, path_remote)
         ftp.close()
 
-        run_template = StrictTemplate(run_template)
+        run_template = Placeholder(run_template)
         source = run_template.render(dict(path_to_code=path_remote))
 
         # stream stdout. related: https://stackoverflow.com/q/31834743

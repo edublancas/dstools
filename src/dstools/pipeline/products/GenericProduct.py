@@ -7,19 +7,19 @@ import logging
 from pathlib import Path
 
 from dstools.pipeline.products.Product import Product
-from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.templates.Placeholder import Placeholder
 
 
 class GenericProduct(Product):
     def __init__(self, identifier, path_to_metadata, exists_command,
                  delete_command, client=None):
 
-        self._identifier = StrictTemplate(str(identifier))
+        self._identifier = Placeholder(str(identifier))
         self._path_to_metadata = path_to_metadata
         self._client = client
 
-        self.exists_command = StrictTemplate(str(exists_command))
-        self.delete_command = StrictTemplate(str(delete_command))
+        self.exists_command = Placeholder(str(exists_command))
+        self.delete_command = Placeholder(str(delete_command))
 
         self.did_download_metadata = False
         self.task = None

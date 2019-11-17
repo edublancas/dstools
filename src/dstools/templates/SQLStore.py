@@ -1,7 +1,7 @@
 """
 This module provides subclasses of jinja2 for better integration with SQL
 """
-from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.templates.Placeholder import Placeholder
 
 import jinja2
 from jinja2 import Environment, PackageLoader, FileSystemLoader
@@ -38,4 +38,4 @@ class SQLStore:
 
     def get_template(self, name):
         template = self.env.get_template(name)
-        return StrictTemplate(template)
+        return Placeholder(template)

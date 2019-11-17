@@ -28,7 +28,7 @@ from pathlib import Path
 import inspect
 
 from dstools.pipeline.products import Product
-from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.templates.Placeholder import Placeholder
 from dstools.exceptions import SourceInitializationError
 from dstools.sql import infer
 
@@ -36,7 +36,7 @@ from dstools.sql import infer
 # validation may involve checking against the product, but we can replace
 # this behabior for an after-render validation, and just pass the product
 # as parameter maybe from the Task? the task should not do this
-# FIXME: remove opt from StrictTemplate.render
+# FIXME: remove opt from Placeholder.render
 
 
 """
@@ -65,7 +65,7 @@ after a DAG is rendered
 class Source(abc.ABC):
 
     def __init__(self, value):
-        self.value = StrictTemplate(value, load_if_path=True)
+        self.value = Placeholder(value, load_if_path=True)
         self._post_init_validation(self.value)
 
     @property
@@ -142,7 +142,7 @@ class SQLScriptSource(SQLSourceMixin, Source):
 
     Notes
     -----
-    This is really just a StrictTemplate object that stores its rendered
+    This is really just a Placeholder object that stores its rendered
     version in the same object and raises an Exception if attempted. It also
     passes some of its attributes
     """

@@ -9,8 +9,7 @@ import jinja2
 from jinja2 import Environment, meta, Template, UndefinedError
 
 
-# TODO: rename this to placeholder
-class StrictTemplate:
+class Placeholder:
     """
     A jinja2 Template-like object that adds the following features:
 
@@ -44,7 +43,7 @@ class StrictTemplate:
             path = Path(source.filename)
 
             if source.environment.undefined != jinja2.StrictUndefined:
-                raise ValueError('StrictTemplate can only be initialized '
+                raise ValueError('Placeholder can only be initialized '
                                  'from jinja2.Templates whose undefined '
                                  'parameter is set to '
                                  'jinja2.StrictUndefined, set it explicitely '
@@ -65,13 +64,13 @@ class StrictTemplate:
             self._path = path
             self._raw = path.read_text()
             self._template = source
-        elif isinstance(source, StrictTemplate):
+        elif isinstance(source, Placeholder):
             self._path = source.path
             self._raw = source.raw
             self._template = source.source
         else:
             raise TypeError('{} must be initialized with a Template, '
-                            'StrictTemplate, pathlib.Path or str, '
+                            'Placeholder, pathlib.Path or str, '
                             'got {} instead'
                             .format(type(self).__name__,
                                     type(source).__name__))
@@ -225,12 +224,6 @@ class StrictTemplate:
                                   undefined=jinja2.StrictUndefined)
 
 
-# FIXME: remove this
-class StringPlaceholder(StrictTemplate):
-    def __init__(self, source):
-        super().__init__(source, False)
-
-
 class SQLRelationPlaceholder:
     """An identifier that represents a database relation (table or view)
     """
@@ -261,7 +254,7 @@ class SQLRelationPlaceholder:
         name = name.replace('"', '')
 
         self._schema = schema
-        self._name_template = StrictTemplate(name)
+        self._name_template = Placeholder(name)
         self._kind = kind
 
         # if source is literal, rendering without params should work, this

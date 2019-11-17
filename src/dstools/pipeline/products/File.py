@@ -5,7 +5,7 @@ in the local filesystem or a table in a database
 import os
 from pathlib import Path
 from dstools.pipeline.products.Product import Product
-from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.templates.Placeholder import Placeholder
 
 
 class File(Product):
@@ -16,7 +16,7 @@ class File(Product):
             raise TypeError('File must be initialized with a str or a '
                             'pathlib.Path')
 
-        return StrictTemplate(str(identifier))
+        return Placeholder(str(identifier))
 
     @property
     def _path_to_file(self):
