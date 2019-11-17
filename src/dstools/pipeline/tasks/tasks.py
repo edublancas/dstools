@@ -13,7 +13,7 @@ import logging
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.sources import (PythonCallableSource,
                                       GenericTemplatedSource,
-                                      GenericSource)
+                                      FileLiteralSource)
 
 
 class BashCommand(Task):
@@ -107,4 +107,4 @@ class DownloadFromURL(Task):
         request.urlretrieve(str(self.source), filename=str(self.product))
 
     def _init_source(self, source):
-        return GenericSource(source)
+        return FileLiteralSource(str(source))

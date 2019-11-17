@@ -4,7 +4,7 @@ from io import StringIO
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.sources import (SQLScriptSource,
                                       SQLQuerySource,
-                                      GenericSource)
+                                      FileLiteralSource)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 from dstools.pipeline import io
 
@@ -185,7 +185,7 @@ class SQLUpload(Task):
                              .format(type(self).__name__))
 
     def _init_source(self, source):
-        return GenericSource(source)
+        return FileLiteralSource(str(source))
 
     def run(self):
         product = self.params['product']
@@ -228,7 +228,7 @@ class PostgresCopy(Task):
         self.columns = columns
 
     def _init_source(self, source):
-        return GenericSource(source)
+        return FileLiteralSource(str(source))
 
     def run(self):
         product = self.params['product']

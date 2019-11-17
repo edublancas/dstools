@@ -268,39 +268,6 @@ class PythonCallableSource(Source):
         return 'python'
 
 
-class GenericSource(Source):
-    """
-    Generic (untemplated) source, the simplest type of source, it does
-    not render, perform any kind of parsing nor validation
-    """
-    def __init__(self, value):
-        self.value = StrictTemplate(value, load_if_path=False)
-        self._post_init_validation(self.value)
-
-    def __str__(self):
-        return str(self.value)
-
-    @property
-    def doc(self):
-        return ''
-
-    @property
-    def doc_short(self):
-        return ''
-
-    @property
-    def loc(self):
-        return ''
-
-    @property
-    def needs_render(self):
-        return False
-
-    @property
-    def language(self):
-        return None
-
-
 class FileLiteralSource(Source):
     """
     Generic (untemplated) source, the simplest type of source, it does
