@@ -32,13 +32,13 @@ class StrictTemplate:
         if isinstance(source, Path):
             self._path = source
             self._raw = source.read_text()
-            self._source = Template(self._raw,
-                                    undefined=jinja2.StrictUndefined)
+            self._template = Template(self._raw,
+                                      undefined=jinja2.StrictUndefined)
         elif isinstance(source, str):
             self._path = None
             self._raw = source
-            self._source = Template(self._raw,
-                                    undefined=jinja2.StrictUndefined)
+            self._template = Template(self._raw,
+                                      undefined=jinja2.StrictUndefined)
 
         elif isinstance(source, Template):
             path = Path(source.filename)
@@ -64,11 +64,11 @@ class StrictTemplate:
 
             self._path = path
             self._raw = path.read_text()
-            self._source = source
+            self._template = source
         elif isinstance(source, StrictTemplate):
             self._path = source.path
             self._raw = source.raw
-            self._source = source.source
+            self._template = source.source
         else:
             raise TypeError('{} must be initialized with a Template, '
                             'StrictTemplate, pathlib.Path or str, '
@@ -96,11 +96,10 @@ class StrictTemplate:
         return self._value
 
     @property
-    def source(self):
+    def template(self):
         """jinja2.Template object
         """
-        # TODO: rename this to template
-        return self._source
+        return self._template
 
     @property
     def raw(self):
@@ -124,7 +123,7 @@ class StrictTemplate:
         Returns true if the template is a literal and does not need any
         parameters to render
         """
-        env = self.source.environment
+        env = self.template.environment
 
         # check if the template has the variable or block start string
         # is there any better way of checking this?
@@ -185,7 +184,7 @@ class StrictTemplate:
                               .format(repr(self), extra, self.declared))
 
         try:
-            self._value = self.source.render(**params)
+            self._value = self.template.render(**params)
             return self.value
         except UndefinedError as e:
             raise RenderError('in {}, jinja2 raised an UndefinedError, this '
@@ -211,15 +210,15 @@ class StrictTemplate:
         # _logger and _source are not pickable, so we remove them and build
         # them again in __setstate__
         del state['_logger']
-        del state['_source']
+        del state['_template']
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
-        self._source = Template(self._raw,
-                                undefined=jinja2.StrictUndefined)
+        self._template = Template(self.raw,
+                                  undefined=jinja2.StrictUndefined)
 
 
 # FIXME: remove this
