@@ -12,15 +12,13 @@ from subprocess import CalledProcessError
 import logging
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.sources import (PythonCallableSource,
-                                           GenericTemplatedSource,
-                                           GenericSource)
+                                      GenericTemplatedSource,
+                                      GenericSource)
 
 
 class BashCommand(Task):
     """A task that runs an inline bash command
     """
-    SOURCECLASS = GenericTemplatedSource
-
     def __init__(self, source, product, dag, name=None, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
@@ -30,6 +28,9 @@ class BashCommand(Task):
         self.split_source_code = split_source_code
         self.subprocess_run_kwargs = subprocess_run_kwargs
         self._logger = logging.getLogger(__name__)
+
+    def _init_source(self, source):
+        return GenericTemplatedSource(source)
 
     def run(self):
         source_code = (shlex.split(self.source_code) if self.split_source_code
@@ -57,6 +58,9 @@ class PythonCallable(Task):
     def __init__(self, source, product, dag, name=None, params=None):
         super().__init__(source, product, dag, name, params)
 
+    def _init_source(self, source):
+        return PythonCallableSource(source)
+
     def run(self):
         if self.dag._Executor.TASKS_CAN_CREATE_CHILD_PROCESSES:
             p = Pool()
@@ -81,8 +85,6 @@ class PythonCallable(Task):
 class ShellScript(Task):
     """A task to run a shell script
     """
-    SOURCECLASS = GenericTemplatedSource
-
     def __init__(self, source, product, dag, name=None, params=None,
                  client=None):
         super().__init__(source, product, dag, name, params)
@@ -93,12 +95,16 @@ class ShellScript(Task):
             raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
+    def _init_source(self, source):
+        return GenericTemplatedSource(source)
+
     def run(self):
         self.client.execute(str(self.source))
 
 
 class DownloadFromURL(Task):
-    SOURCECLASS = GenericSource
-
     def run(self):
         request.urlretrieve(str(self.source), filename=str(self.product))
+
+    def _init_source(self, source):
+        return GenericSource(source)

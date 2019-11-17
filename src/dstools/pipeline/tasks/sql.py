@@ -3,8 +3,8 @@ from io import StringIO
 
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.sources import (SQLScriptSource,
-                                           SQLQuerySource)
-from dstools.templates.StrictTemplate import StringPlaceholder
+                                      SQLQuerySource,
+                                      GenericSource)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 from dstools.pipeline import io
 
@@ -17,7 +17,6 @@ class SQLScript(Task):
     does not make any assumptions about the underlying SQL engine, it should
     work witn all DBs supported by SQLAlchemy
     """
-    SOURCECLASS = SQLScriptSource
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
     def __init__(self, source, product, dag, name=None, client=None,
@@ -33,6 +32,9 @@ class SQLScript(Task):
 
     def run(self):
         return self.client.execute(self.source_code)
+
+    def _init_source(self, source):
+        return SQLScriptSource(source)
 
 
 class SQLDump(Task):
@@ -62,7 +64,6 @@ class SQLDump(Task):
     can greatly speed up the dump for some databases when the driver uses
     cursors.arraysize as the number of rows to fetch on a single call
     """
-    SOURCECLASS = SQLQuerySource
     PRODUCT_CLASSES_ALLOWED = (File, )
 
     def __init__(self, source, product, dag, name=None, client=None,
@@ -78,6 +79,9 @@ class SQLDump(Task):
         if self.client is None:
             raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
+
+    def _init_source(self, source):
+        return SQLQuerySource(source)
 
     def run(self):
         source_code = str(self.source)
@@ -122,7 +126,6 @@ class SQLDump(Task):
 class SQLTransfer(Task):
     """Transfers data from a SQL statement to a SQL relation
     """
-    SOURCECLASS = SQLQuerySource
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
     def __init__(self, source, product, dag, name=None, client=None,
@@ -137,6 +140,9 @@ class SQLTransfer(Task):
                              .format(type(self).__name__))
 
         self.chunksize = chunksize
+
+    def _init_source(self, source):
+        return SQLQuerySource(source)
 
     def run(self):
         source_code = str(self.source)
@@ -165,7 +171,6 @@ class SQLUpload(Task):
     source: str or pathlib.Path
         Path to parquet file to upload
     """
-    SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
     def __init__(self, source, product, dag, name=None, client=None,
@@ -178,6 +183,9 @@ class SQLUpload(Task):
         if self.client is None:
             raise ValueError('{} must be initialized with a connection'
                              .format(type(self).__name__))
+
+    def _init_source(self, source):
+        return GenericSource(source)
 
     def run(self):
         product = self.params['product']
@@ -202,7 +210,6 @@ class PostgresCopy(Task):
     source: str or pathlib.Path
         Path to parquet file to upload
     """
-    SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)
 
     def __init__(self, source, product, dag, name=None, client=None,
@@ -219,6 +226,9 @@ class PostgresCopy(Task):
         self.sep = sep
         self.null = null
         self.columns = columns
+
+    def _init_source(self, source):
+        return GenericSource(source)
 
     def run(self):
         product = self.params['product']

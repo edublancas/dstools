@@ -38,8 +38,8 @@ class Product(abc.ABC):
         self._identifier = self._init_identifier(identifier)
 
         if self._identifier is None:
-            raise ValueError('_init_identifier must return a value, returned '
-                             'None')
+            raise TypeError('_init_identifier must return a value, returned '
+                            'None')
 
         self.did_download_metadata = False
         self.task = None

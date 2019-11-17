@@ -91,7 +91,6 @@ def _from_ipynb(path_to_nb, extension, nbconvert_exporter_name):
 class NotebookRunner(Task):
     """Run a notebook using papermill
     """
-    SOURCECLASS = FileLiteralSource
     PRODUCT_CLASSES_ALLOWED = (File, )
 
     def __init__(self, source, product, dag, name=None, params=None,
@@ -110,6 +109,9 @@ class NotebookRunner(Task):
                            'nb_product_key '
                            'is None, pass a value to locate the notebook '
                            'save location')
+
+    def _init_source(self, source):
+        return FileLiteralSource(source)
 
     def run(self):
         if isinstance(self.product, MetaProduct):

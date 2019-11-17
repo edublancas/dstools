@@ -39,8 +39,8 @@ from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Upstream import Upstream
-from dstools.templates.StrictTemplate import StringPlaceholder
 from dstools.pipeline.Table import Row
+from dstools.pipeline.sources.sources import Source
 from dstools.util import isiterable
 
 import humanize
@@ -49,13 +49,16 @@ import humanize
 class Task(abc.ABC):
     """A task represents a unit of work
     """
-    SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = None
 
     @abc.abstractmethod
     def run(self):
         """This is the only required method Task subclasses must implement
         """
+        pass
+
+    @abc.abstractmethod
+    def _init_source(self, source):
         pass
 
     def __init__(self, source, product, dag, name=None, params=None):
@@ -87,7 +90,13 @@ class Task(abc.ABC):
 
         self.build_report = None
 
-        self._source = self.SOURCECLASS(source)
+        self._source = self._init_source(source)
+
+        if self._source is None:
+            raise TypeError('_init_source must return a value, got None')
+
+        if not isinstance(self._source, Source):
+            raise TypeError('_init_source must return a subclass of Source')
 
         if isinstance(product, Product):
             self._product = product
