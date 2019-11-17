@@ -5,13 +5,18 @@ in the local filesystem or a table in a database
 import os
 from pathlib import Path
 from dstools.pipeline.products.Product import Product
-from dstools.templates.StrictTemplate import StringPlaceholder
+from dstools.templates.StrictTemplate import StrictTemplate
 
 
 class File(Product):
     """A product representing a file in the local filesystem
     """
-    IDENTIFIERCLASS = StringPlaceholder
+    def _init_identifier(self, identifier):
+        if not isinstance(identifier, (str, Path)):
+            raise TypeError('File must be initialized with a str or a '
+                            'pathlib.Path')
+
+        return StrictTemplate(str(identifier))
 
     @property
     def _path_to_file(self):

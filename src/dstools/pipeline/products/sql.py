@@ -9,20 +9,22 @@ from dstools.templates.StrictTemplate import SQLRelationPlaceholder
 
 
 class SQLiteRelation(Product):
-    IDENTIFIERCLASS = SQLRelationPlaceholder
 
     def __init__(self, identifier, client=None):
+        super().__init__(identifier)
+        self._identifier._schema = None
+        self._client = client
+
+    def _init_identifier(self, identifier):
         if identifier[0] is not None:
             raise ValueError('SQLite does not support schemas, you should '
                              'pass None')
 
         # SQLRelationPlaceholder needs a schema value, we use a dummy value
         # for itniialization
+        # FIXME: this is a hacky, refactor SQLRelationPlaceholder
         identifier = ('', identifier[1], identifier[2])
-        super().__init__(identifier)
-        self._identifier._schema = None
-
-        self._client = client
+        return SQLRelationPlaceholder(identifier)
 
     @property
     def client(self):
@@ -121,11 +123,13 @@ class PostgresRelation(Product):
     # FIXME: identifier has schema as optional but that introduces ambiguity
     # when fetching metadata and checking if the table exists so maybe it
     # should be required
-    IDENTIFIERCLASS = SQLRelationPlaceholder
 
     def __init__(self, identifier, client=None):
         self._client = client
         super().__init__(identifier)
+
+    def _init_identifier(self, identifier):
+        return SQLRelationPlaceholder(identifier)
 
     @property
     def client(self):

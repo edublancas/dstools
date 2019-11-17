@@ -34,10 +34,13 @@ class Product(abc.ABC):
     A product is a persistent triggered by a Task, this is an abstract
     class for all products
     """
-    IDENTIFIERCLASS = None
-
     def __init__(self, identifier):
-        self._identifier = self.IDENTIFIERCLASS(identifier)
+        self._identifier = self._init_identifier(identifier)
+
+        if self._identifier is None:
+            raise ValueError('_init_identifier must return a value, returned '
+                             'None')
+
         self.did_download_metadata = False
         self.task = None
         self.logger = logging.getLogger('{}.{}'.format(__name__,
@@ -176,6 +179,10 @@ class Product(abc.ABC):
                                                        type(self).__name__))
 
     # Subclasses must implement the following methods
+
+    @abc.abstractmethod
+    def _init_identifier(self, identifier):
+        pass
 
     @abc.abstractmethod
     def fetch_metadata(self):

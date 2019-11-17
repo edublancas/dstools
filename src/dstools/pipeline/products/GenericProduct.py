@@ -7,25 +7,26 @@ import logging
 from pathlib import Path
 
 from dstools.pipeline.products.Product import Product
-from dstools.pipeline.sources import StringPlaceholder
+from dstools.templates.StrictTemplate import StrictTemplate
 
 
 class GenericProduct(Product):
-    """A product representing a file in the local filesystem
-    """
     def __init__(self, identifier, path_to_metadata, exists_command,
                  delete_command, client=None):
 
-        self._identifier = StringPlaceholder(identifier)
+        self._identifier = StrictTemplate(str(identifier))
         self._path_to_metadata = path_to_metadata
         self._client = client
 
-        self.exists_command = StringPlaceholder(exists_command)
-        self.delete_command = StringPlaceholder(delete_command)
+        self.exists_command = StrictTemplate(str(exists_command))
+        self.delete_command = StrictTemplate(str(delete_command))
 
         self.did_download_metadata = False
         self.task = None
         self._logger = logging.getLogger(__name__)
+
+    def _init_identifier(self, identifier):
+        pass
 
     # TODO: create a mixing with this so all client-based tasks can include it
     @property
