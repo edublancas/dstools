@@ -65,13 +65,6 @@ def test_strict_templates_initialized_from_strict_template(path_to_assets):
     assert Placeholder(st).render({'file': 1})
 
 
-def test_string_identifier_initialized_with_path():
-
-    si = Placeholder(Path('/path/to/file'), load_if_path=False).render({})
-
-    assert str(si) == '/path/to/file'
-
-
 def test_string_identifier_initialized_with_str():
 
     si = Placeholder('things').render({})

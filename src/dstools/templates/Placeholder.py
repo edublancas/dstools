@@ -21,12 +21,9 @@ class Placeholder:
     Note that this does not implement the full jinja2.Template API
     """
 
-    def __init__(self, source, load_if_path=True):
+    def __init__(self, source):
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
-
-        if isinstance(source, Path) and not load_if_path:
-            source = str(source)
 
         if isinstance(source, Path):
             self._path = source
@@ -67,7 +64,7 @@ class Placeholder:
         elif isinstance(source, Placeholder):
             self._path = source.path
             self._raw = source.raw
-            self._template = source.source
+            self._template = source.template
         else:
             raise TypeError('{} must be initialized with a Template, '
                             'Placeholder, pathlib.Path or str, '

@@ -65,7 +65,7 @@ after a DAG is rendered
 class Source(abc.ABC):
 
     def __init__(self, value):
-        self.value = Placeholder(value, load_if_path=True)
+        self.value = Placeholder(value)
         self._post_init_validation(self.value)
 
     @property

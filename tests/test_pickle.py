@@ -18,7 +18,7 @@ def fn():
 def test_can_pickle_dag():
     dag = DAG()
 
-    t = BashCommand('echo "hi"', File('/tmp/file.txt'), dag)
+    t = BashCommand('cat "hi" > {{product}}', File('/tmp/file.txt'), dag)
 
     t2 = PythonCallable(fn, File('/tmp/file2.txt'), dag)
 
