@@ -28,8 +28,8 @@ except ImportError:
     kernelspec = None
 
 
-from dstools.exceptions import TaskBuildError
-from dstools.pipeline.sources import FileLiteralSource
+from dstools.exceptions import TaskBuildError, SourceInitializationError
+from dstools.pipeline.sources import GenericSource
 from dstools.pipeline.products import File, MetaProduct
 from dstools.pipeline.tasks.Task import Task
 
@@ -111,7 +111,14 @@ class NotebookRunner(Task):
                            'save location')
 
     def _init_source(self, source):
-        return FileLiteralSource(source)
+        source = GenericSource(source)
+
+        if source.needs_render:
+            raise SourceInitializationError('The source for this task "{}"'
+                                            ' must be a literal '
+                                            .format(source.value.raw))
+
+        return source
 
     def run(self):
         if isinstance(self.product, MetaProduct):

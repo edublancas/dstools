@@ -1,9 +1,8 @@
 from dstools.pipeline.sources.sources import (PythonCallableSource,
                                               SQLScriptSource,
                                               SQLQuerySource,
-                                              GenericTemplatedSource,
-                                              FileLiteralSource)
+                                              GenericSource)
 
 __all__ = ['PythonCallableSource', 'SQLScriptSource',
            'SQLQuerySource',
-           'GenericTemplatedSource', 'FileLiteralSource']
+           'GenericSource']

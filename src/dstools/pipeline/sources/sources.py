@@ -84,9 +84,8 @@ class Source(abc.ABC):
         pass
 
     @property
-    @abc.abstractmethod
     def needs_render(self):
-        pass
+        return self.value.needs_render
 
     @property
     @abc.abstractmethod
@@ -104,9 +103,8 @@ class Source(abc.ABC):
     def _post_init_validation(self, value):
         pass
 
-    # NOTE: should I require source ojects to implement __str__?
-    # task.source_code does str(task.source), but I tihik the implementation
-    # will be always str(self.value)
+    def __str__(self):
+        return str(self.value)
 
 
 class SQLSourceMixin:
@@ -131,13 +129,6 @@ class SQLSourceMixin:
     def loc(self):
         return None
 
-    @property
-    def needs_render(self):
-        return True
-
-    def __str__(self):
-        return str(self.value)
-
 
 class SQLScriptSource(SQLSourceMixin, Source):
     """
@@ -157,9 +148,9 @@ class SQLScriptSource(SQLSourceMixin, Source):
     """
 
     def _post_init_validation(self, value):
-        if value.is_literal:
+        if not value.needs_render:
             raise SourceInitializationError(
-                '{} cannot be initialized with literals as'
+                '{} cannot be initialized with literals as '
                 'they are meant to create a persistent '
                 'change in the database, they need to '
                 'include the {} placeholder'
@@ -268,18 +259,11 @@ class PythonCallableSource(Source):
         return 'python'
 
 
-class FileLiteralSource(Source):
+class GenericSource(Source):
     """
-    Generic (untemplated) source, the simplest type of source, it does
-    not render, perform any kind of parsing nor validation
+    Generic source, the simplest type of source, it does not perform any kind
+    of parsing nor validation
     """
-    def __init__(self, value):
-        self.value = StrictTemplate(value, load_if_path=True)
-        self._post_init_validation(self.value)
-
-    def __str__(self):
-        return str(self.value)
-
     @property
     def doc(self):
         return ''
@@ -291,45 +275,6 @@ class FileLiteralSource(Source):
     @property
     def loc(self):
         return self.value.path
-
-    @property
-    def needs_render(self):
-        return False
-
-    @property
-    def language(self):
-        return None
-
-
-class GenericTemplatedSource(Source):
-
-    def __init__(self, value):
-        self.value = StrictTemplate(value, load_if_path=False)
-        self._post_init_validation(self.value)
-
-    def __str__(self):
-        return str(self.value)
-
-    @property
-    def doc(self):
-        return ''
-
-    @property
-    def doc_short(self):
-        return ''
-
-    @property
-    def loc(self):
-        return ''
-
-    # FIXME: this is not part of source but currently used in notebook
-    @property
-    def path(self):
-        return None
-
-    @property
-    def needs_render(self):
-        return True
 
     @property
     def language(self):

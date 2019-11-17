@@ -10,10 +10,10 @@ import shlex
 import subprocess
 from subprocess import CalledProcessError
 import logging
+from dstools.exceptions import SourceInitializationError
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.sources import (PythonCallableSource,
-                                      GenericTemplatedSource,
-                                      FileLiteralSource)
+                                      GenericSource)
 
 
 class BashCommand(Task):
@@ -30,7 +30,16 @@ class BashCommand(Task):
         self._logger = logging.getLogger(__name__)
 
     def _init_source(self, source):
-        return GenericTemplatedSource(source)
+        source = GenericSource(str(source))
+
+        if not source.needs_render:
+            raise SourceInitializationError('The source for this task "{}"'
+                                            ' must be a template since the '
+                                            ' product will be passed as '
+                                            ' parameter'
+                                            .format(source.value.raw))
+
+        return source
 
     def run(self):
         source_code = (shlex.split(self.source_code) if self.split_source_code
@@ -96,7 +105,15 @@ class ShellScript(Task):
                              .format(type(self).__name__))
 
     def _init_source(self, source):
-        return GenericTemplatedSource(source)
+        source = GenericSource(str(source))
+
+        if not source.needs_render:
+            raise SourceInitializationError('The source for this task '
+                                            'must be a template since the '
+                                            'product will be passed as '
+                                            'parameter')
+
+        return source
 
     def run(self):
         self.client.execute(str(self.source))
@@ -107,4 +124,4 @@ class DownloadFromURL(Task):
         request.urlretrieve(str(self.source), filename=str(self.product))
 
     def _init_source(self, source):
-        return FileLiteralSource(str(source))
+        return GenericSource(str(source))

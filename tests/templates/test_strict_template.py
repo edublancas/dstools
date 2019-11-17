@@ -10,6 +10,14 @@ from dstools.templates import SQLStore
 from jinja2 import Template, Environment, FileSystemLoader, StrictUndefined
 
 
+def test_verify_if_strict_template_is_literal():
+    assert not StrictTemplate('no need for rendering').needs_render
+
+
+def test_verify_if_strict_template_needs_render():
+    assert StrictTemplate('I need {{params}}').needs_render
+
+
 def test_raises_error_if_missing_parameter():
     with pytest.raises(TypeError):
         StrictTemplate('SELECT * FROM {{table}}').render()

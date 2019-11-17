@@ -1,10 +1,11 @@
 from pathlib import Path
 from io import StringIO
 
+from dstools.exceptions import SourceInitializationError
 from dstools.pipeline.tasks.Task import Task
 from dstools.pipeline.sources import (SQLScriptSource,
                                       SQLQuerySource,
-                                      FileLiteralSource)
+                                      GenericSource)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 from dstools.pipeline import io
 
@@ -185,7 +186,14 @@ class SQLUpload(Task):
                              .format(type(self).__name__))
 
     def _init_source(self, source):
-        return FileLiteralSource(str(source))
+        source = GenericSource(str(source))
+
+        if source.needs_render:
+            raise SourceInitializationError('{} does not support templates as '
+                                            'source, pass a path to a file',
+                                            self.__class__)
+
+        return source
 
     def run(self):
         product = self.params['product']
@@ -228,7 +236,14 @@ class PostgresCopy(Task):
         self.columns = columns
 
     def _init_source(self, source):
-        return FileLiteralSource(str(source))
+        source = GenericSource(str(source))
+
+        if source.needs_render:
+            raise SourceInitializationError('{} does not support templates as '
+                                            'source, pass a path to a file',
+                                            self.__class__)
+
+        return source
 
     def run(self):
         product = self.params['product']

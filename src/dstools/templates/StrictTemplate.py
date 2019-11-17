@@ -78,9 +78,9 @@ class StrictTemplate:
 
         self.declared = self._get_declared()
 
-        self.is_literal = self._check_is_literal()
+        self.needs_render = self._needs_render()
 
-        self._value = self.raw if self.is_literal else None
+        self._value = None if self.needs_render else self.raw
 
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
@@ -118,7 +118,7 @@ class StrictTemplate:
         """
         return self._path
 
-    def _check_is_literal(self):
+    def _needs_render(self):
         """
         Returns true if the template is a literal and does not need any
         parameters to render
@@ -127,8 +127,12 @@ class StrictTemplate:
 
         # check if the template has the variable or block start string
         # is there any better way of checking this?
-        return ((env.variable_start_string not in self.raw)
-                and env.block_start_string not in self.raw)
+        needs_variables = (env.variable_start_string in self.raw
+                           and env.variable_end_string in self.raw)
+        needs_blocks = (env.block_start_string in self.raw
+                        and env.block_end_string in self.raw)
+
+        return needs_variables or needs_blocks
 
     def __str__(self):
         return self.value
@@ -263,7 +267,7 @@ class SQLRelationPlaceholder:
         # if source is literal, rendering without params should work, this
         # allows this template to be used without having to render the dag
         # first
-        if self._name_template.is_literal:
+        if not self._name_template.needs_render:
             self._name_template.render({})
 
     @property
