@@ -222,7 +222,10 @@ class Placeholder:
 
 
 class SQLRelationPlaceholder:
-    """An identifier that represents a database relation (table or view)
+    """
+    An identifier that represents a database relation (table or view), used
+    internally by SQLiteRelation (Product). Not meant to be used directly
+    by users.
     """
 
     def __init__(self, source):
