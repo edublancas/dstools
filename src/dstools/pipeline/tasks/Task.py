@@ -39,9 +39,8 @@ from dstools.exceptions import TaskBuildError, RenderError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Upstream import Upstream
-from dstools.pipeline.placeholders import (ClientCodePlaceholder,
-                                           TemplatedPlaceholder)
 from dstools.pipeline.Table import Row
+from dstools.pipeline.sources.sources import Source
 from dstools.util import isiterable
 
 import humanize
@@ -50,9 +49,17 @@ import humanize
 class Task(abc.ABC):
     """A task represents a unit of work
     """
-    SOURCECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = None
-    PRODUCT_IN_CODE = True
+
+    @abc.abstractmethod
+    def run(self):
+        """This is the only required method Task subclasses must implement
+        """
+        pass
+
+    @abc.abstractmethod
+    def _init_source(self, source):
+        pass
 
     def __init__(self, source, product, dag, name=None, params=None):
         """
@@ -83,7 +90,13 @@ class Task(abc.ABC):
 
         self.build_report = None
 
-        self._source = self.SOURCECLASS(source)
+        self._source = self._init_source(source)
+
+        if self._source is None:
+            raise TypeError('_init_source must return a value, got None')
+
+        if not isinstance(self._source, Source):
+            raise TypeError('_init_source must return a subclass of Source')
 
         if isinstance(product, Product):
             self._product = product
@@ -142,11 +155,6 @@ class Task(abc.ABC):
 
         self._on_finish = None
         self._on_failure = None
-
-    @property
-    def language(self):
-        # this is used for determining how to normalize code before comparing
-        return None
 
     @property
     def name(self):
@@ -236,10 +244,6 @@ class Task(abc.ABC):
     @on_failure.setter
     def on_failure(self, value):
         self._on_failure = value
-
-    @abc.abstractmethod
-    def run(self):
-        pass
 
     def build(self, force=False):
         """Run the task if needed by checking its dependencies
@@ -357,23 +361,16 @@ class Task(abc.ABC):
 
         params = copy(self.params)
 
-        # most parameters are required, if upstream is not used, it should not
-        # have any dependencies, if any param is not used, it should not
-        # exist, the product should exist only for specific cases
-        opt = set(('product',)) if not self.PRODUCT_IN_CODE else set()
         try:
-            # if this task has upstream dependencies, render using the
-            # context manager, which will raise a warning if any of the
-            # dependencies is not used, otherwise just render, also
-            # check if the code is a TemplatedPlaceholder, for other
-            # types of code objects we cannot determine parameter
-            # use at render time
-            if (params.get('upstream')
-                    and isinstance(self.source, TemplatedPlaceholder)):
-                with params.get('upstream'):
-                    self.source.render(params, optional=opt)
-            else:
-                self.source.render(params, optional=opt)
+            if self.source.needs_render:
+                # if this task has upstream dependencies, render using the
+                # context manager, which will raise a warning if any of the
+                # dependencies is not used, otherwise just render
+                if params.get('upstream'):
+                    with params.get('upstream'):
+                        self.source.render(params)
+                else:
+                    self.source.render(params)
         except Exception as e:
             raise type(e)('Error rendering code from Task "{}", '
                           ' check the full traceback above for details'
@@ -429,7 +426,7 @@ class Task(abc.ABC):
                                  .differ
                                  .get_diff(p.stored_source_code,
                                            self.source_code,
-                                           language=self.language))
+                                           language=self.source.language))
         else:
             outd_code = ''
 

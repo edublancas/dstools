@@ -136,9 +136,9 @@ def test_overloaded_operators():
     fb = Path('b.txt')
     fc = Path('c.txt')
 
-    ta = BashCommand('touch a.txt', File(fa), dag, 'ta')
-    tb = BashCommand('touch b.txt', File(fb), dag, 'tb')
-    tc = BashCommand('touch c.txt', File(fc), dag, 'tc')
+    ta = BashCommand('touch {{product}}', File(fa), dag, 'ta')
+    tb = BashCommand('touch {{product}}', File(fb), dag, 'tb')
+    tc = BashCommand('touch {{product}}', File(fc), dag, 'tc')
 
     ta >> tb >> tc
 
@@ -154,9 +154,9 @@ def test_adding_tasks():
     fb = Path('b.txt')
     fc = Path('c.txt')
 
-    ta = BashCommand('touch a.txt', File(fa), dag, 'ta')
-    tb = BashCommand('touch b.txt', File(fb), dag, 'tb')
-    tc = BashCommand('touch c.txt', File(fc), dag, 'tc')
+    ta = BashCommand('touch {{product}}', File(fa), dag, 'ta')
+    tb = BashCommand('touch {{product}}', File(fb), dag, 'tb')
+    tc = BashCommand('touch {{product}}', File(fc), dag, 'tc')
 
     assert list((ta + tb).tasks) == [ta, tb]
     assert list((tb + ta).tasks) == [tb, ta]
@@ -172,9 +172,9 @@ def test_adding_tasks_left():
     fb = Path('b.txt')
     fc = Path('c.txt')
 
-    ta = BashCommand('touch a.txt', File(fa), dag, 'ta')
-    tb = BashCommand('touch b.txt', File(fb), dag, 'tb')
-    tc = BashCommand('touch c.txt', File(fc), dag, 'tc')
+    ta = BashCommand('touch {{product}}', File(fa), dag, 'ta')
+    tb = BashCommand('touch {{product}}', File(fb), dag, 'tb')
+    tc = BashCommand('touch {{product}}', File(fc), dag, 'tc')
 
     (ta + tb) >> tc
 
@@ -190,9 +190,9 @@ def test_adding_tasks_right():
     fb = Path('b.txt')
     fc = Path('c.txt')
 
-    ta = BashCommand('touch a.txt', File(fa), dag, 'ta')
-    tb = BashCommand('touch b.txt', File(fb), dag, 'tb')
-    tc = BashCommand('touch c.txt', File(fc), dag, 'tc')
+    ta = BashCommand('touch {{product}}', File(fa), dag, 'ta')
+    tb = BashCommand('touch {{product}}', File(fb), dag, 'tb')
+    tc = BashCommand('touch {{product}}', File(fc), dag, 'tc')
 
     ta >> (tb + tc)
 

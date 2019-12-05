@@ -9,14 +9,14 @@ import jinja2
 from jinja2 import Environment, meta, Template, UndefinedError
 
 
-class StrictTemplate:
+class Placeholder:
     """
     A jinja2 Template-like object that adds the following features:
 
         * template.raw - Returns the raw template used for initialization
         * template.location - Returns a path to the Template object if available
         * strict - will not render if missing or extra parameters
-        * docstring parsing
+        * It also keeps the rendered value for later access
 
     Note that this does not implement the full jinja2.Template API
     """
@@ -24,22 +24,23 @@ class StrictTemplate:
     def __init__(self, source):
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
+
         if isinstance(source, Path):
             self._path = source
             self._raw = source.read_text()
-            self._source = Template(self._raw,
-                                    undefined=jinja2.StrictUndefined)
+            self._template = Template(self._raw,
+                                      undefined=jinja2.StrictUndefined)
         elif isinstance(source, str):
             self._path = None
             self._raw = source
-            self._source = Template(self._raw,
-                                    undefined=jinja2.StrictUndefined)
+            self._template = Template(self._raw,
+                                      undefined=jinja2.StrictUndefined)
 
         elif isinstance(source, Template):
             path = Path(source.filename)
 
             if source.environment.undefined != jinja2.StrictUndefined:
-                raise ValueError('StrictTemplate can only be initialized '
+                raise ValueError('Placeholder can only be initialized '
                                  'from jinja2.Templates whose undefined '
                                  'parameter is set to '
                                  'jinja2.StrictUndefined, set it explicitely '
@@ -59,39 +60,42 @@ class StrictTemplate:
 
             self._path = path
             self._raw = path.read_text()
-            self._source = source
-        elif isinstance(source, StrictTemplate):
+            self._template = source
+        elif isinstance(source, Placeholder):
             self._path = source.path
             self._raw = source.raw
-            self._source = source.source
+            self._template = source.template
         else:
             raise TypeError('{} must be initialized with a Template, '
-                            'StrictTemplate, pathlib.Path or str, '
+                            'Placeholder, pathlib.Path or str, '
                             'got {} instead'
                             .format(type(self).__name__,
                                     type(source).__name__))
 
         self.declared = self._get_declared()
 
-        self.is_literal = self._check_is_literal()
+        self.needs_render = self._needs_render()
+
+        self._value = None if self.needs_render else self.raw
 
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
-        self._doc = self._parse_docstring()
 
     @property
-    def doc(self):
-        return self._doc
+    def value(self):
+        if self._value is None:
+            raise RuntimeError('Tried to read {} {} without '
+                               'rendering first'
+                               .format(type(self).__name__,
+                                       repr(self)))
+
+        return self._value
 
     @property
-    def doc_short(self):
-        return self.doc.split('\n')[0]
-
-    @property
-    def source(self):
+    def template(self):
         """jinja2.Template object
         """
-        return self._source
+        return self._template
 
     @property
     def raw(self):
@@ -110,31 +114,27 @@ class StrictTemplate:
         """
         return self._path
 
-    def _parse_docstring(self):
-        """Finds the docstring at the beginning of the source
-        """
-        # [any whitespace] /* [capture] */ [any string]
-        regex = r'^\s*\/\*([\w\W]+)\*\/[\w\W]*'
-        match = re.match(regex, self.raw)
-        return '' if match is None else match.group(1)
-
-    def _check_is_literal(self):
+    def _needs_render(self):
         """
         Returns true if the template is a literal and does not need any
         parameters to render
         """
-        env = self.source.environment
+        env = self.template.environment
 
         # check if the template has the variable or block start string
         # is there any better way of checking this?
-        return ((env.variable_start_string not in self.raw)
-                and env.block_start_string not in self.raw)
+        needs_variables = (env.variable_start_string in self.raw
+                           and env.variable_end_string in self.raw)
+        needs_blocks = (env.block_start_string in self.raw
+                        and env.block_end_string in self.raw)
+
+        return needs_variables or needs_blocks
 
     def __str__(self):
-        return self.raw
+        return self.value
 
     def __repr__(self):
-        return '{}("{}")'.format(type(self).__name__, str(self))
+        return '{}("{}")'.format(type(self).__name__, self.safe)
 
     def _get_declared(self):
         if self.raw is None:
@@ -184,7 +184,8 @@ class StrictTemplate:
                               .format(repr(self), extra, self.declared))
 
         try:
-            return self.source.render(**params)
+            self._value = self.template.render(**params)
+            return self.value
         except UndefinedError as e:
             raise RenderError('in {}, jinja2 raised an UndefinedError, this '
                               'means the template is using an attribute '
@@ -195,6 +196,13 @@ class StrictTemplate:
                               '/templates/#variables'
                               .format(repr(self))) from e
 
+    @property
+    def safe(self):
+        if self._value is None:
+            return self.raw
+        else:
+            return self._value
+
     # __getstate__ and __setstate__ are needed to make this picklable
 
     def __getstate__(self):
@@ -202,12 +210,105 @@ class StrictTemplate:
         # _logger and _source are not pickable, so we remove them and build
         # them again in __setstate__
         del state['_logger']
-        del state['_source']
+        del state['_template']
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
-        self._source = Template(self._raw,
-                                undefined=jinja2.StrictUndefined)
+        self._template = Template(self.raw,
+                                  undefined=jinja2.StrictUndefined)
+
+
+class SQLRelationPlaceholder:
+    """
+    An identifier that represents a database relation (table or view), used
+    internally by SQLiteRelation (Product). Not meant to be used directly
+    by users.
+    """
+
+    def __init__(self, source):
+        if len(source) != 3:
+            raise ValueError('{} must be initialized with 3 elements, '
+                             'got: {}'
+                             .format(type(self).__name__, len(source)))
+
+        schema, name, kind = source
+
+        if schema is None:
+            # raise ValueError('schema cannot be None')
+            schema = ''
+
+        if name is None:
+            raise ValueError('name cannot be None')
+
+        if kind not in ('view', 'table'):
+            raise ValueError('kind must be one of ["view", "table"] '
+                             'got "{}"'.format(kind))
+
+        # ignore double quotes (will be added if needed)
+        if schema:
+            schema = schema.replace('"', '')
+
+        name = name.replace('"', '')
+
+        self._schema = schema
+        self._name_template = Placeholder(name)
+        self._kind = kind
+
+        # if source is literal, rendering without params should work, this
+        # allows this template to be used without having to render the dag
+        # first
+        if not self._name_template.needs_render:
+            self._name_template.render({})
+
+    @property
+    def schema(self):
+        return self._schema
+
+    @property
+    def name(self):
+        return self._name_template.value
+
+    @property
+    def kind(self):
+        return self._kind
+
+    # FIXME: THIS SHOULD ONLY BE HERE IF POSTGRES
+
+    def _validate_name(self, name):
+        if len(name) > 63:
+            url = ('https://www.postgresql.org/docs/current/'
+                   'sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS')
+            raise ValueError(f'"{name}" exceeds maximum length of 63 '
+                             f' (length is {len(name)}), '
+                             f'see: {url}')
+
+    def render(self, params, **kwargs):
+        name = self._name_template.render(params, **kwargs)
+        self._validate_name(name)
+        return self
+
+    def __str__(self):
+        if self.schema is not None:
+            return '"{}"."{}"'.format(self.schema, self.name)
+        else:
+            return '"{}"'.format(self.name)
+
+    def __repr__(self):
+        return ('SQLRelationPlaceholder("{}"."{}")'
+                .format(self.schema, self._name_template.raw, self.kind))
+
+    @property
+    def safe(self):
+        return '"{}"."{}"'.format(self.schema, self._name_template.raw,
+                                  self.kind)
+
+    def __eq__(self, other):
+        return (self.schema == other.schema
+                and self.name == other.name
+                and self.kind == other.kind)
+
+    def __hash__(self):
+        return hash((self.schema, self.name, self.kind))

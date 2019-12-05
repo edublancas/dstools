@@ -4,19 +4,21 @@ Task implementations
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
+from urllib import request
 from multiprocessing import Pool
 import shlex
 import subprocess
 from subprocess import CalledProcessError
 import logging
+from dstools.exceptions import SourceInitializationError
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import PythonCodePlaceholder
+from dstools.pipeline.sources import (PythonCallableSource,
+                                      GenericSource)
 
 
 class BashCommand(Task):
     """A task that runs an inline bash command
     """
-
     def __init__(self, source, product, dag, name=None, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
@@ -26,6 +28,18 @@ class BashCommand(Task):
         self.split_source_code = split_source_code
         self.subprocess_run_kwargs = subprocess_run_kwargs
         self._logger = logging.getLogger(__name__)
+
+    def _init_source(self, source):
+        source = GenericSource(str(source))
+
+        if not source.needs_render:
+            raise SourceInitializationError('The source for this task "{}"'
+                                            ' must be a template since the '
+                                            ' product will be passed as '
+                                            ' parameter'
+                                            .format(source.value.raw))
+
+        return source
 
     def run(self):
         source_code = (shlex.split(self.source_code) if self.split_source_code
@@ -44,18 +58,17 @@ class BashCommand(Task):
             self._logger.info(f'Finished running {self}. stdout: {res.stdout},'
                               f' stderr: {res.stderr}')
 
-    @property
-    def language(self):
-        return 'bash'
-
 
 class PythonCallable(Task):
     """A task that runs a Python callable (i.e.  a function)
     """
-    SOURCECLASS = PythonCodePlaceholder
+    SOURCECLASS = PythonCallableSource
 
     def __init__(self, source, product, dag, name=None, params=None):
         super().__init__(source, product, dag, name, params)
+
+    def _init_source(self, source):
+        return PythonCallableSource(source)
 
     def run(self):
         if self.dag._Executor.TASKS_CAN_CREATE_CHILD_PROCESSES:
@@ -77,10 +90,6 @@ class PythonCallable(Task):
         else:
             self.source._source(**self.params)
 
-    @property
-    def language(self):
-        return 'python'
-
 
 class ShellScript(Task):
     """A task to run a shell script
@@ -95,9 +104,24 @@ class ShellScript(Task):
             raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
+    def _init_source(self, source):
+        source = GenericSource(str(source))
+
+        if not source.needs_render:
+            raise SourceInitializationError('The source for this task '
+                                            'must be a template since the '
+                                            'product will be passed as '
+                                            'parameter')
+
+        return source
+
     def run(self):
         self.client.execute(str(self.source))
 
-    @property
-    def language(self):
-        return 'bash'
+
+class DownloadFromURL(Task):
+    def run(self):
+        request.urlretrieve(str(self.source), filename=str(self.product))
+
+    def _init_source(self, source):
+        return GenericSource(str(source))

@@ -1,33 +1,24 @@
-import warnings
 from pathlib import Path
 from io import StringIO
 
-from dstools.sql import infer
+from dstools.exceptions import SourceInitializationError
 from dstools.pipeline.tasks.Task import Task
-from dstools.pipeline.placeholders import (ClientCodePlaceholder,
-                                           StringPlaceholder)
+from dstools.pipeline.sources import (SQLScriptSource,
+                                      SQLQuerySource,
+                                      GenericSource)
 from dstools.pipeline.products import File, PostgresRelation, SQLiteRelation
 from dstools.pipeline import io
 
 import pandas as pd
 
 
-class SQLInputTask(Task):
-    """Tasks whose code is SQL code
-    """
-
-    @property
-    def language(self):
-        return 'sql'
-
-
-class SQLScript(SQLInputTask):
+class SQLScript(Task):
     """
     A tasks represented by a SQL script run agains a database this Task
     does not make any assumptions about the underlying SQL engine, it should
     work witn all DBs supported by SQLAlchemy
     """
-    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation, File)
+    PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None):
@@ -40,43 +31,14 @@ class SQLScript(SQLInputTask):
             raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
 
-    def _validate(self):
-        infered_relations = infer.created_relations(self.source_code)
-
-        if not infered_relations:
-            warnings.warn('It seems like your task "{task}" will not create '
-                          'any tables or views but the task has product '
-                          '"{product}"'
-                          .format(task=self.name,
-                                  product=self.product))
-        # FIXME: check when product is metaproduct
-        elif len(infered_relations) > 1:
-            warnings.warn('It seems like your task "{task}" will create '
-                          'more than one table or view but you only declared '
-                          ' one product: "{self.product}"'
-                          .format(sk=self.name,
-                                  product=self.product))
-        else:
-            schema, name, kind = infered_relations[0]
-            id_ = self.product._identifier
-
-            if ((schema != id_.schema) or (name != id_.name)
-                    or (kind != id_.kind)):
-                warnings.warn('It seems like your task "{task}" create '
-                              'a {kind} "{schema}.{name}" but your product '
-                              'did not match: "{product}"'
-                              .format(task=self.name, kind=kind, schema=schema,
-                                      name=name, product=self.product))
-
     def run(self):
-        if (isinstance(self.product, PostgresRelation)
-                or isinstance(self.product, SQLiteRelation)):
-            self._validate()
-
         return self.client.execute(self.source_code)
 
+    def _init_source(self, source):
+        return SQLScriptSource(source)
 
-class SQLDump(SQLInputTask):
+
+class SQLDump(Task):
     """
     Dumps data from a SQL SELECT statement to parquet files (one per chunk)
 
@@ -103,9 +65,7 @@ class SQLDump(SQLInputTask):
     can greatly speed up the dump for some databases when the driver uses
     cursors.arraysize as the number of rows to fetch on a single call
     """
-    SOURCECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None,
@@ -120,6 +80,9 @@ class SQLDump(SQLInputTask):
         if self.client is None:
             raise ValueError('{} must be initialized with a client'
                              .format(type(self).__name__))
+
+    def _init_source(self, source):
+        return SQLQuerySource(source)
 
     def run(self):
         source_code = str(self.source)
@@ -161,12 +124,10 @@ class SQLDump(SQLInputTask):
 # rows over the network
 
 
-class SQLTransfer(SQLInputTask):
+class SQLTransfer(Task):
     """Transfers data from a SQL statement to a SQL relation
     """
-    SOURCECLASS = ClientCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None, chunksize=10000):
@@ -180,6 +141,9 @@ class SQLTransfer(SQLInputTask):
                              .format(type(self).__name__))
 
         self.chunksize = chunksize
+
+    def _init_source(self, source):
+        return SQLQuerySource(source)
 
     def run(self):
         source_code = str(self.source)
@@ -208,9 +172,7 @@ class SQLUpload(Task):
     source: str or pathlib.Path
         Path to parquet file to upload
     """
-    SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None):
@@ -222,6 +184,16 @@ class SQLUpload(Task):
         if self.client is None:
             raise ValueError('{} must be initialized with a connection'
                              .format(type(self).__name__))
+
+    def _init_source(self, source):
+        source = GenericSource(str(source))
+
+        if source.needs_render:
+            raise SourceInitializationError('{} does not support templates as '
+                                            'source, pass a path to a file',
+                                            self.__class__)
+
+        return source
 
     def run(self):
         product = self.params['product']
@@ -246,9 +218,7 @@ class PostgresCopy(Task):
     source: str or pathlib.Path
         Path to parquet file to upload
     """
-    SOURCECLASS = StringPlaceholder
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, client=None,
                  params=None, sep='\t', null='\\N', columns=None):
@@ -264,6 +234,16 @@ class PostgresCopy(Task):
         self.sep = sep
         self.null = null
         self.columns = columns
+
+    def _init_source(self, source):
+        source = GenericSource(str(source))
+
+        if source.needs_render:
+            raise SourceInitializationError('{} does not support templates as '
+                                            'source, pass a path to a file',
+                                            self.__class__)
+
+        return source
 
     def run(self):
         product = self.params['product']

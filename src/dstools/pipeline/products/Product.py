@@ -34,10 +34,13 @@ class Product(abc.ABC):
     A product is a persistent triggered by a Task, this is an abstract
     class for all products
     """
-    IDENTIFIERCLASS = None
-
     def __init__(self, identifier):
-        self._identifier = self.IDENTIFIERCLASS(identifier)
+        self._identifier = self._init_identifier(identifier)
+
+        if self._identifier is None:
+            raise TypeError('_init_identifier must return a value, returned '
+                            'None')
+
         self.did_download_metadata = False
         self.task = None
         self.logger = logging.getLogger('{}.{}'.format(__name__,
@@ -116,7 +119,7 @@ class Product(abc.ABC):
         dag = self.task.dag
         return dag.differ.code_is_different(self.stored_source_code,
                                             self.task.source_code,
-                                            language=self.task.language)
+                                            language=self.task.source.language)
 
     def _get_metadata(self):
         """
@@ -144,7 +147,7 @@ class Product(abc.ABC):
         return str(self._identifier)
 
     def __repr__(self):
-        return f'{type(self).__name__}({repr(self._identifier)})'
+        return f'{type(self).__name__}({repr(self._identifier.safe)})'
 
     def _short_repr(self):
         s = str(self._identifier)
@@ -176,6 +179,10 @@ class Product(abc.ABC):
                                                        type(self).__name__))
 
     # Subclasses must implement the following methods
+
+    @abc.abstractmethod
+    def _init_identifier(self, identifier):
+        pass
 
     @abc.abstractmethod
     def fetch_metadata(self):
@@ -217,3 +224,8 @@ class Product(abc.ABC):
         # NOTE: this is used in tasks where only JSON serializable parameters
         # are supported such as NotebookRunner that depends on papermill
         return str(self)
+
+    def __len__(self):
+        # MetaProduct return the number of products, this is a single Product
+        # hence the 1
+        return 1

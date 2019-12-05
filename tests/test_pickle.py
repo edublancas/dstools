@@ -7,8 +7,8 @@ import pickle
 from dstools.pipeline import DAG
 from dstools.pipeline.tasks import PythonCallable, BashCommand
 from dstools.pipeline.products import File, PostgresRelation
-from dstools.pipeline.placeholders import StringPlaceholder, ClientCodePlaceholder
-from dstools.templates.StrictTemplate import StrictTemplate
+from dstools.pipeline.sources import SQLScriptSource
+from dstools.templates.Placeholder import Placeholder
 
 
 def fn():
@@ -18,7 +18,7 @@ def fn():
 def test_can_pickle_dag():
     dag = DAG()
 
-    t = BashCommand('echo "hi"', File('/tmp/file.txt'), dag)
+    t = BashCommand('cat "hi" > {{product}}', File('/tmp/file.txt'), dag)
 
     t2 = PythonCallable(fn, File('/tmp/file2.txt'), dag)
 
@@ -37,11 +37,6 @@ def test_file_is_pickable():
     pickle.loads(pickle.dumps(f))
 
 
-def test_string_placeholder_is_picklable():
-    p = StringPlaceholder('{{hi}}')
+def test_placeholder_is_picklable():
+    p = Placeholder('{{hi}}')
     pickle.loads(pickle.dumps(p))
-
-
-def test_strict_template_is_pickable():
-    t = StrictTemplate('{{hi}}')
-    pickle.loads(pickle.dumps(t))

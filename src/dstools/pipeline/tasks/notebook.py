@@ -28,8 +28,8 @@ except ImportError:
     kernelspec = None
 
 
-from dstools.exceptions import TaskBuildError
-from dstools.pipeline.placeholders import LiteralCodePlaceholder
+from dstools.exceptions import TaskBuildError, SourceInitializationError
+from dstools.pipeline.sources import GenericSource
 from dstools.pipeline.products import File, MetaProduct
 from dstools.pipeline.tasks.Task import Task
 
@@ -91,9 +91,7 @@ def _from_ipynb(path_to_nb, extension, nbconvert_exporter_name):
 class NotebookRunner(Task):
     """Run a notebook using papermill
     """
-    SOURCECLASS = LiteralCodePlaceholder
     PRODUCT_CLASSES_ALLOWED = (File, )
-    PRODUCT_IN_CODE = False
 
     def __init__(self, source, product, dag, name=None, params=None,
                  papermill_params=None, kernelspec_name=None,
@@ -112,6 +110,16 @@ class NotebookRunner(Task):
                            'is None, pass a value to locate the notebook '
                            'save location')
 
+    def _init_source(self, source):
+        source = GenericSource(source)
+
+        if source.needs_render:
+            raise SourceInitializationError('The source for this task "{}"'
+                                            ' must be a literal '
+                                            .format(source.value.raw))
+
+        return source
+
     def run(self):
         if isinstance(self.product, MetaProduct):
             path_to_out = str(self.product[self.nb_product_key])
@@ -120,14 +128,14 @@ class NotebookRunner(Task):
 
         source = str(self.source)
 
-        if self.source.path is None:
+        if self.source.loc is None:
             if self.ext_in is None:
                 raise ValueError('If the source was loaded from a string '
                                  'you need to pass the ext_in parameter')
 
             ext_in = '.'+self.ext_in
         else:
-            ext_in = Path(self.source.path).suffix
+            ext_in = Path(self.source.loc).suffix
 
         ext_out = Path(path_to_out).suffix
 

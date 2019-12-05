@@ -191,9 +191,9 @@ def test_on_finish(tmp_directory):
 def test_lineage():
     dag = DAG('dag')
 
-    ta = BashCommand('touch a.txt', File(Path('a.txt')), dag, 'ta')
-    tb = BashCommand('touch b.txt', File(Path('b.txt')), dag, 'tb')
-    tc = BashCommand('touch c.txt', File(Path('c.txt')), dag, 'tc')
+    ta = BashCommand('touch {{product}}', File(Path('a.txt')), dag, 'ta')
+    tb = BashCommand('touch {{product}}', File(Path('b.txt')), dag, 'tb')
+    tc = BashCommand('touch {{product}}', File(Path('c.txt')), dag, 'tc')
 
     ta >> tb >> tc
 
