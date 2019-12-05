@@ -1,7 +1,7 @@
 from dstools.env import Env
 from dstools.reproducibility.util import make_filename as mkfilename
 
-__version__ = '0.14'
+__version__ = '0.15dev'
 
 # Set default logging handler to avoid "No handler found" warnings.
 import logging
