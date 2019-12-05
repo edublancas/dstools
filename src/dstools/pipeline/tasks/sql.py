@@ -20,7 +20,7 @@ class SQLScript(Task):
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
-    def __init__(self, source, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name, client=None,
                  params=None):
         params = params or {}
         super().__init__(source, product, dag, name, params)
@@ -50,7 +50,7 @@ class SQLDump(Task):
         The directory location for the output parquet files
     dag: DAG
         The DAG for this task
-    name: str, optional
+    name: str
         Name for this task
     params: dict, optional
         Extra parameters for the task
@@ -67,7 +67,7 @@ class SQLDump(Task):
     """
     PRODUCT_CLASSES_ALLOWED = (File, )
 
-    def __init__(self, source, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name, client=None,
                  params=None,
                  chunksize=10000, io_handler=None):
         params = params or {}
@@ -129,7 +129,7 @@ class SQLTransfer(Task):
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
-    def __init__(self, source, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name, client=None,
                  params=None, chunksize=10000):
         params = params or {}
         super().__init__(source, product, dag, name, params)
@@ -174,7 +174,7 @@ class SQLUpload(Task):
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation, SQLiteRelation)
 
-    def __init__(self, source, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name, client=None,
                  params=None):
         params = params or {}
         super().__init__(source, product, dag, name, params)
@@ -220,7 +220,7 @@ class PostgresCopy(Task):
     """
     PRODUCT_CLASSES_ALLOWED = (PostgresRelation,)
 
-    def __init__(self, source, product, dag, name=None, client=None,
+    def __init__(self, source, product, dag, name, client=None,
                  params=None, sep='\t', null='\\N', columns=None):
         params = params or {}
         super().__init__(source, product, dag, name, params)

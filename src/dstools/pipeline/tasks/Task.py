@@ -61,7 +61,7 @@ class Task(abc.ABC):
     def _init_source(self, source):
         pass
 
-    def __init__(self, source, product, dag, name=None, params=None):
+    def __init__(self, source, product, dag, name, params=None):
         """
         All subclasses must implement the same constuctor to keep the API
         consistent, optional parameters after "params" are ok
@@ -85,18 +85,22 @@ class Task(abc.ABC):
             Extra parameters passed to the task on rendering (if templated
             source) or during execution (if not templated source)
         """
-        self._upstream = Upstream()
         self._params = params or {}
-
-        self.build_report = None
-
+        self._name = name
         self._source = self._init_source(source)
+
+        if dag is None:
+            raise TypeError('DAG cannot be None')
+
+        self.dag = dag
+        dag._add_task(self)
 
         if self._source is None:
             raise TypeError('_init_source must return a value, got None')
 
         if not isinstance(self._source, Source):
             raise TypeError('_init_source must return a subclass of Source')
+
 
         if isinstance(product, Product):
             self._product = product
@@ -121,38 +125,15 @@ class Task(abc.ABC):
                                             self.PRODUCT_CLASSES_ALLOWED,
                                             type(self._product).__name__))
 
-        # if passed a name, just use it
-        if name is not None:
-            self._name = name
-        # otherwise, try to infer it from the product
-        else:
-            # temporary assign a Name, since repr depends on it and will
-            # be needed if render fails
-            self._name = None
-
-            # at this point the product has not been rendered but we can do
-            # so if it only depends on params and not on upstream, try it
-            try:
-                self._render_product()
-            except RenderError:
-                raise RenderError('name can only be None if the Product '
-                                  'does not depend on upstream parameters, '
-                                  'in which case, the Task gets assigned '
-                                  'the same name as the Product')
-            else:
-                self._name = self.product.name
-
+    
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
 
         self.product.task = self
-
-        dag._add_task(self)
-        self.dag = dag
         self.client = None
 
         self._status = TaskStatus.WaitingRender
-
+        self.build_report = None
         self._on_finish = None
         self._on_failure = None
 
@@ -172,6 +153,13 @@ class Task(abc.ABC):
         return self._source
 
     @property
+    def product(self):
+        """The product this task will create upon execution
+        """
+        return self._product
+
+
+    @property
     def source_code(self):
         """
         A str with the source for that this task will run on execution, if
@@ -180,18 +168,15 @@ class Task(abc.ABC):
         return str(self.source)
 
     @property
-    def product(self):
-        """The product this task will create upon execution
-        """
-        return self._product
-
-    @property
     def upstream(self):
         """{task names} -> [task objects] mapping for upstream dependencies
         """
-        # always return a copy to prevent global state if contents
+        # this is jus syntactic sugar, upstream relations are tracked by the
+        # DAG object
+
+        # this always return a copy to prevent global state if contents
         # are modified (e.g. by using pop)
-        return copy(self._upstream)
+        return self.dag._get_upstream(self.name)
 
     @property
     def params(self):
@@ -380,11 +365,7 @@ class Task(abc.ABC):
                         else TaskStatus.WaitingUpstream)
 
     def set_upstream(self, other):
-        if isiterable(other) and not isinstance(other, DAG):
-            for o in other:
-                self._upstream[o.name] = o
-        else:
-            self._upstream[other.name] = other
+        self.dag._add_edge(other, self)
 
     def plan(self):
         """Shows a text summary of what this task will execute

@@ -7,7 +7,7 @@ class TaskFactory:
         self.product_class = product_class
         self.dag = dag
 
-    def make(self, task_arg, product_arg, name=None, params=None):
+    def make(self, task_arg, product_arg, name, params=None):
         product = self.product_class(product_arg)
         return self.task_class(task_arg,
                                product=product,

@@ -68,15 +68,15 @@ tmp_dir = Path(tempfile.mkdtemp())
 # this functions will create a file in the local filesystem
 red_task = PythonCallable(get_red_wine_data,
                           product=File(tmp_dir / 'red.csv'),
-                          dag=dag)
+                          dag=dag, name='red')
 
 white_task = PythonCallable(get_white_wine_data,
                             product=File(tmp_dir / 'white.csv'),
-                           dag=dag)
+                           dag=dag, name='white')
 
 concat_task = PythonCallable(concat_data,
                             product=File(tmp_dir / 'all.csv'),
-                            dag=dag)
+                            dag=dag, name='all')
 
 # now we declare how our tasks relate to each other
 red_task >> concat_task

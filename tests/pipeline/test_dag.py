@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLDump
+from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLDump, Null
 from dstools.pipeline.products import File
 
 
@@ -29,7 +29,7 @@ def test_warn_on_python_missing_docstrings():
         pass
 
     dag = DAG()
-    PythonCallable(fn1, File('file1.txt'), dag)
+    PythonCallable(fn1, File('file1.txt'), dag, name='fn1')
 
     with pytest.warns(UserWarning):
         dag.diagnose()
@@ -42,7 +42,7 @@ def test_does_not_warn_on_python_docstrings():
         pass
 
     dag = DAG()
-    PythonCallable(fn1, File('file1.txt'), dag)
+    PythonCallable(fn1, File('file1.txt'), dag, name='fn1')
 
     with pytest.warns(None) as warn:
         dag.diagnose()
@@ -54,7 +54,7 @@ def test_warn_on_sql_missing_docstrings():
     dag = DAG()
 
     sql = 'SELECT * FROM table'
-    SQLDump(sql, File('file1.txt'), dag, client=Mock())
+    SQLDump(sql, File('file1.txt'), dag, client=Mock(), name='sql')
 
     with pytest.warns(UserWarning):
         dag.diagnose()
@@ -64,12 +64,44 @@ def test_does_not_warn_on_sql_docstrings():
     dag = DAG()
 
     sql = '/* get data from table */\nSELECT * FROM table'
-    SQLDump(sql, File('file1.txt'), dag, client=Mock())
+    SQLDump(sql, File('file1.txt'), dag, client=Mock(), name='sql')
 
     with pytest.warns(None) as warn:
         dag.diagnose()
 
     assert not warn
+
+
+def test_can_use_null_task(tmp_directory):
+    dag = DAG('dag')
+
+    Path('a.txt').write_text('hello')
+
+    ta = Null(File('a.txt'), dag, 'ta')
+    tb = BashCommand('cat {{upstream["ta"]}} > {{product}}', File('b.txt'),
+                     dag, 'tb')
+
+    ta >> tb
+
+    dag.build()
+
+    assert Path('b.txt').read_text() == 'hello'
+
+
+def test_can_get_upstream_tasks():
+    dag = DAG('dag')
+
+    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag, 'ta')
+    tb = BashCommand('cat {{upstream["ta"]}} > {{product}}',
+                     File('b.txt'), dag, 'tb')
+    tc = BashCommand('cat {{upstream["tb"]}} > {{product}}',
+                     File('c.txt'), dag, 'tc')
+
+    ta >> tb >> tc
+
+    assert set(ta.upstream) == set()
+    assert set(tb.upstream) == {'ta'}
+    assert set(tc.upstream) == {'tb'}
 
 
 def test_can_access_sub_dag():
@@ -101,14 +133,15 @@ def test_can_access_tasks_inside_dag_using_getitem():
     tb = BashCommand('touch {{product}}', File(Path('b.txt')), dag, 'tb')
     tc = BashCommand('touch {{product}}', File(Path('c.txt')), dag, 'tc')
 
-    # td is not in the same dag, which is ok, but it still should be
-    # discoverable
+    # td is still discoverable from dag even though it was declared in dag2,
+    # since it is a dependency for a task in dag
     td = BashCommand('touch {{product}}', File(Path('c.txt')), dag2, 'td')
+    # te is not discoverable since it is not a dependency for any task in dag
     te = BashCommand('touch {{product}}', File(Path('e.txt')), dag2, 'te')
 
     td >> ta >> tb >> tc >> te
 
-    assert set(dag) == {'ta', 'tb', 'tc'}
+    assert set(dag) == {'ta', 'tb', 'tc', 'td'}
 
 
 def test_partial_build(tmp_directory):

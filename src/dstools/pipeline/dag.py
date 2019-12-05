@@ -43,6 +43,7 @@ from dstools.pipeline.util import image_bytes2html
 from dstools.pipeline.CodeDiffer import CodeDiffer
 from dstools.pipeline import resources
 from dstools.pipeline import executors
+from dstools.util import isiterable
 
 
 class HighlightRenderer(mistune.Renderer):
@@ -72,13 +73,11 @@ class DAG(collections.abc.Mapping):
         to output a diff, defaults to CodeDiffer() (default parameters)
 
     """
-    # TODO: use the networkx.DiGraph struecture directly to avoid having to
-    # re-build the graph every time
-
     def __init__(self, name=None, clients=None, differ=None,
                  on_task_finish=None, on_task_failure=None,
                  executor=executors.Serial):
-        self._dict = {}
+        self._G = nx.DiGraph()
+
         self.name = name or 'No name'
         self.differ = differ or CodeDiffer()
         self._logger = logging.getLogger(__name__)
@@ -102,7 +101,9 @@ class DAG(collections.abc.Mapping):
     def pop(self, name):
         """Remove a task from the dag
         """
-        return self._dict.pop(name)
+        t = self._G.nodes[name]['task']
+        self._G.remove_node(name)
+        return t
 
     def render(self, show_progress=True, force=False):
         """Render the graph
@@ -164,8 +165,8 @@ class DAG(collections.abc.Mapping):
         """
         self.render()
 
-        return Table([t.status(**kwargs)
-                      for k, t in self._dict.items()])
+        return Table([self._G.nodes[name]['task'].status(**kwargs)
+                      for name in self._G])
 
     def to_dict(self, include_plot=False):
         """Returns a dict representation of the dag's Tasks,
@@ -176,7 +177,8 @@ class DAG(collections.abc.Mapping):
         include_plot: bool, optional
             If True, the path to a PNG file with the plot in "_plot"
         """
-        d = {name: task.to_dict() for name, task in self._dict.items()}
+        d = {name: self._G.nodes[name]['task'].to_dict()
+             for name in self._G}
 
         if include_plot:
             d['_plot'] = self.plot(open_image=False)
@@ -290,13 +292,13 @@ class DAG(collections.abc.Mapping):
     def _add_task(self, task):
         """Adds a task to the DAG
         """
-        if task.name in self._dict.keys():
+        if task.name in self._G:
             raise ValueError('DAGs cannot have Tasks with repeated names, '
                              'there is a Task with name "{}" '
                              'already'.format(task.name))
 
         if task.name is not None:
-            self._dict[task.name] = task
+            self._G.add_node(task.name, task=task)
         else:
             raise ValueError('Tasks must have a name, got None')
 
@@ -307,6 +309,7 @@ class DAG(collections.abc.Mapping):
         this object might include tasks that are not included in the current
         object
         """
+        # NOTE: delete this, use existing DiGraph object
         G = nx.DiGraph()
 
         for task in self.values():
@@ -320,17 +323,46 @@ class DAG(collections.abc.Mapping):
 
         return G
 
+    def _add_edge(self, task_from, task_to):
+        """Add an edge between two tasks
+        """
+        if isiterable(task_from) and not isinstance(task_from, DAG):
+            # if iterable, add all components as separate upstream tasks
+            for a_task_from in task_from:
+
+                # this happens when the task was originally declared in
+                # another dag...
+                if a_task_from.name not in self._G:
+                    self._G.add_node(a_task_from.name, task=a_task_from)
+
+                self._G.add_edge(a_task_from.name, task_to.name)
+
+        else:
+            # this happens when the task was originally declared in
+            # another dag...
+            if task_from.name not in self._G:
+                self._G.add_node(task_from.name, task=task_from)
+
+            # DAGs are treated like a single task
+            self._G.add_edge(task_from.name, task_to.name)
+
+    def _get_upstream(self, task_name):
+        """Get upstream tasks given a task name (returns Task objects)
+        """
+        upstream = self._G.predecessors(task_name)
+        return {u: self._G.nodes[u]['task'] for u in upstream}
+
     def __getitem__(self, key):
-        return self._dict[key]
+        return self._G.nodes[key]['task']
 
     def __iter__(self):
         # TODO: raise a warning if this any of this dag tasks have tasks
         # from other tasks as dependencies (they won't show up here)
-        for name in self._dict.keys():
+        for name in self._G:
             yield name
 
     def __len__(self):
-        return len(self._dict)
+        return len(self._G)
 
     def __repr__(self):
         return '{}("{}")'.format(type(self).__name__, self.name)
