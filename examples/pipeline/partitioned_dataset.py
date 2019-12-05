@@ -29,30 +29,39 @@ def _make(product):
     pq.write_to_dataset(table, str(product), partition_cols=['partition'])
 
 
-def _process(upstream, product):
+def _offset(product):
+    df = pd.DataFrame({'offset': np.ones(1000000)})
+    df.to_parquet(str(product))
+
+
+def _process(upstream, product, upstream_key):
     time.sleep(5)
-    df = pd.read_parquet(str(upstream.first))
+    df = pd.read_parquet(str(upstream[upstream_key]))
+    offset = pd.read_parquet(str(upstream['offset']))
+    df['x'] = df['x'] + offset['offset']
+
     pvalues = df.groupby('group').x.apply(lambda x: stats.normaltest(x)[1])
     pvalues = pd.DataFrame({'pvalue': pvalues})
     pvalues.to_parquet(str(product))
 
 
-def partitioned_execution(upstream,
+def partitioned_execution(upstream_partitioned,
                           downstream_callable,
                           downstream_prefix,
                           downstream_path,
                           partition_ids,
-                          partition_template='partition={{id}}'):
+                          partition_template='partition={{id}}',
+                          upstream_other=None):
     # make sure output is a File
-    assert isinstance(upstream.product, File)
+    assert isinstance(upstream_partitioned.product, File)
 
-    dag = upstream.dag
+    dag = upstream_partitioned.dag
     partition_template_w_suffix = Template(
         downstream_prefix + '_' + partition_template)
     partition_template_t = Template(partition_template)
 
     # instantiate null tasks
-    nulls = [Null(product=File(Path(str(upstream.product),
+    nulls = [Null(product=File(Path(str(upstream_partitioned.product),
                                     partition_template_t.render(id=id_))),
                   dag=dag,
                   name=Template('null_'+partition_template).render(id=id_))
@@ -65,7 +74,11 @@ def partitioned_execution(upstream,
                                                .render(id=id_)))),
                             dag=dag,
                             name=(partition_template_w_suffix
-                                  .render(id=id_)))
+                                  .render(id=id_)),
+                            params={'upstream_key':
+                                    (Template('null_'+partition_template)
+                                     .render(id=id_))}
+                            )
              for id_ in partition_ids]
 
     # gather - task that treats all partitions
@@ -76,18 +89,25 @@ def partitioned_execution(upstream,
     # TODO: "fuse" operator that merges task chains and shows it like a single
     # task
     for null, task in zip(nulls, tasks):
-        upstream >> null >> task >> gather
+        upstream_partitioned >> null >> task >> gather
+
+        if upstream_other:
+            upstream_other >> task
 
 
 make = PythonCallable(_make, File('observations'), dag,
                       name='make_data')
+
+offset = PythonCallable(_offset, File('offset.parquet'), dag,
+                        name='offset')
 
 
 partitioned_execution(make, _process,
                       downstream_prefix='normaltest',
                       downstream_path='results',
                       partition_ids=range(4),
-                      partition_template='partition={{id}}')
+                      partition_template='partition={{id}}',
+                      upstream_other=offset)
 
 Path('results').mkdir(exist_ok=True)
 
