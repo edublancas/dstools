@@ -81,7 +81,7 @@ class DAG(collections.abc.Mapping):
     def __init__(self, name=None, clients=None, differ=None,
                  on_task_finish=None, on_task_failure=None,
                  executor=executors.Serial):
-        self._dict = {}
+        self._G = nx.DiGraph()
         self._upstream = collections.defaultdict(_new_upstream)
 
         self.name = name or 'No name'
@@ -107,7 +107,9 @@ class DAG(collections.abc.Mapping):
     def pop(self, name):
         """Remove a task from the dag
         """
-        return self._dict.pop(name)
+        t = self._G.nodes[name]['task']
+        self._G.remove_node(name)
+        return t
 
     def render(self, show_progress=True, force=False):
         """Render the graph
@@ -169,8 +171,8 @@ class DAG(collections.abc.Mapping):
         """
         self.render()
 
-        return Table([t.status(**kwargs)
-                      for k, t in self._dict.items()])
+        return Table([self._G.nodes[name]['task'].status(**kwargs)
+                      for name in self._G])
 
     def to_dict(self, include_plot=False):
         """Returns a dict representation of the dag's Tasks,
@@ -181,7 +183,8 @@ class DAG(collections.abc.Mapping):
         include_plot: bool, optional
             If True, the path to a PNG file with the plot in "_plot"
         """
-        d = {name: task.to_dict() for name, task in self._dict.items()}
+        d = {name: self._G.nodes[name]['task'].to_dict()
+             for name in self._G}
 
         if include_plot:
             d['_plot'] = self.plot(open_image=False)
@@ -295,13 +298,13 @@ class DAG(collections.abc.Mapping):
     def _add_task(self, task):
         """Adds a task to the DAG
         """
-        if task.name in self._dict.keys():
+        if task.name in self._G:
             raise ValueError('DAGs cannot have Tasks with repeated names, '
                              'there is a Task with name "{}" '
                              'already'.format(task.name))
 
         if task.name is not None:
-            self._dict[task.name] = task
+            self._G.add_node(task.name, task=task) 
         else:
             raise ValueError('Tasks must have a name, got None')
 
@@ -326,16 +329,16 @@ class DAG(collections.abc.Mapping):
         return G
 
     def __getitem__(self, key):
-        return self._dict[key]
+        return self._G.nodes[key]['task']
 
     def __iter__(self):
         # TODO: raise a warning if this any of this dag tasks have tasks
         # from other tasks as dependencies (they won't show up here)
-        for name in self._dict.keys():
+        for name in self._G:
             yield name
 
     def __len__(self):
-        return len(self._dict)
+        return len(self._G)
 
     def __repr__(self):
         return '{}("{}")'.format(type(self).__name__, self.name)
