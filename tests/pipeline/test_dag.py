@@ -29,7 +29,7 @@ def test_warn_on_python_missing_docstrings():
         pass
 
     dag = DAG()
-    PythonCallable(fn1, File('file1.txt'), dag)
+    PythonCallable(fn1, File('file1.txt'), dag, name='fn1')
 
     with pytest.warns(UserWarning):
         dag.diagnose()
@@ -42,7 +42,7 @@ def test_does_not_warn_on_python_docstrings():
         pass
 
     dag = DAG()
-    PythonCallable(fn1, File('file1.txt'), dag)
+    PythonCallable(fn1, File('file1.txt'), dag, name='fn1')
 
     with pytest.warns(None) as warn:
         dag.diagnose()
@@ -54,7 +54,7 @@ def test_warn_on_sql_missing_docstrings():
     dag = DAG()
 
     sql = 'SELECT * FROM table'
-    SQLDump(sql, File('file1.txt'), dag, client=Mock())
+    SQLDump(sql, File('file1.txt'), dag, client=Mock(), name='sql')
 
     with pytest.warns(UserWarning):
         dag.diagnose()
@@ -64,7 +64,7 @@ def test_does_not_warn_on_sql_docstrings():
     dag = DAG()
 
     sql = '/* get data from table */\nSELECT * FROM table'
-    SQLDump(sql, File('file1.txt'), dag, client=Mock())
+    SQLDump(sql, File('file1.txt'), dag, client=Mock(), name='sql')
 
     with pytest.warns(None) as warn:
         dag.diagnose()

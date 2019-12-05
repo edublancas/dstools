@@ -40,7 +40,8 @@ def test_warns_if_sql_scipt_does_not_create_relation():
     t = SQLScript('SELECT * FROM {{product}}',
                   SQLiteRelation((None, 'my_table', 'table')),
                   dag=dag,
-                  client=Mock())
+                  client=Mock(),
+                  name='sql')
 
     match = 'will not create any tables or views but the task has product'
 
@@ -61,7 +62,8 @@ def test_warns_if_number_of_relations_does_not_match_products():
                   [SQLiteRelation((None, 'my_table', 'table')),
                    SQLiteRelation((None, 'another_table', 'table'))],
                   dag=dag,
-                  client=Mock())
+                  client=Mock(),
+                  name='sql')
 
     match = r'.*will create 1 relation\(s\) but you declared 2 product\(s\).*'
 

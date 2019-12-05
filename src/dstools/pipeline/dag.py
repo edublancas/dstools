@@ -61,6 +61,9 @@ class HighlightRenderer(mistune.Renderer):
         formatter = html.HtmlFormatter()
         return highlight(code, lexer, formatter)
 
+def _new_upstream():
+    return {}
+
 
 class DAG(collections.abc.Mapping):
     """A DAG is a collection of tasks with dependencies
@@ -79,6 +82,8 @@ class DAG(collections.abc.Mapping):
                  on_task_finish=None, on_task_failure=None,
                  executor=executors.Serial):
         self._dict = {}
+        self._upstream = collections.defaultdict(_new_upstream)
+
         self.name = name or 'No name'
         self.differ = differ or CodeDiffer()
         self._logger = logging.getLogger(__name__)

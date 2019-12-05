@@ -19,7 +19,7 @@ from dstools.pipeline.sources import (PythonCallableSource,
 class BashCommand(Task):
     """A task that runs an inline bash command
     """
-    def __init__(self, source, product, dag, name=None, params=None,
+    def __init__(self, source, product, dag, name, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
                                         'shell': True},
@@ -64,7 +64,7 @@ class PythonCallable(Task):
     """
     SOURCECLASS = PythonCallableSource
 
-    def __init__(self, source, product, dag, name=None, params=None):
+    def __init__(self, source, product, dag, name, params=None):
         super().__init__(source, product, dag, name, params)
 
     def _init_source(self, source):
@@ -94,7 +94,7 @@ class PythonCallable(Task):
 class ShellScript(Task):
     """A task to run a shell script
     """
-    def __init__(self, source, product, dag, name=None, params=None,
+    def __init__(self, source, product, dag, name, params=None,
                  client=None):
         super().__init__(source, product, dag, name, params)
 

@@ -31,27 +31,31 @@ def on_finish(task):
     Path('file').write_text('hello')
 
 
-def test_task_can_infer_name_from_product():
-    dag = DAG()
-    t = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
-                       params=dict(name='file'))
-    assert t.name == 'file'
+# NOTE: this feature was removed
+# def test_task_can_infer_name_from_product():
+#     dag = DAG()
+#     t = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
+#                        params=dict(name='file'), name='my_fn')
+#     assert t.name == 'file'
 
 
-def test_task_raises_error_if_name_cannot_be_infered():
-    dag = DAG()
+# NOTE: this feature was removed
+# def test_task_raises_error_if_name_cannot_be_infered():
+#     dag = DAG()
 
-    with pytest.raises(RenderError):
-        PythonCallable(my_fn, File('/path/to/{{upstream["t1"]}}_2'), dag)
+#     with pytest.raises(RenderError):
+#         PythonCallable(my_fn, File('/path/to/{{upstream["t1"]}}_2'), dag,
+#                        name='my_fn')
 
 
-def test_task_can_infer_name_if_product_does_not_depend_on_upstream():
-    dag = DAG()
-    t1 = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
-                        params=dict(name='file'))
-    t2 = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
-                        params=dict(name='file2'))
-    assert t1.name == 'file' and t2.name == 'file2'
+# NOTE: this feature was removed
+# def test_task_can_infer_name_if_product_does_not_depend_on_upstream():
+#     dag = DAG()
+#     t1 = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
+#                         params=dict(name='file'), name='my_fn')
+#     t2 = PythonCallable(my_fn, File('/path/to/{{name}}'), dag,
+#                         params=dict(name='file2'), name='my_fn2')
+#     assert t1.name == 'file' and t2.name == 'file2'
 
 
 def test_python_callable_with_file():
@@ -140,9 +144,9 @@ def test_raises_render_error_if_missing_param_in_product():
 def test_raises_render_error_if_non_existing_dependency_used():
     dag = DAG('my dag')
 
-    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag)
+    ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag, name='bash')
     tb = BashCommand('cat {{upstream.not_valid}} > {{product}}',
-                     File('b.txt'), dag)
+                     File('b.txt'), dag, name='bash2')
     ta >> tb
 
     with pytest.raises(RenderError):
@@ -182,7 +186,7 @@ def test_shows_warning_if_unused_dependencies():
 def test_on_finish(tmp_directory):
     dag = DAG()
 
-    t = PythonCallable(touch, File('file'), dag)
+    t = PythonCallable(touch, File('file'), dag, name='touch')
     t.on_finish = on_finish
 
     dag.build()
