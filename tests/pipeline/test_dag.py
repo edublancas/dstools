@@ -78,7 +78,7 @@ def test_can_get_upstream_tasks():
     ta = BashCommand('echo "a" > {{product}}', File('a.txt'), dag, 'ta')
     tb = BashCommand('cat {{upstream["ta"]}} > {{product}}',
                      File('b.txt'), dag, 'tb')
-    tc = BashCommand('tcat {{upstream["tb"]}} > {{product}}',
+    tc = BashCommand('cat {{upstream["tb"]}} > {{product}}',
                      File('c.txt'), dag, 'tc')
 
     ta >> tb >> tc

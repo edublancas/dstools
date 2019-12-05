@@ -73,9 +73,6 @@ class DAG(collections.abc.Mapping):
         to output a diff, defaults to CodeDiffer() (default parameters)
 
     """
-    # TODO: use the networkx.DiGraph struecture directly to avoid having to
-    # re-build the graph every time
-
     def __init__(self, name=None, clients=None, differ=None,
                  on_task_finish=None, on_task_failure=None,
                  executor=executors.Serial):
@@ -312,6 +309,7 @@ class DAG(collections.abc.Mapping):
         this object might include tasks that are not included in the current
         object
         """
+        # NOTE: delete this, use existing DiGraph object
         G = nx.DiGraph()
 
         for task in self.values():
