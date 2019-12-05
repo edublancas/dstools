@@ -2,7 +2,7 @@ import pytest
 from dstools.env.env import _get_name, Env
 
 
-def test_can_create_env_from_dict():
+def test_can_create_env_from_dict(cleanup_env):
     e = Env.from_dict({'a': 1})
     assert e.a == 1
 
@@ -20,9 +20,11 @@ def test_raises_error_if_wrong_format():
         _get_name('path/to/wrong.my_name.yaml')
 
 
-def test_can_instantiate_env_if_located_in_current_dir(move_to_sample):
+def test_can_instantiate_env_if_located_in_current_dir(move_to_sample,
+                                                       cleanup_env):
     Env()
 
 
-def test_can_instantiate_env_if_located_in_child_dir(move_to_module):
+def test_can_instantiate_env_if_located_in_child_dir(move_to_module,
+                                                     cleanup_env):
     Env()

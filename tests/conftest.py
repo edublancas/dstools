@@ -9,6 +9,7 @@ from dstools.pipeline.clients import SQLAlchemyClient
 from dstools.pipeline.tasks import SQLScript
 from dstools.pipeline.products import PostgresRelation
 from dstools.pipeline.dag import DAG
+from dstools.env.env import Env
 
 
 def _path_to_tests():
@@ -29,6 +30,13 @@ def tmp_directory():
     yield tmp
 
     os.chdir(old)
+
+
+@pytest.fixture
+def cleanup_env():
+    Env._Env__path_to_env = None
+    yield None
+    Env._Env__path_to_env = None
 
 
 @pytest.fixture()
