@@ -125,3 +125,14 @@ class DownloadFromURL(Task):
 
     def _init_source(self, source):
         return GenericSource(str(source))
+
+
+class Null(Task):
+    def __init__(self, product, dag, name):
+        super().__init__(None, product, dag, name, None)
+
+    def run(self):
+        pass
+
+    def _init_source(self, source):
+        return GenericSource(str(source))

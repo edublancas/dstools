@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLDump
+from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLDump, Null
 from dstools.pipeline.products import File
 
 
@@ -70,6 +70,22 @@ def test_does_not_warn_on_sql_docstrings():
         dag.diagnose()
 
     assert not warn
+
+
+def test_can_use_null_task(tmp_directory):
+    dag = DAG('dag')
+
+    Path('a.txt').write_text('hello')
+
+    ta = Null(File('a.txt'), dag, 'ta')
+    tb = BashCommand('cat {{upstream["ta"]}} > {{product}}', File('b.txt'),
+                     dag, 'tb')
+
+    ta >> tb
+
+    dag.build()
+
+    assert Path('b.txt').read_text() == 'hello'
 
 
 def test_can_get_upstream_tasks():
