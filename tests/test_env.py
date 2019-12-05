@@ -2,6 +2,11 @@ import pytest
 from dstools.env.env import _get_name, Env
 
 
+def test_can_create_env_from_dict():
+    e = Env.from_dict({'a': 1})
+    assert e.a == 1
+
+
 def test_assigns_default_name():
     assert _get_name('path/to/env.yaml') == 'root'
 

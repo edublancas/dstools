@@ -9,6 +9,7 @@ from pathlib import Path
 from glob import iglob
 from io import StringIO
 import getpass
+import tempfile
 import platform
 
 from dstools.FrozenJSON import FrozenJSON
@@ -175,6 +176,15 @@ class Env:
         # re-initialize content
         for obj in cls.getinstances():
             obj._env_content = obj.load(obj._path_to_env)
+
+    @classmethod
+    def from_dict(cls, d):
+        _, file = tempfile.mkstemp(prefix='env.', suffix='.yaml')
+
+        with open(file, 'w') as f:
+            yaml.dump(d, f)
+
+        return cls(file)
 
 
 def find_env_w_name(name):
