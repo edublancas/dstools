@@ -92,8 +92,8 @@ class Source(abc.ABC):
     def loc(self):
         pass
 
-    def render(self, params, **kwargs):
-        self.value.render(params, **kwargs)
+    def render(self, params):
+        self.value.render(params)
         self._post_render_validation(self.value.value, params)
 
     # optional validation
@@ -208,8 +208,11 @@ class SQLQuerySource(SQLSourceMixin, Source):
     different
     """
     # TODO: validate this is a SELECT statement
-    # a query needs to return a result
-    pass
+    # a query needs to return a result, also validate that {{product}}
+    # does not exist in the template, instead of just making it optional
+    def render(self, params):
+        self.value.render(params, optional=['product'])
+        self._post_render_validation(self.value.value, params)
 
 
 class PythonCallableSource(Source):

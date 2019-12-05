@@ -11,6 +11,36 @@ import pandas as pd
 import numpy as np
 
 
+def test_sqldump_does_not_required_product_tag(tmp_directory):
+    tmp = Path(tmp_directory)
+
+    # create a db
+    conn = connect(str(tmp / "database.db"))
+    client = SQLAlchemyClient('sqlite:///{}'.format(tmp / "database.db"))
+    # dump output path
+    out = tmp / 'dump'
+
+    # make some data and save it in the db
+    df = pd.DataFrame({'a': np.arange(0, 100), 'b': np.arange(100, 200)})
+    df.to_sql('numbers', conn)
+
+    # create the task and run it
+    dag = DAG()
+
+    # pass template SQL code so it's treated as a placeholder, this will force
+    # the render step
+    SQLDump('SELECT * FROM numbers LIMIT {{limit}}',
+            File(out),
+            dag,
+            name='dump.csv',
+            client=client,
+            chunksize=None,
+            io_handler=io.CSVIO,
+            params={'limit': 10})
+
+    dag.render()
+
+
 def test_can_dump_sqlite_to_csv(tmp_directory):
     tmp = Path(tmp_directory)
 
@@ -26,7 +56,7 @@ def test_can_dump_sqlite_to_csv(tmp_directory):
 
     # create the task and run it
     dag = DAG()
-    SQLDump('SELECT * FROM numbers -- {{product}}',
+    SQLDump('SELECT * FROM numbers',
             File(out),
             dag,
             name='dump.csv',
@@ -64,7 +94,7 @@ def test_can_dump_sqlite_to_parquet(tmp_directory):
 
     # create the task and run it
     dag = DAG()
-    SQLDump('SELECT * FROM numbers -- {{product}}',
+    SQLDump('SELECT * FROM numbers',
             File(out),
             dag,
             name='dump',
@@ -95,7 +125,7 @@ def test_can_dump_postgres(tmp_directory, pg_client):
 
     # create the task and run it
     dag = DAG()
-    SQLDump('SELECT * FROM numbers -- {{product}}',
+    SQLDump('SELECT * FROM numbers',
             File(out),
             dag,
             name='dump',
@@ -129,7 +159,7 @@ def test_can_transfer_sqlite(tmp_directory):
 
     # create the task and run it
     dag = DAG()
-    SQLTransfer('SELECT * FROM numbers -- {{product}}',
+    SQLTransfer('SELECT * FROM numbers',
                 SQLiteRelation((None, 'numbers2', 'table'), client=client_out),
                 dag,
                 name='transfer',
