@@ -382,9 +382,9 @@ class Task(abc.ABC):
     def set_upstream(self, other):
         if isiterable(other) and not isinstance(other, DAG):
             for o in other:
-                self._upstream[o.name] = o
+                self.upstream[o.name] = o
         else:
-            self._upstream[other.name] = other
+            self.upstream[other.name] = other
 
     def plan(self):
         """Shows a text summary of what this task will execute

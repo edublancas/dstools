@@ -5,7 +5,12 @@ pytest>=3.5
 pytest-cov
 pytest-flake8
 
+mock
+
 # dstools.pipeline.sql (SQLDump task)
 numpy
 pandas
 pyarrow
+
+# pipeline example
+scikit-learn
