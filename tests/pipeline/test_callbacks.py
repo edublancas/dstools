@@ -35,7 +35,7 @@ def on_failure_w_client(task, client):
 def test_runs_on_finish(tmp_directory, capsys):
 
     dag = DAG()
-    t = PythonCallable(fn1, File('file1.txt'), dag)
+    t = PythonCallable(fn1, File('file1.txt'), dag, name='fn1')
     t.on_finish = on_finish
     dag.build()
 
@@ -45,7 +45,7 @@ def test_runs_on_finish(tmp_directory, capsys):
 def test_passes_client_to_on_finish(tmp_directory):
 
     dag = DAG()
-    t = PythonCallable(fn1, File('file1.txt'), dag)
+    t = PythonCallable(fn1, File('file1.txt'), dag, name='fn1')
     t.on_finish = on_finish_w_client
     dag.build()
 

@@ -10,7 +10,8 @@ def test_can_execute_from_ipynb(path_to_assets, tmp_directory):
 
     NotebookRunner(path_to_assets / 'sample.ipynb',
                    product=File(Path(tmp_directory, 'out.ipynb')),
-                   dag=dag)
+                   dag=dag,
+                   name='nb')
     dag.build()
 
 
@@ -19,7 +20,8 @@ def test_can_execute_to_html(path_to_assets, tmp_directory):
 
     NotebookRunner(path_to_assets / 'sample.ipynb',
                    product=File(Path(tmp_directory, 'out.html')),
-                   dag=dag)
+                   dag=dag,
+                   name='nb')
     dag.build()
 
 
@@ -29,7 +31,8 @@ def test_can_execute_from_py(path_to_assets, tmp_directory):
     NotebookRunner(path_to_assets / 'sample.py',
                    product=File(Path(tmp_directory, 'out.ipynb')),
                    dag=dag,
-                   kernelspec_name='python3')
+                   kernelspec_name='python3',
+                   name='nb')
     dag.build()
 
 
@@ -45,7 +48,8 @@ def test_can_execute_with_parameters(tmp_directory):
                    dag=dag,
                    kernelspec_name='python3',
                    params={'var': 1},
-                   ext_in='py')
+                   ext_in='py',
+                   name='nb')
     dag.build()
 
 
@@ -68,5 +72,6 @@ Path(product['model']).touch()
                    kernelspec_name='python3',
                    params={'var': 1},
                    ext_in='py',
-                   nb_product_key='nb')
+                   nb_product_key='nb',
+                   name='nb')
     dag.build()
