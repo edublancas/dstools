@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pathlib import Path
+from jinja2 import Template
 
 from dstools.pipeline import DAG
 from dstools.pipeline.tasks import PythonCallable, Null
@@ -18,7 +19,7 @@ from dstools.pipeline import executors
 dag = DAG(executor=executors.Parallel)
 
 
-def make_data(product):
+def _make(product):
     df = pd.DataFrame({'x': np.random.normal(0, 1, size=1000000)})
     df['partition'] = (df.index % 4).astype(int)
     df['group'] = (df.index % 2).astype(int)
@@ -28,39 +29,69 @@ def make_data(product):
     pq.write_to_dataset(table, str(product), partition_cols=['partition'])
 
 
-t1 = PythonCallable(make_data, File('observations'), dag,
-                    name='make_data')
-
-
-def process_data(upstream, product):
-    time.sleep(30)
+def _process(upstream, product):
+    time.sleep(5)
     df = pd.read_parquet(str(upstream.first))
     pvalues = df.groupby('group').x.apply(lambda x: stats.normaltest(x)[1])
     pvalues = pd.DataFrame({'pvalue': pvalues})
     pvalues.to_parquet(str(product))
 
 
-product = t1.product
-format_ = 'partition={i}'
-n = 4
+def partitioned_execution(upstream,
+                          downstream_callable,
+                          downstream_prefix,
+                          downstream_path,
+                          partition_ids,
+                          partition_template='partition={{id}}'):
+    # make sure output is a File
+    assert isinstance(upstream.product, File)
 
-# make sure output is a File
-assert isinstance(product, File)
+    dag = upstream.dag
+    partition_template_w_suffix = Template(
+        downstream_prefix + '_' + partition_template)
+    partition_template_t = Template(partition_template)
 
-# instantiate null tasks
-nulls = [Null(product=File(Path(str(t1.product), format_.format(i=i))),
-              dag=dag,
-              name=format_.format(i=i)) for i in range(n)]
+    # instantiate null tasks
+    nulls = [Null(product=File(Path(str(upstream.product),
+                                    partition_template_t.render(id=id_))),
+                  dag=dag,
+                  name=Template('null_'+partition_template).render(id=id_))
+             for id_ in partition_ids]
+
+    # TODO: validate downstream product is File
+    tasks = [PythonCallable(downstream_callable,
+                            product=File(Path(downstream_path,
+                                              (partition_template_t
+                                               .render(id=id_)))),
+                            dag=dag,
+                            name=(partition_template_w_suffix
+                                  .render(id=id_)))
+             for id_ in partition_ids]
+
+    # gather - task that treats all partitions
+    gather = Null(product=File(downstream_path),
+                  dag=dag,
+                  name=downstream_prefix)
+
+    # TODO: "fuse" operator that merges task chains and shows it like a single
+    # task
+    for null, task in zip(nulls, tasks):
+        upstream >> null >> task >> gather
+
+
+make = PythonCallable(_make, File('observations'), dag,
+                      name='make_data')
+
+
+partitioned_execution(make, _process,
+                      downstream_prefix='normaltest',
+                      downstream_path='results',
+                      partition_ids=range(4),
+                      partition_template='partition={{id}}')
 
 Path('results').mkdir(exist_ok=True)
 
-tasks = [PythonCallable(process_data, File('results/results_{i}'.format(i=i)), dag,
-                        name='process_data_{i}'.format(i=i))
-         for i in range(n)]
-
-for null, task in zip(nulls, tasks):
-    t1 >> null >> task
-
+dag.plot()
 
 dag.build(force=True)
 
