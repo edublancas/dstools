@@ -43,6 +43,7 @@ from dstools.pipeline.util import image_bytes2html
 from dstools.pipeline.CodeDiffer import CodeDiffer
 from dstools.pipeline import resources
 from dstools.pipeline import executors
+from dstools.util import isiterable
 
 
 class HighlightRenderer(mistune.Renderer):
@@ -60,9 +61,6 @@ class HighlightRenderer(mistune.Renderer):
         lexer = get_lexer_by_name(lang, stripall=True)
         formatter = html.HtmlFormatter()
         return highlight(code, lexer, formatter)
-
-def _new_upstream():
-    return {}
 
 
 class DAG(collections.abc.Mapping):
@@ -82,7 +80,6 @@ class DAG(collections.abc.Mapping):
                  on_task_finish=None, on_task_failure=None,
                  executor=executors.Serial):
         self._G = nx.DiGraph()
-        self._upstream = collections.defaultdict(_new_upstream)
 
         self.name = name or 'No name'
         self.differ = differ or CodeDiffer()
@@ -304,7 +301,7 @@ class DAG(collections.abc.Mapping):
                              'already'.format(task.name))
 
         if task.name is not None:
-            self._G.add_node(task.name, task=task) 
+            self._G.add_node(task.name, task=task)
         else:
             raise ValueError('Tasks must have a name, got None')
 
@@ -327,6 +324,35 @@ class DAG(collections.abc.Mapping):
                 G.add_edges_from([(up, task) for up in task.upstream.values()])
 
         return G
+
+    def _add_edge(self, task_from, task_to):
+        """Add an edge between two tasks
+        """
+        if isiterable(task_from) and not isinstance(task_from, DAG):
+            # if iterable, add all components as separate upstream tasks
+            for a_task_from in task_from:
+
+                # this happens when the task was originally declared in
+                # another dag...
+                if a_task_from.name not in self._G:
+                    self._G.add_node(a_task_from.name, task=a_task_from)
+
+                self._G.add_edge(a_task_from.name, task_to.name)
+
+        else:
+            # this happens when the task was originally declared in
+            # another dag...
+            if task_from.name not in self._G:
+                self._G.add_node(task_from.name, task=task_from)
+
+            # DAGs are treated like a single task
+            self._G.add_edge(task_from.name, task_to.name)
+
+    def _get_upstream(self, task_name):
+        """Get upstream tasks given a task name (returns Task objects)
+        """
+        upstream = self._G.predecessors(task_name)
+        return {u: self._G.nodes[u]['task'] for u in upstream}
 
     def __getitem__(self, key):
         return self._G.nodes[key]['task']

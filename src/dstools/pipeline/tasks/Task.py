@@ -174,9 +174,9 @@ class Task(abc.ABC):
         # this is jus syntactic sugar, upstream relations are tracked by the
         # DAG object
 
-        # always return a copy to prevent global state if contents
+        # this always return a copy to prevent global state if contents
         # are modified (e.g. by using pop)
-        return copy(self.dag._upstream[self.name])
+        return self.dag._get_upstream(self.name)
 
     @property
     def params(self):
@@ -365,15 +365,7 @@ class Task(abc.ABC):
                         else TaskStatus.WaitingUpstream)
 
     def set_upstream(self, other):
-        # NOTE: fix this, should not modify private attr here,
-        # currently needed since self.upstream will return a copy
-        upstream = self.dag._upstream[self.name]
-
-        if isiterable(other) and not isinstance(other, DAG):
-            for o in other:
-                upstream[o.name] = o
-        else:
-            upstream[other.name] = other
+        self.dag._add_edge(other, self)
 
     def plan(self):
         """Shows a text summary of what this task will execute
