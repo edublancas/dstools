@@ -129,8 +129,13 @@ class DownloadFromURL(Task):
 
 class Null(Task):
     def __init__(self, product, dag, name, save_metadata=False):
+
+        # when a null task does not have metadata it should never be outdated
         if not save_metadata:
             product.save_metadata = self._null
+            product._outdated_data_dependencies = self._false
+            product._outdated_code_dependency = self._false
+
         super().__init__(None, product, dag, name, None)
 
     def run(self):
@@ -141,3 +146,6 @@ class Null(Task):
 
     def _null(self):
         pass
+
+    def _false(self):
+        return False
