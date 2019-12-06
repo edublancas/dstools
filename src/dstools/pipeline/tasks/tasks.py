@@ -128,7 +128,9 @@ class DownloadFromURL(Task):
 
 
 class Null(Task):
-    def __init__(self, product, dag, name):
+    def __init__(self, product, dag, name, save_metadata=False):
+        if not save_metadata:
+            product.save_metadata = self._null
         super().__init__(None, product, dag, name, None)
 
     def run(self):
@@ -136,3 +138,6 @@ class Null(Task):
 
     def _init_source(self, source):
         return GenericSource(str(source))
+
+    def _null(self):
+        pass

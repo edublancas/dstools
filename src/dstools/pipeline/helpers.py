@@ -6,6 +6,10 @@ from dstools.pipeline.tasks import PythonCallable, Null
 from dstools.pipeline.products import File
 
 
+def _null():
+    pass
+
+
 def partitioned_execution(upstream_partitioned,
                           downstream_callable,
                           downstream_prefix,
@@ -28,11 +32,17 @@ def partitioned_execution(upstream_partitioned,
                   name=Template('null_'+partition_template).render(id=id_))
              for id_ in partition_ids]
 
+    def make_file(id_):
+        f = File(Path(downstream_path,
+                 partition_template_t.render(id=id_)))
+        # patch File objects, they should not save metadata, metadata will
+        # be saved once these are all done (in the gather object)
+        f.save_metadata = _null
+        return f
+
     # TODO: validate downstream product is File
     tasks = [PythonCallable(downstream_callable,
-                            product=File(Path(downstream_path,
-                                              (partition_template_t
-                                               .render(id=id_)))),
+                            product=make_file(id_),
                             dag=dag,
                             name=(partition_template_w_suffix
                                   .render(id=id_)),
@@ -45,7 +55,8 @@ def partitioned_execution(upstream_partitioned,
     # gather - task that treats all partitions
     gather = Null(product=File(downstream_path),
                   dag=dag,
-                  name=downstream_prefix)
+                  name=downstream_prefix,
+                  save_metadata=True)
 
     # TODO: "fuse" operator that merges task chains and shows it like a single
     # task - maybe this should be like this and the dag.plot function take
