@@ -56,6 +56,23 @@ def tmp_intermediate_example_directory():
     os.chdir(old)
 
 
+@pytest.fixture()
+def tmp_example_pipeline_directory():
+    """Move to examples/pipeline/
+    """
+    old = os.getcwd()
+    path = _path_to_tests() / '..' / 'examples' / 'pipeline'
+    tmp = Path(tempfile.mkdtemp()) / 'content'
+
+    # we have to add extra folder content/, otherwise copytree complains
+    shutil.copytree(path, tmp)
+    os.chdir(tmp)
+
+    yield tmp
+
+    os.chdir(old)
+
+
 @pytest.fixture(scope='session')
 def move_to_sample():
     old = os.getcwd()
