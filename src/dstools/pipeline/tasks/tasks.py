@@ -133,6 +133,14 @@ class Null(Task):
         # when a null task does not have metadata it should never be outdated
         if not save_metadata:
             product.save_metadata = self._null
+            # FIXME: maybe i should not patch _outdated_data_dependencies
+            # it will work ok (it will just run all the time and show up as
+            # red since it will always be outdated), there are no clear
+            # conditions for this - maybe it's better to subclass Task
+            # in several types of "NULL" use cases: one is to forward
+            # a parameter (to be used in upstream['task'].product), the
+            # second use case is for partitioning an upstream dataset,
+            # and the third one to gather partitions
             product._outdated_data_dependencies = self._false
             product._outdated_code_dependency = self._false
 
