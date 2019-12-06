@@ -3,29 +3,22 @@ Task abstract class
 
 A Task is a unit of work, it has associated source code and
 a product (a persistent object such as a table in a database),
-it has a name (which can be infered from the source code filename)
-and lives in a DAG
+it has a name and lives in a DAG
 
 [WIP] On subclassing Tasks
 
 Implementation details:
 
 * params (dict), upstream (Param object)
-
-Required:
-
 * params vs constructor parameters
 * params on render vs params on run
-* Implementing Task.run (using the _code object, product, TaskBuildError)
+* Implementing Task.run (using the source object, product, TaskBuildError)
 
 Optional:
 
 * Validating PRODUCT_CLASSES_ALLOWED
-* Validating SOURCECLASS
 * Validating upstream, product and params in code
 * Using a client parameter
-* The language property
-
 """
 import inspect
 import abc
@@ -35,7 +28,7 @@ import logging
 from datetime import datetime
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.dag import DAG
-from dstools.exceptions import TaskBuildError, RenderError
+from dstools.exceptions import TaskBuildError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Upstream import Upstream
@@ -101,7 +94,6 @@ class Task(abc.ABC):
         if not isinstance(self._source, Source):
             raise TypeError('_init_source must return a subclass of Source')
 
-
         if isinstance(product, Product):
             self._product = product
 
@@ -125,7 +117,6 @@ class Task(abc.ABC):
                                             self.PRODUCT_CLASSES_ALLOWED,
                                             type(self._product).__name__))
 
-    
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
 
@@ -157,7 +148,6 @@ class Task(abc.ABC):
         """The product this task will create upon execution
         """
         return self._product
-
 
     @property
     def source_code(self):
