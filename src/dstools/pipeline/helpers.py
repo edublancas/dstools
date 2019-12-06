@@ -37,6 +37,14 @@ def partitioned_execution(upstream_partitioned,
                  partition_template_t.render(id=id_)))
         # patch File objects, they should not save metadata, metadata will
         # be saved once these are all done (in the gather object)
+
+        # FIXME: this file *has* to save metadata, since it needs to act with
+        # the same logic as any other task, but it cannot store it in the usual
+        # place that File uses (same directory as the product). Since this
+        # is a partition, mixing up partition folders and source files will
+        # make the parquet loader fail for downstream dependencies, I need
+        # to either modify or subclass file so that it creates the source
+        # files in the upper folder
         f.save_metadata = _null
         return f
 
