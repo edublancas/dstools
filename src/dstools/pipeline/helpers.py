@@ -55,3 +55,5 @@ def partitioned_execution(upstream_partitioned,
 
         if upstream_other:
             upstream_other >> task
+
+    return gather
