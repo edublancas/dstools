@@ -157,3 +157,81 @@ class Null(Task):
 
     def _false(self):
         return False
+
+
+class Link(Task):
+    """A dummy Task used to "plug" an external Product to a pipeline
+
+    The purpose of this Task is to link a pipeline to an external read-only
+    dataset, this task does not do anything on the dataset and the product is
+    always considered up-to-date. There are two primary use cases:
+    when the raw data is automatically uploaded to a file (or table) and the
+    pipeline does not have control over data updates, this task can be used
+    to link the pipeline to that file, without having to copy it, downstream
+    tasks will see this dataset as just another Product. The second use case
+    is when developing a prediction pipeline. When making predictions on new
+    data, sometimes some of the features are not provided directly by the
+    user but have to be looked up, this Task can help linking againts those
+    processed datasets so that predictions only provide the minimum input
+    to the model
+    """
+    def __init__(self, product, dag, name):
+        # do not save metadata (Product's location is read-only)
+        product.save_metadata = self._null
+
+        # the product will never be considered outdated
+        product._outdated_data_dependencies = self._false
+        product._outdated_code_dependency = self._false
+
+        # there is no source nor params for this product
+        super().__init__(None, product, dag, name, None)
+
+    def run(self):
+        """This Task does not run anything
+        """
+        pass
+
+    def _init_source(self, source):
+        return GenericSource(str(source))
+
+    def _null(self):
+        pass
+
+    def _false(self):
+        return False
+
+
+class Input(Task):
+    """A dummy task used to represent input provided by the user
+
+    When making new predictions, the user must submit some input data to build
+    features and then feed the model, this task can be used for that. It does
+    not perform any processing (read-only data) but it is always considered
+    outdated, which means it will always trigger execution in downstream
+    dependencies. Since at prediction time performance is important, metadata
+    saving is skipped.
+    """
+    def __init__(self, product, dag, name):
+        # do not save metadata (Product's location is read-only)
+        product.save_metadata = self._null
+
+        # the product will aleays be considered outdated
+        product._outdated_data_dependencies = self._true
+        product._outdated_code_dependency = self._true
+
+        # there is no source nor params for this product
+        super().__init__(None, product, dag, name, None)
+
+    def run(self):
+        """This Task does not run anything
+        """
+        pass
+
+    def _init_source(self, source):
+        return GenericSource(str(source))
+
+    def _null(self):
+        pass
+
+    def _true(self):
+        return True
