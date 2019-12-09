@@ -4,25 +4,6 @@ filesystem or an table in a database. Each Product is uniquely identified,
 for example a file can be specified using a absolute path, a table can be
 fully specified by specifying a database, a schema and a name. Names
 are lazy evaluated, they can be built from templates
-
-All actual products derive from the Product abstract class, they have an
-IDENTIFIERCLASS, which determines a data structure to uniquely identify the
-product, the simplest case is a string, which can identify many types of
-resources via a URI. The other (current) structure is a SQLRelationPlaceholder
-which identifies a relation in a database, it is different than a string
-since it contains a schema and a name fields.
-
-[WIP] On subclassing Product:
-
-Required:
-
-* IDENTIFIERCLASS
-* fetch_metadata
-* save_metadata
-* exists
-* delete
-* name
-
 """
 import abc
 import logging
@@ -178,6 +159,18 @@ class Product(abc.ABC):
         self.logger = logging.getLogger('{}.{}'.format(__name__,
                                                        type(self).__name__))
 
+    def _to_json_serializable(self):
+        """Returns a JSON serializable version of this product
+        """
+        # NOTE: this is used in tasks where only JSON serializable parameters
+        # are supported such as NotebookRunner that depends on papermill
+        return str(self)
+
+    def __len__(self):
+        # MetaProduct return the number of products, this is a single Product
+        # hence the 1
+        return 1
+
     # Subclasses must implement the following methods
 
     @abc.abstractmethod
@@ -217,15 +210,3 @@ class Product(abc.ABC):
         is provided
         """
         pass
-
-    def _to_json_serializable(self):
-        """Returns a JSON serializable version of this product
-        """
-        # NOTE: this is used in tasks where only JSON serializable parameters
-        # are supported such as NotebookRunner that depends on papermill
-        return str(self)
-
-    def __len__(self):
-        # MetaProduct return the number of products, this is a single Product
-        # hence the 1
-        return 1

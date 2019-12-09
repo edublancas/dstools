@@ -4,7 +4,7 @@ Product of A should be used by B in some way (e.g. Task A produces a table
 and Task B pivots it), placeholders help avoid redundancy when building tasks,
 if you declare that Product A is "schema"."table", the use of placeholders
 prevents "schema"."table" to be explicitely declared in B, since B depends
-on A, this information from A is passed to B. Placeholders fill that purpose,
+on A, this information from A is passed to B. Sources fill that purpose,
 they are placeholders that will be filled at rendering time so that
 parameteters are only declared once.
 
@@ -19,12 +19,11 @@ parameters and process them independently. So, apart from upstream and product
 placeholders, arbitrary parameters can also be placeholders.
 
 These classes are not intended to be used by the end user, since Task and
-Product objects create placeholders from strings.
+Product objects create sources from strings.
 """
 import abc
 import warnings
 import re
-from pathlib import Path
 import inspect
 
 from dstools.pipeline.products import Product
@@ -39,35 +38,24 @@ from dstools.sql import infer
 # FIXME: remove opt from Placeholder.render
 
 
-"""
-Notes: there should be a hierarchy here, source should be the top level
-implementation and it should use another class to represent its "value",
-which can be either a placeholder or a literal. this value should have
-the same interface namely: offer a way to know if rendering is needed
-(if its a placeholder or not), we need to get rid of _rendered_value,
-as it does not make sense for literals, the way to access the value
-should be the same, the only different would be that in Placeholders
-this value wont be available until the placeholder is rendered
-"""
-"""
-Same as FilePlaceholder but cast their argument to str before init,
-so a Path will be interpreted literally instead of loading the file
-"""
-
-"""
-Placeholders are jinja2 templates that hold their rendered
-values after Placeholder.render is called, they are used in
-source and Product objects to hold values that are be filled
-after a DAG is rendered
-"""
-
-
 class Source(abc.ABC):
 
     def __init__(self, value):
         self.value = Placeholder(value)
         self._post_init_validation(self.value)
 
+    @property
+    def needs_render(self):
+        return self.value.needs_render
+
+    def render(self, params):
+        self.value.render(params)
+        self._post_render_validation(self.value.value, params)
+
+    def __str__(self):
+        return str(self.value)
+
+    # required by subclasses
     @property
     @abc.abstractmethod
     def doc(self):
@@ -84,27 +72,17 @@ class Source(abc.ABC):
         pass
 
     @property
-    def needs_render(self):
-        return self.value.needs_render
-
-    @property
     @abc.abstractmethod
     def loc(self):
         pass
 
-    def render(self, params):
-        self.value.render(params)
-        self._post_render_validation(self.value.value, params)
-
     # optional validation
+
     def _post_render_validation(self, rendered_value, params):
         pass
 
     def _post_init_validation(self, value):
         pass
-
-    def __str__(self):
-        return str(self.value)
 
 
 class SQLSourceMixin:

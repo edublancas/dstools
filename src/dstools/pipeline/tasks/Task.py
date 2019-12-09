@@ -3,29 +3,22 @@ Task abstract class
 
 A Task is a unit of work, it has associated source code and
 a product (a persistent object such as a table in a database),
-it has a name (which can be infered from the source code filename)
-and lives in a DAG
+it has a name and lives in a DAG
 
 [WIP] On subclassing Tasks
 
 Implementation details:
 
 * params (dict), upstream (Param object)
-
-Required:
-
 * params vs constructor parameters
 * params on render vs params on run
-* Implementing Task.run (using the _code object, product, TaskBuildError)
+* Implementing Task.run (using the source object, product, TaskBuildError)
 
 Optional:
 
 * Validating PRODUCT_CLASSES_ALLOWED
-* Validating SOURCECLASS
 * Validating upstream, product and params in code
 * Using a client parameter
-* The language property
-
 """
 import inspect
 import abc
@@ -35,7 +28,7 @@ import logging
 from datetime import datetime
 from dstools.pipeline.products import Product, MetaProduct
 from dstools.pipeline.dag import DAG
-from dstools.exceptions import TaskBuildError, RenderError
+from dstools.exceptions import TaskBuildError
 from dstools.pipeline.tasks.TaskGroup import TaskGroup
 from dstools.pipeline.constants import TaskStatus
 from dstools.pipeline.tasks.Upstream import Upstream
@@ -101,7 +94,6 @@ class Task(abc.ABC):
         if not isinstance(self._source, Source):
             raise TypeError('_init_source must return a subclass of Source')
 
-
         if isinstance(product, Product):
             self._product = product
 
@@ -125,7 +117,6 @@ class Task(abc.ABC):
                                             self.PRODUCT_CLASSES_ALLOWED,
                                             type(self._product).__name__))
 
-    
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
 
@@ -157,7 +148,6 @@ class Task(abc.ABC):
         """The product this task will create upon execution
         """
         return self._product
-
 
     @property
     def source_code(self):
@@ -238,40 +228,60 @@ class Task(abc.ABC):
         dict
             A dictionary with keys 'run' and 'elapsed'
         """
+        # TODO: if this is run in a task that has upstream dependencies
+        # it will fail with a useless error since self.params does not have
+        # upstream yet (added after rendering)
 
         # NOTE: should i fetch metadata here? I need to make sure I have
         # the latest before building
 
         self._logger.info(f'-----\nChecking {repr(self)}....')
 
+        # do not run unless some of the conditions below match...
         run = False
         elapsed = 0
 
-        # check dependencies only if the product exists and there is metadata
-        if self.product.exists() and self.product.metadata is not None:
-            outdated_data_deps = self.product._outdated_data_dependencies()
-            outdated_code_dep = self.product._outdated_code_dependency()
-
-            if outdated_data_deps:
-                run = True
-                self._logger.info('Outdated data deps...')
-            else:
-                self._logger.info('Up-to-date data deps...')
-
-            if outdated_code_dep:
-                run = True
-                self._logger.info('Outdated code dep...')
-            else:
-                self._logger.info('Up-to-date code dep...')
-        else:
-            self._logger.info('Product does not exist...')
+        if force:
+            self._logger.info('Forcing run, skipping checks...')
             run = True
+        else:
+            # not forcing, need to check dependencies...
+            p_exists = self.product.exists()
 
-        if run or force:
-            if force:
-                self._logger.info('Forcing...')
+            # check dependencies only if the product exists and there is
+            # metadata
+            if p_exists and self.product.metadata is not None:
 
-            self._logger.info(f'Running {repr(self)}')
+                outdated_data_deps = self.product._outdated_data_dependencies()
+                outdated_code_dep = self.product._outdated_code_dependency()
+
+                self._logger.info('Checking dependencies...')
+
+                if outdated_data_deps:
+                    run = True
+                    self._logger.info('Outdated data deps...')
+                else:
+                    self._logger.info('Up-to-date data deps...')
+
+                if outdated_code_dep:
+                    run = True
+                    self._logger.info('Outdated code dep...')
+                else:
+                    self._logger.info('Up-to-date code dep...')
+            else:
+                run = True
+
+                # just log why it will run
+                if not p_exists:
+                    self._logger.info('Product does not exist...')
+
+                if self.product.metadata is None:
+                    self._logger.info('Product metadata is None...')
+
+                self._logger.info('Running...')
+
+        if run:
+            self._logger.info(f'Starting execution: {repr(self)}')
 
             then = datetime.now()
 
