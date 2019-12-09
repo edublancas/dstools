@@ -4,31 +4,45 @@ from functools import partial, wraps
 class Assert:
 
     def __init__(self):
-        self.error_messages = []
+        self.messages_error = []
+        self.messages_warning = []
 
     def __call__(self, expression, error_message):
         if not expression:
-            self.error_messages.append(error_message)
+            self.messages_error.append(error_message)
+
+    def warn(self, expression, warning_message):
+        if not expression:
+            self.messages_warning.append(warning_message)
 
     def __len__(self):
-        return len(self.error_messages)
+        return len(self.messages_error)
 
     def __iter__(self):
-        for msg in self.error_messages:
+        for msg in self.messages_error:
             yield msg
 
     def __repr__(self):
         return 'Assert oject with {} error messages'.format(len(self))
 
     def __str__(self):
-        if not self.error_messages:
-            return 'No errors found'
-        elif len(self.error_messages) == 1:
-            return '1 error found: {}'.format(self.error_messages[0])
+        if not self.messages_error:
+            str_ = 'No errors found'
+        elif len(self.messages_error) == 1:
+            str_ = '1 error found: {}'.format(self.messages_error[0])
         else:
-            return ('{} Errors found: \n * {}'
-                    .format(len(self.error_messages),
-                            '\n * '.join(self.error_messages)))
+            str_ = ('{} errors found: \n * {}'
+                    .format(len(self.messages_error),
+                            '\n * '.join(self.messages_error)))
+
+        if len(self.messages_warning) == 1:
+            str_ += '\n\n 1 warning: {}'.format(self.messages_warning[0])
+        elif len(self.messages_warning) > 1:
+            str_ += ('\n\n {} warnings: \n * {}'
+                     .format(len(self.messages_warning),
+                             '\n * '.join(self.messages_error)))
+
+        return str_
 
 
 def validator(fn):
@@ -51,26 +65,20 @@ def validator(fn):
 
 
 @validator
-def validate_schema(assert_, data, schema, ignore_extra_cols=True):
+def validate_schema(assert_, data, schema, error_on_extra_cols=False):
     """Check if a data frame complies with a schema
     """
     cols = set(data.columns)
     expected = set(schema)
     missing = expected - cols
+    unexpected = cols - expected
 
-    msg = ('Invalid columns. Missing columns: {missing}.'
-           .format(missing=missing))
+    msg = 'Missing columns: {missing}.'.format(missing=missing)
+    assert_(not missing, msg)
 
-    # validate column names
-    if ignore_extra_cols:
-        assert_(not missing, msg)
-    else:
-        unexpected = cols - expected
-
-        msg_w_unexpected = ('{msg} Unexpected columns {unexpected}'
-                            .format(msg=msg, unexpected=unexpected))
-
-        assert_(cols == expected, msg_w_unexpected)
+    msg = 'Unexpected columns {unexpected}'.format(unexpected=unexpected)
+    caller = assert_ if error_on_extra_cols else assert_.warn
+    caller(not unexpected, msg)
 
     # validate column types (as many as you can)
     dtypes = data.dtypes.astype(str).to_dict()
