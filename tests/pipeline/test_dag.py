@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLDump, Null
+from dstools.pipeline.tasks import BashCommand, PythonCallable, SQLDump
 from dstools.pipeline.products import File
 
 
