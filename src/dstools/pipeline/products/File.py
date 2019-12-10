@@ -11,6 +11,7 @@ from dstools.templates.Placeholder import Placeholder
 class File(Product):
     """A product representing a file in the local filesystem
     """
+
     def _init_identifier(self, identifier):
         if not isinstance(identifier, (str, Path)):
             raise TypeError('File must be initialized with a str or a '
@@ -22,21 +23,23 @@ class File(Product):
     def _path_to_file(self):
         return Path(str(self._identifier))
 
+    # TODO: rename this to path_to_metadata?
     @property
     def _path_to_stored_source_code(self):
         return Path(str(self._path_to_file) + '.source')
 
     def fetch_metadata(self):
-        # we can safely do this here since this is only run when the file
-        # exists
-        timestamp = self._path_to_file.stat().st_mtime
-
         # but we have no control over the stored code, it might be missing
-        # so we check
-        if self._path_to_stored_source_code.exists():
+        # so we check, we also require the file to exists: even if the
+        # .source file exists, missing the actual data file means something
+        # if wrong anf the task should run again
+        if (self._path_to_stored_source_code.exists()
+                and self._path_to_file.exists()):
             stored_source_code = self._path_to_stored_source_code.read_text()
+            timestamp = self._path_to_stored_source_code.stat().st_mtime
         else:
             stored_source_code = None
+            timestamp = None
 
         return dict(timestamp=timestamp, stored_source_code=stored_source_code)
 

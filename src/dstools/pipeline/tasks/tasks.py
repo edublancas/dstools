@@ -4,6 +4,7 @@ Task implementations
 A Task is a unit of work that produces a persistent change (Product)
 such as a bash or a SQL script
 """
+import types
 from urllib import request
 from multiprocessing import Pool
 import shlex
@@ -19,6 +20,7 @@ from dstools.pipeline.sources import (PythonCallableSource,
 class BashCommand(Task):
     """A task that runs an inline bash command
     """
+
     def __init__(self, source, product, dag, name, params=None,
                  subprocess_run_kwargs={'stderr': subprocess.PIPE,
                                         'stdout': subprocess.PIPE,
@@ -62,8 +64,6 @@ class BashCommand(Task):
 class PythonCallable(Task):
     """A task that runs a Python callable (i.e.  a function)
     """
-    SOURCECLASS = PythonCallableSource
-
     def __init__(self, source, product, dag, name, params=None):
         super().__init__(source, product, dag, name, params)
 
@@ -94,6 +94,7 @@ class PythonCallable(Task):
 class ShellScript(Task):
     """A task to run a shell script
     """
+
     def __init__(self, source, product, dag, name, params=None,
                  client=None):
         super().__init__(source, product, dag, name, params)
@@ -127,26 +128,17 @@ class DownloadFromURL(Task):
         return GenericSource(str(source))
 
 
-class Null(Task):
-    def __init__(self, product, dag, name, save_metadata=False):
-
-        # when a null task does not have metadata it should never be outdated
-        if not save_metadata:
-            product.save_metadata = self._null
-            # FIXME: maybe i should not patch _outdated_data_dependencies
-            # it will work ok (it will just run all the time and show up as
-            # red since it will always be outdated), there are no clear
-            # conditions for this - maybe it's better to subclass Task
-            # in several types of "NULL" use cases: one is to forward
-            # a parameter (to be used in upstream['task'].product), the
-            # second use case is for partitioning an upstream dataset,
-            # and the third one to gather partitions
-            product._outdated_data_dependencies = self._false
-            product._outdated_code_dependency = self._false
-
+# TODO: move this and _Gather to helpers.py (actually create a module
+# for partitioned execution)
+class _Partition(Task):
+    def __init__(self, product, dag, name):
         super().__init__(None, product, dag, name, None)
 
     def run(self):
+        """This Task does not run anything
+        """
+        # TODO: verify that this task has only one upstream dependencies
+        # is this the best place to check?
         pass
 
     def _init_source(self, source):
@@ -157,6 +149,11 @@ class Null(Task):
 
     def _false(self):
         return False
+
+
+class _Gather(PythonCallable):
+    def run(self):
+        pass
 
 
 class Link(Task):
@@ -175,6 +172,7 @@ class Link(Task):
     processed datasets so that predictions only provide the minimum input
     to the model
     """
+
     def __init__(self, product, dag, name):
         # do not save metadata (Product's location is read-only)
         product.save_metadata = self._null
@@ -189,6 +187,8 @@ class Link(Task):
     def run(self):
         """This Task does not run anything
         """
+        # TODO: verify that this task has no upstream dependencies
+        # is this the best place to check?
         pass
 
     def _init_source(self, source):
@@ -211,6 +211,7 @@ class Input(Task):
     dependencies. Since at prediction time performance is important, metadata
     saving is skipped.
     """
+
     def __init__(self, product, dag, name):
         # do not save metadata (Product's location is read-only)
         product.save_metadata = self._null
@@ -225,6 +226,8 @@ class Input(Task):
     def run(self):
         """This Task does not run anything
         """
+        # TODO: verify that this task has no upstream dependencies
+        # is this the best place to check?
         pass
 
     def _init_source(self, source):

@@ -34,6 +34,7 @@ def _offset(product):
     df.to_parquet(str(product))
 
 
+# TODO: document why we need upstream_key here
 def _process(upstream, product, upstream_key):
     time.sleep(5)
     df = pd.read_parquet(str(upstream[upstream_key]))
@@ -59,6 +60,8 @@ partitioned_execution(make, _process,
                       partition_template='partition={{id}}',
                       upstream_other=offset)
 
+# TODO: abstract this, should be create when the first partitioned execution
+# task is done
 Path('results').mkdir(exist_ok=True)
 
 # dag.plot()

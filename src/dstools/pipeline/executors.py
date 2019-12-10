@@ -66,6 +66,16 @@ class Parallel:
         done = []
         started = []
 
+        # there might be up-to-date tasks, add them to done
+        # FIXME: this only happens when the dag is already build and then
+        # then try to build again (in the same session), if the session
+        # is restarted even up-to-date tasks will be WaitingExecution again
+        # this is a bit confusing, so maybe change WaitingExecution
+        # to WaitingBuild?
+        for name in self.dag:
+            if self.dag[name]._status == TaskStatus.Executed:
+                done.append(self.dag[name])
+
         def callback(task):
             """Keep track of finished tasks
             """
@@ -78,21 +88,21 @@ class Parallel:
             a StopIteration exception if there are no more tasks to run, which means
             the DAG is done
             """
-            if done:
-                for task in done:
-                    task = self.dag[task.name]
-                    # TODO: must check for esxecution status - if there is an error
-                    # is this status updated automatically? cause it will be better
-                    # for tasks to update their status by themselves, then have a
-                    # manager to update the other tasks statuses whenever one finishes
-                    # to know which ones are available for execution
-                    task._status = TaskStatus.Executed
+            # update task status for tasks in the done list
+            for task in done:
+                task = self.dag[task.name]
+                # TODO: must check for esxecution status - if there is an error
+                # is this status updated automatically? cause it will be better
+                # for tasks to update their status by themselves, then have a
+                # manager to update the other tasks statuses whenever one finishes
+                # to know which ones are available for execution
+                task._status = TaskStatus.Executed
 
-                    # update other tasks status, should abstract this in a execution
-                    # manager, also make the _get_downstream more efficient by
-                    # using the networkx data structure directly
-                    for t in task._get_downstream():
-                        t._update_status()
+                # update other tasks status, should abstract this in a execution
+                # manager, also make the _get_downstream more efficient by
+                # using the networkx data structure directly
+                for t in task._get_downstream():
+                    t._update_status()
 
             # iterate over tasks to find which is ready for execution
             for task_name in self.dag:
@@ -103,6 +113,7 @@ class Parallel:
                         and self.dag[task_name] not in started):
                     t = self.dag[task_name]
                     return t
+                # there might be some up-to-date tasks, add them
 
             # if all tasks are done, stop
             if set([t.name for t in done]) == set(self.dag):
