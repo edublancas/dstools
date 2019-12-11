@@ -1,5 +1,15 @@
 from dstools.util import isiterable
 
+# FIXME: restrict for now TaskGroup treated as a single task to be a source
+# node, otherwise handling the upstream logic becomes messy:
+# the dag.plot function should see a single edge but in reality there should
+# be many going from the upstream dependencies to each one of the tasks
+# in the group, currently plotting and execution have the same source of truth:
+# the nx.DiGraph object so we will have to make some changes - probably
+# just at the plot level: the DAG should still see edges to all the subtasks
+# for execution to run successfully but the plot function should only
+# draw a single circle
+
 
 # FIXME: behavior is very different when treat_as_single_task is on,
 # better to make it to separate classes (they should not subclass from Task
