@@ -39,10 +39,10 @@ def partitioned_execution(upstream_partitioned,
 
     # instantiate null tasks
     nulls = [_Partition
-(product=PartitionedFile(Path(str(upstream_partitioned.product),
-                                          partition_template_t.render(id=id_))),
-                        dag=dag,
-                        name=Template('null_'+partition_template).render(id=id_))
+             (product=PartitionedFile(Path(str(upstream_partitioned.product),
+                                           partition_template_t.render(id=id_))),
+              dag=dag,
+              name=Template('null_'+partition_template).render(id=id_))
              for id_ in partition_ids]
 
     def make_file(id_):
