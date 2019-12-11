@@ -78,20 +78,20 @@ class TaskGroup:
             return TaskGroup([other] + list(self.tasks))
 
     def set_upstream(self, other):
-        if self.treat_as_single_task:
-            if isiterable(other):
+        # if self.treat_as_single_task:
+        #     if isiterable(other):
+        #         for o in other:
+        #             self.dag._add_edge(o, self)
+        #     else:
+        #         self.dag._add_edge(other, self)
+        # else:
+        if isiterable(other):
+            for t in self.tasks:
                 for o in other:
-                    self.dag._add_edge(o, self)
-            else:
-                self.dag._add_edge(other, self)
-        else:
-            if isiterable(other):
-                for t in self.tasks:
-                    for o in other:
-                        t.set_upstream(other)
-            else:
-                for t in self.tasks:
                     t.set_upstream(other)
+        else:
+            for t in self.tasks:
+                t.set_upstream(other)
 
     # FIXME: implement render
 
