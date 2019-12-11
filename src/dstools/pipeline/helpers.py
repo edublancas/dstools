@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 from jinja2 import Template
@@ -5,6 +6,7 @@ from jinja2 import Template
 from dstools.pipeline.tasks import PythonCallable
 from dstools.pipeline.tasks.tasks import _Gather, _Partition
 from dstools.pipeline.products import File
+from dstools.pipeline.tasks.TaskGroup import TaskGroup
 
 
 class PartitionedFile(File):
@@ -77,3 +79,37 @@ def partitioned_execution(upstream_partitioned,
             upstream_other >> task
 
     return gather
+
+
+def make_task_group(task_class, task_kwargs, dag, name_prefix, params_array):
+    # validate task_kwargs
+    if 'dag' in task_kwargs:
+        raise KeyError('dag should not be part of task_kwargs')
+
+    if 'name' in task_kwargs:
+        raise KeyError('name should not be part of task_kwargs')
+
+    if 'params' in task_kwargs:
+        raise KeyError('params should not be part of task_kwargs')
+
+    if 'product' not in task_kwargs:
+        raise KeyError('product should be in task_kwargs')
+
+    # TODO: validate {{index}} appears in product - maybe all products
+    # should have a way to extract which placeholders exist?
+
+    tasks_all = []
+
+    for i, params in enumerate(params_array):
+
+        params['index'] = i
+
+        kwargs = deepcopy(task_kwargs)
+
+        t = task_class(**kwargs,
+                       dag=dag,
+                       name=name_prefix+str(i),
+                       params=params)
+        tasks_all.append(t)
+
+    return TaskGroup(tasks_all, False, name_prefix)

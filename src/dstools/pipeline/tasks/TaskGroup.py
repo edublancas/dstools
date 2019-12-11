@@ -33,33 +33,33 @@ class TaskGroup:
 
     def __init__(self, tasks, treat_as_single_task=False, name=None):
         self.tasks = tasks
-        self.treat_as_single_task = treat_as_single_task
+        # self.treat_as_single_task = treat_as_single_task
 
-        # name is only required when treat_as_single_task is True
-        if treat_as_single_task and name is None:
-            raise ValueError('name cannot be None if treat_as_single_task is True')
+        # # name is only required when treat_as_single_task is True
+        # if treat_as_single_task and name is None:
+        #     raise ValueError('name cannot be None if treat_as_single_task is True')
 
-        # should only exist when treat_as_single_task is True
-        dags = []
+        # # should only exist when treat_as_single_task is True
+        # dags = []
 
-        for t in tasks:
-            if t.dag not in dags:
-                dags.append(t.dag)
+        # for t in tasks:
+        #     if t.dag not in dags:
+        #         dags.append(t.dag)
 
-        if len(dags) > 1:
-            raise ValueError('All tasks must be part of the same DAG')
+        # if len(dags) > 1:
+        #     raise ValueError('All tasks must be part of the same DAG')
 
-        self.dag = dags[0]
+        # self.dag = dags[0]
 
-        self.name = name
+        # self.name = name
 
-        # if treat_as_single_task we have to delete the tasks from the
-        # dag and add the TaskGroup
-        if treat_as_single_task:
-            for t in self.tasks:
-                self.dag.pop(t.name)
+        # # if treat_as_single_task we have to delete the tasks from the
+        # # dag and add the TaskGroup
+        # if treat_as_single_task:
+        #     for t in self.tasks:
+        #         self.dag.pop(t.name)
 
-        self.dag._add_task(self)
+        # self.dag._add_task(self)
 
     def __iter__(self):
         for t in self.tasks:
