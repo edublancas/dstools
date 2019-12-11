@@ -41,8 +41,6 @@ make_task_group(task_class=PythonCallable,
                 params_array=params_array)
 
 
-dag.render()
-
 dag.plot()
 
 dag.build()
