@@ -145,6 +145,19 @@ class PostgresRelation(Product):
         return self._client
 
     def fetch_metadata(self):
+        cur = self.client.connection.cursor()
+
+        if self._identifier.schema:
+            schema = self._identifier.schema
+        else:
+            # if schema is empty, we have to find out the default one
+            query = """
+            SELECT replace(setting, '"$user", ', '')
+            FROM pg_settings WHERE name = 'search_path';
+            """
+            cur.execute(query)
+            schema = cur.fetchone()[0]
+
         # https://stackoverflow.com/a/11494353/709975
         query = """
         SELECT description
@@ -154,10 +167,10 @@ class PostgresRelation(Product):
         WHERE nspname = %(schema)s
         AND relname = %(name)s
         """
-        cur = self.client.connection.cursor()
-        cur.execute(query, dict(schema=self._identifier.schema,
+        cur.execute(query, dict(schema=schema,
                                 name=self._identifier.name))
         metadata = cur.fetchone()
+
         cur.close()
 
         # no metadata saved
@@ -185,6 +198,19 @@ class PostgresRelation(Product):
         cur.close()
 
     def exists(self):
+        cur = self.client.connection.cursor()
+
+        if self._identifier.schema:
+            schema = self._identifier.schema
+        else:
+            # if schema is empty, we have to find out the default one
+            query = """
+            SELECT replace(setting, '"$user", ', '')
+            FROM pg_settings WHERE name = 'search_path';
+            """
+            cur.execute(query)
+            schema = cur.fetchone()[0]
+
         # https://stackoverflow.com/a/24089729/709975
         query = """
         SELECT EXISTS (
@@ -196,8 +222,7 @@ class PostgresRelation(Product):
         );
         """
 
-        cur = self.client.connection.cursor()
-        cur.execute(query, dict(schema=self._identifier.schema,
+        cur.execute(query, dict(schema=schema,
                                 name=self._identifier.name))
         exists = cur.fetchone()[0]
         cur.close()
