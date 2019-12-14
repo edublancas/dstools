@@ -352,6 +352,10 @@ class DAG(collections.abc.Mapping):
         upstream = self._G.predecessors(task_name)
         return {u: self._G.nodes[u]['task'] for u in upstream}
 
+    def _clear_cached_outdated_status(self):
+        for task in self.values():
+            task.product._clear_cached_outdated_status()
+
     def __getitem__(self, key):
         return self._G.nodes[key]['task']
 

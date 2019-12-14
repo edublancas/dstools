@@ -118,6 +118,10 @@ class Product(abc.ABC):
 
         return self._outdated_code_dependency_status
 
+    def _clear_cached_outdated_status(self):
+        self._outdated_data_dependencies_status = None
+        self._outdated_code_dependency_status = None
+
     def _get_metadata(self):
         """
         This method calls Product.fetch_metadata() (provided by subclasses),
