@@ -7,6 +7,7 @@ from pathlib import Path
 from dstools.pipeline.dag import DAG
 from dstools.pipeline.tasks import BashCommand, SQLScript
 from dstools.pipeline.products import File, PostgresRelation
+from dstools.pipeline.clients import SQLAlchemyClient
 
 
 def test_passing_upstream_and_product_in_bashcommand(tmp_directory):
@@ -36,7 +37,14 @@ def test_passing_upstream_and_product_in_bashcommand(tmp_directory):
     assert fc.read_text() == 'a\nb\nc\n'
 
 
-def test_passing_upstream_and_product_in_postgres(pg_client, dag):
+def test_passing_upstream_and_product_in_postgres(pg_client, db_credentials):
+    dag = DAG()
+
+    client = SQLAlchemyClient(db_credentials['uri'])
+
+    dag.clients[SQLScript] = client
+    dag.clients[PostgresRelation] = client
+
     conn = pg_client.connection
     cur = conn.cursor()
     cur.execute('drop table if exists public.series;')
