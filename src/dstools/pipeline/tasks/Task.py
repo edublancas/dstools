@@ -19,6 +19,10 @@ Optional:
 * Validating PRODUCT_CLASSES_ALLOWED
 * Validating upstream, product and params in code
 * Using a client parameter
+
+NOTE: Params trigger different data output (and should make tasks outdated),
+Tasks constructor args (such as chunksize in SQLDump) should not change
+the output, hence shoulf not make tasks outdated
 """
 import inspect
 import abc
