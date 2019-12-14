@@ -15,6 +15,7 @@ class Product(abc.ABC):
     A product is a persistent triggered by a Task, this is an abstract
     class for all products
     """
+
     def __init__(self, identifier):
         self._identifier = self._init_identifier(identifier)
 
@@ -26,6 +27,9 @@ class Product(abc.ABC):
         self.task = None
         self.logger = logging.getLogger('{}.{}'.format(__name__,
                                                        type(self).__name__))
+
+        self._outdated_data_dependencies_status = None
+        self._outdated_code_dependency_status = None
 
     @property
     def timestamp(self):
@@ -80,6 +84,10 @@ class Product(abc.ABC):
                 or self._outdated_code_dependency())
 
     def _outdated_data_dependencies(self):
+
+        if self._outdated_data_dependencies_status is not None:
+            return self._outdated_data_dependencies_status
+
         def is_outdated(up_prod):
             """
             A task becomes data outdated if an upstream product has a higher
@@ -93,14 +101,22 @@ class Product(abc.ABC):
 
         outdated = any([is_outdated(up.product) for up
                         in self.task.upstream.values()])
+        self._outdated_data_dependencies_status = outdated
 
-        return outdated
+        return self._outdated_data_dependencies_status
 
     def _outdated_code_dependency(self):
-        dag = self.task.dag
-        return dag.differ.code_is_different(self.stored_source_code,
-                                            self.task.source_code,
-                                            language=self.task.source.language)
+        if self._outdated_code_dependency_status is not None:
+            return self._outdated_code_dependency_status
+
+        outdated = self.task.dag.differ.code_is_different(
+            self.stored_source_code,
+            self.task.source_code,
+            language=self.task.source.language)
+
+        self._outdated_code_dependency_status = outdated
+
+        return self._outdated_code_dependency_status
 
     def _get_metadata(self):
         """
