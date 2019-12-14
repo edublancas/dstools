@@ -174,15 +174,15 @@ class Link(Task):
     """
 
     def __init__(self, product, dag, name):
-        # do not save metadata (Product's location is read-only)
-        product.save_metadata = self._null
-
-        # the product will never be considered outdated
-        product._outdated_data_dependencies = self._false
-        product._outdated_code_dependency = self._false
-
         # there is no source nor params for this product
         super().__init__(None, product, dag, name, None)
+
+        # do not save metadata (Product's location is read-only)
+        self.product.save_metadata = self._null
+
+        # the product will never be considered outdated
+        self.product._outdated_data_dependencies = self._false
+        self.product._outdated_code_dependency = self._false
 
     def run(self):
         """This Task does not run anything
@@ -213,15 +213,15 @@ class Input(Task):
     """
 
     def __init__(self, product, dag, name):
-        # do not save metadata (Product's location is read-only)
-        product.save_metadata = self._null
-
-        # the product will aleays be considered outdated
-        product._outdated_data_dependencies = self._true
-        product._outdated_code_dependency = self._true
-
         # there is no source nor params for this product
         super().__init__(None, product, dag, name, None)
+
+        # do not save metadata (Product's location is read-only)
+        self.product.save_metadata = self._null
+
+        # the product will aleays be considered outdated
+        self.product._outdated_data_dependencies = self._true
+        self.product._outdated_code_dependency = self._true
 
     def run(self):
         """This Task does not run anything
