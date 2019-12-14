@@ -47,7 +47,7 @@ def test_passing_upstream_and_product_in_postgres(pg_client, db_credentials):
 
     conn = pg_client.connection
     cur = conn.cursor()
-    cur.execute('drop table if exists public.series;')
+    cur.execute('drop table if exists series;')
     conn.commit()
     conn.close()
 
@@ -56,7 +56,7 @@ def test_passing_upstream_and_product_in_postgres(pg_client, db_credentials):
               create table {{product}} as
               select * from generate_series(0, 15) as n;
               commit;"""
-    ta_rel = PostgresRelation(('public', 'series', 'table'))
+    ta_rel = PostgresRelation((None, 'series', 'table'))
     ta = SQLScript(ta_t, ta_rel, dag, 'ta')
 
     dag.build()
