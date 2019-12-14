@@ -1,3 +1,5 @@
+import string
+import random
 import json
 from os import environ
 import shutil
@@ -6,9 +8,6 @@ import pytest
 from pathlib import Path
 import tempfile
 from dstools.pipeline.clients import SQLAlchemyClient
-from dstools.pipeline.tasks import SQLScript
-from dstools.pipeline.products import PostgresRelation
-from dstools.pipeline.dag import DAG
 from dstools.env.env import Env
 
 
@@ -123,13 +122,29 @@ def _load_db_credentials():
     return db
 
 
+@pytest.fixture
+def db_credentials():
+    return _load_db_credentials()
+
+
 @pytest.fixture(scope='session')
 def pg_client():
     db = _load_db_credentials()
 
     client = SQLAlchemyClient(db['uri'])
 
+    # set a new schema for this session, otherwise if two test sessions
+    # are run at the same time, tests might conflict with each other
+    schema = (''.join(random.choice(string.ascii_letters)
+              for i in range(8)))
+
+    client.execute('CREATE SCHEMA {};'.format(schema))
+    client.execute('SET search_path TO {};'.format(schema))
+
     yield client
+
+    # clean up schema
+    client.execute('drop schema {} cascade;'.format(schema))
 
     client.close()
 
@@ -139,19 +154,3 @@ def fake_conn():
     o = object()
 
     yield o
-
-
-@pytest.fixture()
-def dag():
-    dag = DAG()
-
-    db = _load_db_credentials()
-
-    client = SQLAlchemyClient(db['uri'])
-
-    dag.clients[SQLScript] = client
-    dag.clients[PostgresRelation] = client
-
-    yield dag
-
-    client.close()
