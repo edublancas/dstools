@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 from dstools.pipeline.dag import DAG
-from dstools.pipeline.tasks import BashCommand, BashCommand
+from dstools.pipeline.tasks import BashCommand
 from dstools.pipeline.products import File
 
 kwargs = {'stderr': subprocess.PIPE,
@@ -47,6 +47,8 @@ def test_outdated_data_simple_dependency(tmp_directory):
 
     dag.build()
 
+    dag._clear_cached_outdated_status()
+
     # they both exist now
     assert ta.product.exists()
     assert tb.product.exists()
@@ -57,6 +59,8 @@ def test_outdated_data_simple_dependency(tmp_directory):
 
     # let's make b outdated
     ta.build(force=True)
+
+    dag._clear_cached_outdated_status()
 
     assert not ta.product._outdated()
     assert tb.product._outdated()
@@ -91,6 +95,7 @@ def test_many_upstream(tmp_directory):
     assert not tc.product._outdated()
 
     ta.build(force=True)
+    dag._clear_cached_outdated_status()
 
     assert not ta.product._outdated()
     assert not tb.product._outdated()
@@ -98,6 +103,7 @@ def test_many_upstream(tmp_directory):
 
     dag.build()
     tb.build(force=True)
+    dag._clear_cached_outdated_status()
 
     assert not ta.product._outdated()
     assert not tb.product._outdated()
