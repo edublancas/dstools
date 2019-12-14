@@ -291,7 +291,7 @@ class SQLRelationPlaceholder:
         return self
 
     def __str__(self):
-        if self.schema is not None:
+        if self.schema is not None and self.schema != '':
             return '"{}"."{}"'.format(self.schema, self.name)
         else:
             return '"{}"'.format(self.name)
