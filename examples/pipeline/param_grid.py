@@ -34,11 +34,19 @@ delta = relativedelta(years=1)
 params_array = ParamGrid(
     {'dates': Interval(start_date, end_date, delta)}).zip()
 
+
+def namer(params):
+    s = str(params['dates'][0]).replace('-', '_')
+    e = str(params['dates'][1]).replace('-', '_')
+    return f'{s}_{e}'
+
+
 make_task_group(task_class=PythonCallable,
                 task_kwargs={'source': get_data, 'product': product},
                 dag=dag,
-                name_prefix='get_data',
-                params_array=params_array)
+                name='get_data',
+                params_array=params_array,
+                namer=namer)
 
 
 dag.plot()

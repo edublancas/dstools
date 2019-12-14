@@ -81,7 +81,8 @@ def partitioned_execution(upstream_partitioned,
     return gather
 
 
-def make_task_group(task_class, task_kwargs, dag, name_prefix, params_array):
+def make_task_group(task_class, task_kwargs, dag, name, params_array,
+                    namer=None):
     # validate task_kwargs
     if 'dag' in task_kwargs:
         raise KeyError('dag should not be part of task_kwargs')
@@ -106,10 +107,15 @@ def make_task_group(task_class, task_kwargs, dag, name_prefix, params_array):
 
         kwargs = deepcopy(task_kwargs)
 
+        if namer:
+            task_name = namer(params)
+        else:
+            task_name = name+str(i)
+
         t = task_class(**kwargs,
                        dag=dag,
-                       name=name_prefix+str(i),
+                       name=task_name,
                        params=params)
         tasks_all.append(t)
 
-    return TaskGroup(tasks_all, False, name_prefix)
+    return TaskGroup(tasks_all, False, name)
