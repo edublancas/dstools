@@ -130,10 +130,20 @@ class DAG(collections.abc.Mapping):
 
         return self
 
-    def build(self, force=False):
+    def build(self, force=False, clear_cached_status=False):
         """
         Runs the DAG in order so that all upstream dependencies are run for
         every task
+
+        Parameters
+        ----------
+        force: bool, optional
+            If True, it will run all tasks regadless of status, defaults to
+            False
+
+        clear_cached_status: bool, optional
+            If True, it will clear all cached status forcing a check on all
+            tasks
 
         Returns
         -------
@@ -141,13 +151,19 @@ class DAG(collections.abc.Mapping):
             A dict-like object with tasks as keys and dicts with task
             status as values
         """
+        if clear_cached_status:
+            self._clear_cached_outdated_status()
+
         self.render()
         executor = self._Executor(self)
         return executor(force=force)
 
-    def build_partially(self, target):
+    def build_partially(self, target, clear_cached_status=False):
         """Partially build a dag until certain task
         """
+        if clear_cached_status:
+            self._clear_cached_outdated_status()
+
         lineage = self[target]._lineage
         dag = copy(self)
 
@@ -160,15 +176,18 @@ class DAG(collections.abc.Mapping):
         executor = self._Executor(dag)
         return executor()
 
-    def status(self, **kwargs):
+    def status(self, clear_cached_status=False, **kwargs):
         """Returns a table with tasks status
         """
+        if clear_cached_status:
+            self._clear_cached_outdated_status()
+
         self.render()
 
         return Table([self._G.nodes[name]['task'].status(**kwargs)
                       for name in self._G])
 
-    def to_dict(self, include_plot=False):
+    def to_dict(self, include_plot=False, clear_cached_status=False):
         """Returns a dict representation of the dag's Tasks,
         only includes a few attributes.
 
@@ -177,6 +196,9 @@ class DAG(collections.abc.Mapping):
         include_plot: bool, optional
             If True, the path to a PNG file with the plot in "_plot"
         """
+        if clear_cached_status:
+            self._clear_cached_outdated_status()
+
         d = {name: self._G.nodes[name]['task'].to_dict()
              for name in self._G}
 
@@ -215,9 +237,12 @@ class DAG(collections.abc.Mapping):
 
         return out
 
-    def plot(self, open_image=True, path=None):
+    def plot(self, open_image=True, path=None, clear_cached_status=False):
         """Plot the DAG
         """
+        if clear_cached_status:
+            self._clear_cached_outdated_status()
+
         # attributes docs:
         # https://graphviz.gitlab.io/_pages/doc/info/attrs.html
 
