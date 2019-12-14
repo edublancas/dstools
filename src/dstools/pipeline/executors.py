@@ -1,7 +1,8 @@
 """
 DAG executors
 """
-from multiprocessing import Pool, TimeoutError
+import logging
+from multiprocessing import Pool
 
 import networkx as nx
 from tqdm.auto import tqdm
@@ -59,6 +60,9 @@ class Parallel:
 
     def __init__(self, dag):
         self.dag = dag
+        self._set_all = set(self.dag)
+        self._logger = logging.getLogger(__name__)
+        self._i = 0
 
     def __call__(self, **kwargs):
         # TODO: Have to test this with other Tasks, especially the ones that use
@@ -79,6 +83,8 @@ class Parallel:
         def callback(task):
             """Keep track of finished tasks
             """
+            self._logger.debug('Added %s to the list of finished tasks...',
+                               task.name)
             done.append(task)
 
         def next_task():
@@ -116,8 +122,20 @@ class Parallel:
                 # there might be some up-to-date tasks, add them
 
             # if all tasks are done, stop
-            if set([t.name for t in done]) == set(self.dag):
+            set_done = set([t.name for t in done])
+
+            if not self._i % 1000:
+                self._logger.debug('Finished tasks so far: %s', set_done)
+                self._logger.debug('Remaining tasks: %s',
+                                   self._set_all - set_done)
+                self._logger.info('Finished %i out of %i tasks',
+                                  len(set_done), len(self._set_all))
+
+            if set_done == self._set_all:
+                self._logger.debug('All tasks done')
                 raise StopIteration
+
+            self._i += 1
 
         with Pool(processes=4) as pool:
             while True:
@@ -130,5 +148,5 @@ class Parallel:
                         res = pool.apply_async(
                             task.build, [], kwds=kwargs, callback=callback)
                         started.append(task)
-                        print('started', task.name)
+                        logging.info('Added %s to the pool...', task.name)
                         # time.sleep(3)
