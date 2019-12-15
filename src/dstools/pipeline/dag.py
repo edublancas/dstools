@@ -75,7 +75,7 @@ class DAG(collections.abc.Mapping):
     """
     def __init__(self, name=None, clients=None, differ=None,
                  on_task_finish=None, on_task_failure=None,
-                 executor=executors.Serial):
+                 executor='serial'):
         self._G = nx.DiGraph()
 
         self.name = name or 'No name'
@@ -84,7 +84,17 @@ class DAG(collections.abc.Mapping):
 
         self._clients = clients or {}
         self._rendered = False
-        self._Executor = executor
+
+        if executor == 'serial':
+            self._executor = executors.Serial()
+        elif executor == 'parallel':
+            self._executor = executors.Parallel()
+        elif isinstance(executor, executors.Executor.Executor):
+            self._executor = executor
+        else:
+            raise TypeError('executor must be "serial", "parallel" or '
+                            'an instance of executors.Executor, got type {}'
+                            .format(type(executor)))
 
         self._on_task_finish = on_task_finish
         self._on_task_failure = on_task_failure
@@ -155,8 +165,7 @@ class DAG(collections.abc.Mapping):
             self._clear_cached_outdated_status()
 
         self.render()
-        executor = self._Executor(self)
-        return executor(force=force)
+        return self._executor(dag=self, force=force)
 
     def build_partially(self, target, clear_cached_status=False):
         """Partially build a dag until certain task
@@ -173,8 +182,7 @@ class DAG(collections.abc.Mapping):
             dag.pop(task)
 
         dag.render()
-        executor = self._Executor(dag)
-        return executor()
+        return self._executor(dag=dag)
 
     def status(self, clear_cached_status=False, **kwargs):
         """Returns a table with tasks status

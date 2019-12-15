@@ -1,55 +1,11 @@
-"""
-DAG executors
-"""
-from multiprocessing import Pool, TimeoutError
-
-import networkx as nx
-from tqdm.auto import tqdm
-from dstools.pipeline.Table import BuildReport
+import logging
+from multiprocessing import Pool
 from dstools.pipeline.constants import TaskStatus
+from dstools.pipeline.executors.Executor import Executor
+from dstools.pipeline.executors.LoggerHandler import LoggerHandler
 
 
-class Serial:
-    """Runs a DAG serially
-    """
-    TASKS_CAN_CREATE_CHILD_PROCESSES = True
-    STOP_ON_EXCEPTION = True
-
-    def __init__(self, dag):
-        self.dag = dag
-
-    def __call__(self, **kwargs):
-        status_all = []
-
-        g = self.dag._to_graph()
-        pbar = tqdm(nx.algorithms.topological_sort(g), total=len(g))
-
-        for t in pbar:
-            pbar.set_description('Building task "{}"'.format(t.name))
-
-            try:
-                t.build(**kwargs)
-            except Exception as e:
-                if self.dag._on_task_failure:
-                    self.dag._on_task_failure(t)
-
-                raise e
-            else:
-                if self.dag._on_task_finish:
-                    self.dag._on_task_finish(t)
-
-            status_all.append(t.build_report)
-
-        build_report = BuildReport(status_all)
-        self.dag._logger.info(' DAG report:\n{}'.format(repr(build_report)))
-
-        for client in self.dag.clients.values():
-            client.close()
-
-        return build_report
-
-
-class Parallel:
+class Parallel(Executor):
     """Runs a DAG in parallel using the multiprocessing module
     """
     # Tasks should not create child processes, see documention:
@@ -57,14 +13,26 @@ class Parallel:
     TASKS_CAN_CREATE_CHILD_PROCESSES = False
     STOP_ON_EXCEPTION = False
 
-    def __init__(self, dag):
-        self.dag = dag
+    def __init__(self, processes=4, logging_directory=None,
+                 logging_level=logging.INFO):
+        self.logging_directory = logging_directory
+        self.logging_level = logging_level
+        self.processes = processes
 
-    def __call__(self, **kwargs):
+        self._logger = logging.getLogger(__name__)
+        self._i = 0
+
+    def __call__(self, dag, **kwargs):
+        if self.logging_directory:
+            logger_handler = LoggerHandler(dag_name=dag.name,
+                                           directory=self.logging_directory,
+                                           logging_level=self.logging_level)
+            logger_handler.add()
         # TODO: Have to test this with other Tasks, especially the ones that use
         # clients - have to make sure they are serialized correctly
         done = []
         started = []
+        set_all = set(dag)
 
         # there might be up-to-date tasks, add them to done
         # FIXME: this only happens when the dag is already build and then
@@ -72,13 +40,15 @@ class Parallel:
         # is restarted even up-to-date tasks will be WaitingExecution again
         # this is a bit confusing, so maybe change WaitingExecution
         # to WaitingBuild?
-        for name in self.dag:
-            if self.dag[name]._status == TaskStatus.Executed:
-                done.append(self.dag[name])
+        for name in dag:
+            if dag[name]._status == TaskStatus.Executed:
+                done.append(dag[name])
 
         def callback(task):
             """Keep track of finished tasks
             """
+            self._logger.debug('Added %s to the list of finished tasks...',
+                               task.name)
             done.append(task)
 
         def next_task():
@@ -90,7 +60,7 @@ class Parallel:
             """
             # update task status for tasks in the done list
             for task in done:
-                task = self.dag[task.name]
+                task = dag[task.name]
                 # TODO: must check for esxecution status - if there is an error
                 # is this status updated automatically? cause it will be better
                 # for tasks to update their status by themselves, then have a
@@ -105,21 +75,37 @@ class Parallel:
                     t._update_status()
 
             # iterate over tasks to find which is ready for execution
-            for task_name in self.dag:
+            for task_name in dag:
                 # ignore tasks that are already started, I should probably add an
                 # executing status but that cannot exist in the task itself,
                 # maybe in the manaer?
-                if (self.dag[task_name]._status == TaskStatus.WaitingExecution
-                        and self.dag[task_name] not in started):
-                    t = self.dag[task_name]
+                if (dag[task_name]._status == TaskStatus.WaitingExecution
+                        and dag[task_name] not in started):
+                    t = dag[task_name]
                     return t
                 # there might be some up-to-date tasks, add them
 
             # if all tasks are done, stop
-            if set([t.name for t in done]) == set(self.dag):
+            set_done = set([t.name for t in done])
+
+            if not self._i % 1000:
+                self._logger.debug('Finished tasks so far: %s', set_done)
+                self._logger.debug('Remaining tasks: %s',
+                                   set_all - set_done)
+                self._logger.info('Finished %i out of %i tasks',
+                                  len(set_done), len(set_all))
+
+            if set_done == set_all:
+                self._logger.debug('All tasks done')
+
+                if self.logging_directory:
+                    logger_handler.remove()
+
                 raise StopIteration
 
-        with Pool(processes=4) as pool:
+            self._i += 1
+
+        with Pool(processes=self.processes) as pool:
             while True:
                 try:
                     task = next_task()
@@ -130,5 +116,18 @@ class Parallel:
                         res = pool.apply_async(
                             task.build, [], kwds=kwargs, callback=callback)
                         started.append(task)
-                        print('started', task.name)
+                        logging.info('Added %s to the pool...', task.name)
                         # time.sleep(3)
+
+    # __getstate__ and __setstate__ are needed to make this picklable
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # _logger is not pickable, so we remove them and build
+        # them again in __setstate__
+        del state['_logger']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._logger = logging.getLogger(__name__)
