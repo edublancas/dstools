@@ -1,6 +1,7 @@
 # TODO: these tests need clean up, is a merge from two files since
 # StringPlaceholder was removed and its interface was implemented directly
 # in Placeholder
+from copy import copy, deepcopy
 from pathlib import Path
 import tempfile
 
@@ -63,6 +64,19 @@ def test_strict_templates_initialized_from_strict_template(path_to_assets):
     env = Environment(loader=FileSystemLoader(path), undefined=StrictUndefined)
     st = Placeholder(env.get_template('template.sql'))
     assert Placeholder(st).render({'file': 1})
+
+
+def test_can_copy_placeholders(path_to_assets):
+    path = str(path_to_assets / 'templates')
+    env = Environment(loader=FileSystemLoader(path), undefined=StrictUndefined)
+    st = Placeholder(env.get_template('template.sql'))
+    cst = copy(st)
+    dpst = deepcopy(st)
+
+    assert cst.render({'file': 'a_file'}) == '\n\na_file'
+    assert str(cst) == '\n\na_file'
+    assert dpst.render({'file': 'a_file2'}) == '\n\na_file2'
+    assert str(dpst) == '\n\na_file2'
 
 
 def test_string_identifier_initialized_with_str():
