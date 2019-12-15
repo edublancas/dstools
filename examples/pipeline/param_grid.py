@@ -12,7 +12,7 @@ from dstools.pipeline.util import ParamGrid, Interval
 from dstools.pipeline.helpers import make_task_group
 
 
-def get_data(product, dates, index):
+def get_data(product, dates, name):
     """
     Dummy code, in reality this would usually be a Task that pulls data
     from a database
@@ -25,7 +25,7 @@ def get_data(product, dates, index):
 
 
 dag = DAG()
-product = File('get_data_{{index}}.parquet')
+product = File('{{name}}.parquet')
 
 start_date = date(year=2010, month=1, day=1)
 end_date = date(year=2019, month=6, day=1)
@@ -38,7 +38,7 @@ params_array = ParamGrid(
 def namer(params):
     s = str(params['dates'][0]).replace('-', '_')
     e = str(params['dates'][1]).replace('-', '_')
-    return f'{s}_{e}'
+    return f'get_data_{s}_{e}'
 
 
 make_task_group(task_class=PythonCallable,

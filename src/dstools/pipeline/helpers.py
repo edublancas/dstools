@@ -103,14 +103,14 @@ def make_task_group(task_class, task_kwargs, dag, name, params_array,
 
     for i, params in enumerate(params_array):
 
-        params['index'] = i
-
         kwargs = deepcopy(task_kwargs)
 
         if namer:
             task_name = namer(params)
+            params['name'] = task_name
         else:
             task_name = name+str(i)
+            params['name'] = i
 
         t = task_class(**kwargs,
                        dag=dag,
