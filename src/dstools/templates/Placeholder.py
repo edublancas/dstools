@@ -87,8 +87,9 @@ class Placeholder:
                                     {'searchpath': loader.searchpath}}
             elif isinstance(loader, PackageLoader):
                 self.loader_init = {'class': type(loader).__name__,
+                                    'kwargs': {
                                     'package_name': loader.provider.loader.name,
-                                    'package_path': loader.package_path}
+                                    'package_path': loader.package_path}}
             else:
                 raise TypeError('Only templates with loader tyoe '
                                 'FileSystemLoader or PackageLoader are '
