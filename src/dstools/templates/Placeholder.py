@@ -94,6 +94,8 @@ class Placeholder:
                                 'FileSystemLoader or PackageLoader are '
                                 'supported, got: {}'
                                 .format(type(loader).__name__))
+        else:
+            self.loader_init = None
 
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
@@ -235,21 +237,25 @@ class Placeholder:
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
 
+        if self.loader_init is None:
+            self._template = Template(self.raw,
+                                      undefined=jinja2.StrictUndefined)
         # re-construct the Templates environment, otherwise there could
         # be errors when using copy or pickling (the copied or unpickled
         # object wont have access to the environment which can break macros
         # and other thigns)
-        if self.loader_init['class'] == 'FileSystemLoader':
-            loader = FileSystemLoader(**self.loader_init['kwargs'])
-        elif self.loader_init['class'] == 'PackageLoader':
-            loader = PackageLoader(**self.loader_init['kwargs'])
         else:
-            raise TypeError('Error setting state for Placeholder, '
-                            'expected the loader to be FileSystemLoader '
-                            'or PackageLoader')
+            if self.loader_init['class'] == 'FileSystemLoader':
+                loader = FileSystemLoader(**self.loader_init['kwargs'])
+            elif self.loader_init['class'] == 'PackageLoader':
+                loader = PackageLoader(**self.loader_init['kwargs'])
+            else:
+                raise TypeError('Error setting state for Placeholder, '
+                                'expected the loader to be FileSystemLoader '
+                                'or PackageLoader')
 
-        env = Environment(loader=loader, undefined=jinja2.StrictUndefined)
-        self._template = env.from_string(self.raw)
+            env = Environment(loader=loader, undefined=jinja2.StrictUndefined)
+            self._template = env.from_string(self.raw)
 
 
 class SQLRelationPlaceholder:
