@@ -6,9 +6,10 @@ from dstools.pipeline.tasks import PythonCallable
 from dstools.pipeline.products import File
 from dstools.pipeline import executors
 
-logging.basicConfig(level=logging.DEBUG)
 
-dag = DAG(executor=executors.Parallel)
+executor = executors.Parallel(processes=6,
+                              logging_directory='./')
+dag = DAG(executor=executor)
 
 
 def _create_file(product):

@@ -14,9 +14,8 @@ from dstools.pipeline import DAG
 from dstools.pipeline.tasks import PythonCallable
 from dstools.pipeline.products import File
 from dstools.pipeline.helpers import partitioned_execution
-from dstools.pipeline import executors
 
-dag = DAG(executor=executors.Parallel)
+dag = DAG(executor='parallel')
 
 
 def _make(product):

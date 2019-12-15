@@ -71,7 +71,7 @@ class PythonCallable(Task):
         return PythonCallableSource(source)
 
     def run(self):
-        if self.dag._Executor.TASKS_CAN_CREATE_CHILD_PROCESSES:
+        if self.dag._executor.TASKS_CAN_CREATE_CHILD_PROCESSES:
             p = Pool()
             res = p.apply_async(func=self.source._source, kwds=self.params)
 
@@ -82,7 +82,7 @@ class PythonCallable(Task):
             # raised an exception then that exception will be reraised by
             # get().
             # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.AsyncResult.get
-            if self.dag._Executor.STOP_ON_EXCEPTION:
+            if self.dag._executor.STOP_ON_EXCEPTION:
                 res.get()
 
             p.close()
