@@ -1,12 +1,12 @@
 import logging
 from pathlib import Path
-import re
 
 from dstools.exceptions import RenderError
 
 from numpydoc.docscrape import NumpyDocString
 import jinja2
-from jinja2 import Environment, meta, Template, UndefinedError
+from jinja2 import (Environment, meta, Template, UndefinedError,
+                    FileSystemLoader, PackageLoader)
 
 
 class Placeholder:
@@ -77,6 +77,23 @@ class Placeholder:
         self.needs_render = self._needs_render()
 
         self._value = None if self.needs_render else self.raw
+
+        loader = self._template.environment.loader
+
+        if loader is not None:
+            if isinstance(loader, FileSystemLoader):
+                self.loader_init = {'class': type(loader).__name__,
+                                    'kwargs':
+                                    {'searchpath': loader.searchpath}}
+            elif isinstance(loader, PackageLoader):
+                self.loader_init = {'class': type(loader).__name__,
+                                    'package_name': loader.provider.loader.name,
+                                    'package_path': loader.package_path}
+            else:
+                raise TypeError('Only templates with loader tyoe '
+                                'FileSystemLoader or PackageLoader are '
+                                'supported, got: {}'
+                                .format(type(loader).__name__))
 
         # dynamically set the docstring
         # self.__doc__ = self._parse_docstring()
@@ -217,8 +234,22 @@ class Placeholder:
         self.__dict__.update(state)
         self._logger = logging.getLogger('{}.{}'.format(__name__,
                                                         type(self).__name__))
-        self._template = Template(self.raw,
-                                  undefined=jinja2.StrictUndefined)
+
+        # re-construct the Templates environment, otherwise there could
+        # be errors when using copy or pickling (the copied or unpickled
+        # object wont have access to the environment which can break macros
+        # and other thigns)
+        if self.loader_init['class'] == 'FileSystemLoader':
+            loader = FileSystemLoader(**self.loader_init['kwargs'])
+        elif self.loader_init['class'] == 'PackageLoader':
+            loader = PackageLoader(**self.loader_init['kwargs'])
+        else:
+            raise TypeError('Error setting state for Placeholder, '
+                            'expected the loader to be FileSystemLoader '
+                            'or PackageLoader')
+
+        env = Environment(loader=loader, undefined=jinja2.StrictUndefined)
+        self._template = env.from_string(self.raw)
 
 
 class SQLRelationPlaceholder:
