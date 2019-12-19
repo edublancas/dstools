@@ -103,7 +103,9 @@ def make_task_group(task_class, task_kwargs, dag, name, params_array,
 
     for i, params in enumerate(params_array):
 
+        # each task should get a different deep copy
         kwargs = deepcopy(task_kwargs)
+        params = deepcopy(params)
 
         if namer:
             task_name = namer(params)
