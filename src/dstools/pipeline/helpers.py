@@ -103,8 +103,12 @@ def make_task_group(task_class, task_kwargs, dag, name, params_array,
 
     for i, params in enumerate(params_array):
 
-        # each task should get a different deep copy
+        # each task should get a different deep copy, primarily cause they
+        # should have a different product
         kwargs = deepcopy(task_kwargs)
+        # params should also be different copies, otherwise if the same
+        # grid is re-used in several tasks, modifying anything there will
+        # have side-effects
         params = deepcopy(params)
 
         if namer:
