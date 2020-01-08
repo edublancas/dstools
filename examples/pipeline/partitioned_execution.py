@@ -52,6 +52,9 @@ offset = PythonCallable(_offset, File('offset.parquet'), dag,
                         name='offset')
 
 
+# partitioned_execution should also accept dags as first parameter, this will
+# enable easy execution for machines with small RAM (basically a for loop
+# that runs the pipeline over all partitions)
 partitioned_execution(make, _process,
                       downstream_prefix='normaltest',
                       downstream_path='results',

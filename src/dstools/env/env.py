@@ -237,9 +237,10 @@ def _get_name(path_to_env):
         # no name case
         env, _ = elements
         name = 'root'
-    elif len(elements) == 3:
+    elif len(elements) > 2:
         # name
-        env, name, _ = elements
+        env = elements[0]
+        name = '.'.join(elements[1:-1])
     else:
         raise err
 
