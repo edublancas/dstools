@@ -204,7 +204,7 @@ class Task(abc.ABC):
     def on_finish(self):
         """
         Callable to be executed after this task is built successfully
-        (passes Task as parameter)
+        (passes Task as first parameter)
         """
         return self._on_finish
 
