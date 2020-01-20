@@ -1,4 +1,3 @@
-from dstools.env import Env
 from dstools.reproducibility.util import make_filename as mkfilename
 
 __version__ = '0.28dev'
@@ -15,4 +14,4 @@ except ImportError:
 logging.getLogger(__name__).addHandler(NullHandler())
 
 
-__all__ = ['Env', 'mkfilename']
+__all__ = ['mkfilename']
