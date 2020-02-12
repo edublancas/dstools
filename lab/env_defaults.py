@@ -20,8 +20,14 @@ def update(d, u):
     return d
 
 
-defaults = {'a': 1, 'b': 2}
-current = {'z': 1, 'a': 10}
+defaults = {'a': 1, 'b': 2, 'c': {'nested': 3}}
+current = {'b': 3, 'c': {'nested': 30}}
+
+defaults
+
+update(defaults, current)
+
+
 
 defaults_k = set(defaults)
 current_k = set(current)
