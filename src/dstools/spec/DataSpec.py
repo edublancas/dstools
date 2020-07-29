@@ -4,7 +4,6 @@ import yaml
 import pandas as pd
 
 
-# TODO: support for id columns
 class DataSpec:
     def __init__(self):
         self.df = None
@@ -28,7 +27,7 @@ class DataSpec:
         obj = cls()
         obj.df = None
         obj.unique = None
-        obj.types = None
+        obj.types = {k: spec['kind'] for k, spec in d.items()}
         obj.nas_prop = None
         obj.spec = deepcopy(d)
         return obj

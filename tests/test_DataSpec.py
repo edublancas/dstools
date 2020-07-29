@@ -16,12 +16,15 @@ def test_data_spec(loader):
 
     spec = DataSpec.from_df(df)
 
-    spec.to_dict()
+    d = spec.to_dict()
+
+    spec_from_d = DataSpec.from_dict(d)
 
     spec.to_yaml('spec.yaml')
     os.unlink('spec.yaml')
 
     spec.validate(df)
+    spec_from_d.validate(df)
 
 
 @pytest.mark.parametrize('values, expected_kind', [
