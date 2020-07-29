@@ -31,12 +31,13 @@ class DataSpec:
         obj.nas_prop = None
         obj.spec = deepcopy(d)
         return obj
-    
 
     def _infer_type(self, col, arr):
         if arr.dtype.kind == 'f':
             return 'numeric'
-        if arr.dtype.kind == 'O' and len(arr) == self.unique[col]:
+        # TODO: calling .unique() on every column might be slow, compute it
+        # lazily, for finding id columns maybe .is_unique() is faster
+        if arr.dtype.kind != 'f' and len(arr) == self.unique[col]:
             return 'id'
         elif self.unique[col] <= 10:
             return 'categorical'
@@ -47,10 +48,7 @@ class DataSpec:
         return self.df.apply(lambda arr: len(arr.unique()), axis=0)
 
     def _types(self):
-        types = {
-            col: self._infer_type(col, self.df[col])
-            for col in self.df
-        }
+        types = {col: self._infer_type(col, self.df[col]) for col in self.df}
         return types
 
     def _nas_prop(self):
@@ -65,7 +63,7 @@ class DataSpec:
         d = {}
         d['values'] = arr.unique().tolist()
         return d
-    
+
     def _spec_id(self, arr):
         return {}
 
@@ -76,11 +74,12 @@ class DataSpec:
     def _validate_categorical(self, col, arr):
         values = self.spec[col]['values']
         return arr.isin(values)
-    
+
     def _validate_id(self, col, arr):
-        counts = df[col].value_counts()
+        # NOTE: col is not used, but added as arg for consistency
+        counts = arr.value_counts()
         duplicates = counts[counts > 1].index
-        return ~ arr.isin(duplicates)
+        return ~arr.isin(duplicates)
 
     def _spec(self):
         d = {}
