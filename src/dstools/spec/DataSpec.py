@@ -2,6 +2,7 @@ from copy import deepcopy
 
 import yaml
 import pandas as pd
+import numpy as np
 
 
 class DataSpec:
@@ -32,7 +33,7 @@ class DataSpec:
         obj.df = None
         obj.unique = None
         obj.types = {k: spec['kind'] for k, spec in d.items()}
-        obj.nas_prop = None
+        obj.nas_prop = {k: spec['nas_prop'] for k, spec in d.items()}
         obj.spec = deepcopy(d)
         return obj
 
@@ -74,7 +75,12 @@ class DataSpec:
 
     def _spec_categorical(self, arr):
         d = {}
-        d['values'] = arr.unique().tolist()
+        values = arr.unique().tolist()
+
+        if np.nan in values:
+            values.remove(np.nan)
+
+        d['values'] = values
         return d
 
     def _spec_id(self, arr):
@@ -120,11 +126,24 @@ class DataSpec:
     def validate(self, df, collapse=True):
         is_valid = {}
 
+        # NOTE: what if we generate another spec from the sample and compare
+        # it to the original one, sounds like a rows might be valid alone
+        # (e.g. if it has nas and its column has na_proportion > 0) but the
+        # column might not be valid overall (if na_proportion_sample >
+        # na_proportion_from_spec)
+
         for col in df:
             arr = df[col]
             kind = self.types[col]
             fn = getattr(self, '_validate_' + kind)
-            is_valid[col] = fn(col, arr)
+            is_valid_arr = fn(col, arr)
+
+            # NOTE: for now, say an obsevation is valid if it has an NA and
+            # the columns na_prop is > 0
+            nas_prop = self.nas_prop[col]
+            is_valid_na = arr.isna() & (nas_prop > 0)
+
+            is_valid[col] = is_valid_na | is_valid_arr
 
         is_valid_df = pd.DataFrame(is_valid)
         is_valid_df.columns = df.columns
