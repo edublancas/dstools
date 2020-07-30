@@ -14,6 +14,8 @@ class DataSpec:
 
     @classmethod
     def from_df(cls, df):
+        """Init a data spec by extracting rules from a pandas.DataFrame
+        """
         obj = cls()
         obj.df = df
         obj.unique = obj._unique()
@@ -24,6 +26,8 @@ class DataSpec:
 
     @classmethod
     def from_dict(cls, d):
+        """Init a data spec from a dictionary
+        """
         obj = cls()
         obj.df = None
         obj.unique = None
@@ -31,6 +35,15 @@ class DataSpec:
         obj.nas_prop = None
         obj.spec = deepcopy(d)
         return obj
+
+    @classmethod
+    def from_yaml(cls, path):
+        """Init a data spec from a YAML file
+        """
+        with open(path) as f:
+            d = yaml.safe_load(f)
+
+        return cls.from_dict(d)
 
     def _infer_type(self, col, arr):
         if arr.dtype.kind == 'f':
