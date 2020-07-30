@@ -33,17 +33,26 @@ def test_naive_sampler_nas():
 
     spec = DataSpec.from_df(df)
 
+    # validate generated spec
     assert spec.spec['cat']['kind'] == 'categorical'
     np.testing.assert_approx_equal(spec.spec['cat']['nas_prop'],
                                    0.5,
                                    significant=2)
     assert set(spec.spec['cat']['values']) == {'a', 'b', 'c'}
 
+    assert spec.spec['num']['kind'] == 'numeric'
+    np.testing.assert_approx_equal(spec.spec['num']['nas_prop'],
+                                   0.5,
+                                   significant=2)
+    np.testing.assert_array_almost_equal(spec.spec['num']['range'], [0, 1],
+                                         decimal=1)
+
     sampler = NaiveSampler(spec.spec)
-
-    # TODO: test spec extracted values, test validate does not raise errors,
-    # test sample properties
-
     sample = sampler.sample(n=1000)
-
     assert spec.validate(sample)
+
+    spec_sample = DataSpec.from_df(sample).spec
+
+    # TODO: compare the rest of entries to the original spec
+    assert spec_sample['cat']['kind'] == 'categorical'
+    assert spec_sample['num']['kind'] == 'numeric'
