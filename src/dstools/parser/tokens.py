@@ -25,13 +25,10 @@ class String(Token):
     pass
 
 
+# FIXME: remove, just use Operator
 class BinaryOperator(Token):
     pass
 
 
 class Assignment(Token):
     pass
-
-
-class EOF(Token):
-    s = 'EOF'
