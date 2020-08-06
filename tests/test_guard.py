@@ -57,4 +57,6 @@ def test_simple_case(df):
     assert '"target". Expected int64, got category' in str(excinfo.value)
 
 
-# df.dtypes.to_dict()['target'] == pre.dtypes_expected['target']
+# TODO: test category with switched orders
+# what happens if we pass a single observation? as type categorical wont have all info to know all values
+# can to_categorical give different results? different order?
