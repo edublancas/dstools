@@ -1,9 +1,16 @@
 import os
 import pytest
-from dstools.spec.DataSpec import DataSpec, to_df
+from dstools.spec.DataSpec import DataSpec
 import pandas as pd
 import numpy as np
 from sklearn import datasets
+
+
+def to_df(data):
+    df = pd.DataFrame(data['data'])
+    df.columns = data['feature_names']
+    df['target'] = data['target']
+    return df
 
 
 @pytest.mark.parametrize('loader', [

@@ -153,10 +153,3 @@ class DataSpec:
             return not (~is_valid_df).sum().sum() > 0
         else:
             return is_valid_df
-
-
-def to_df(data):
-    df = pd.DataFrame(data['data'])
-    df.columns = data['feature_names']
-    df['target'] = data['target']
-    return df
