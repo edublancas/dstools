@@ -24,6 +24,11 @@ class CategoricalCaster(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         for col in self.cols:
-            X[col] = X[col].astype(self.dtypes[col])
+            if col in X:
+                X[col] = X[col].astype(self.dtypes[col])
+            elif self.strict:
+                raise ValueError('{} was initialized with column "{}", but '
+                                 'it does not appear in the data'.format(
+                                     type(self).__name__, col))
 
         return X
