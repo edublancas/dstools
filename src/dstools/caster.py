@@ -2,6 +2,9 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class CategoricalCaster(BaseEstimator, TransformerMixin):
+    """
+    Transform selected cols to category, the rest are casted to float
+    """
     def __init__(self, cols=None, strict=True):
         self.strict = strict
         self.cols = cols or []
@@ -20,6 +23,10 @@ class CategoricalCaster(BaseEstimator, TransformerMixin):
                                  'it does not appear in the data'.format(
                                      type(self).__name__, col))
 
+        for col in X:
+            if col not in self.cols:
+                X[col] = X[col].astype('float')
+
         return self
 
     def transform(self, X):
@@ -30,5 +37,9 @@ class CategoricalCaster(BaseEstimator, TransformerMixin):
                 raise ValueError('{} was initialized with column "{}", but '
                                  'it does not appear in the data'.format(
                                      type(self).__name__, col))
+
+        for col in X:
+            if col not in self.cols:
+                X[col] = X[col].astype('float')
 
         return X

@@ -35,3 +35,12 @@ def test_skip_if_missing_and_not_strict(method):
     caster = CategoricalCaster(cols=['cat', 'another_cat'], strict=False)
 
     getattr(caster, method)(train)
+
+
+def test_non_categorical_are_casted_to_float():
+    train = pd.DataFrame({'num': [1, 2, 3]})
+    caster = CategoricalCaster(cols=[])
+    caster.fit(train)
+
+    out = caster.transform(train)
+    assert str(out.dtypes.to_dict()['num']) == 'float64'
