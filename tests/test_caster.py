@@ -44,3 +44,13 @@ def test_non_categorical_are_casted_to_float():
 
     out = caster.transform(train)
     assert str(out.dtypes.to_dict()['num']) == 'float64'
+
+
+def test_predefined_dtypes():
+    train = pd.DataFrame({'num': ['a', 'b', 'c']})
+    dtype = CategoricalDtype(categories=['a', 'c'], ordered=False)
+
+    caster = CategoricalCaster(cols=['num'], predefined_dtypes={'num': dtype})
+    caster.fit(train)
+    out = caster.transform(train)
+    assert out['num'].dtype == dtype

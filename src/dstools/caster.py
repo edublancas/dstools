@@ -1,21 +1,39 @@
+from typing import List, Union, Mapping
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class CategoricalCaster(BaseEstimator, TransformerMixin):
     """
     Transform selected cols to category, the rest are casted to float
+
+    Parameters
+    ----------
+    cols
+        Columns to cast to categorical
+    predefined_dtypes:
+        Exact type to map columns to, otherwise just learn the type using
+        .astype('category')
+
     """
-    def __init__(self, cols=None, strict=True):
+    def __init__(self,
+                 cols: Union[str, List[str]] = None,
+                 strict: bool = True,
+                 predefined_dtypes: Mapping = None):
         self.strict = strict
         self.cols = cols or []
         self.dtypes = {}
+        self.predefined_dtypes = predefined_dtypes or {}
 
     def fit(self, X, y=None):
         for col in self.cols:
 
             if col in X:
                 # cast column
-                X[col] = X[col].astype('category')
+                if col in self.predefined_dtypes:
+                    X[col] = X[col].astype(self.predefined_dtypes[col])
+                else:
+                    X[col] = X[col].astype('category')
+
                 # save resulting dtype
                 self.dtypes[col] = X[col].dtype
             elif self.strict:
