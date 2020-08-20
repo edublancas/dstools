@@ -37,13 +37,19 @@ def test_skip_if_missing_and_not_strict(method):
     getattr(caster, method)(train)
 
 
-def test_non_categorical_are_casted_to_float():
-    train = pd.DataFrame({'num': [1, 2, 3]})
-    caster = CategoricalCaster(cols=[])
+@pytest.mark.parametrize('cast_int_to_float, expected', [
+    [True, 'float64'],
+    [False, 'int64'],
+])
+def test_int_are_casted_to_float(cast_int_to_float, expected):
+    train = pd.DataFrame({'num': [1, 2, 3], 'non_num': ['a', 'b', 'c']})
+    caster = CategoricalCaster(cols=[], cast_int_to_float=cast_int_to_float)
     caster.fit(train)
 
     out = caster.transform(train)
-    assert str(out.dtypes.to_dict()['num']) == 'float64'
+    dtypes = out.dtypes.to_dict()
+    assert str(dtypes['num']) == expected
+    assert str(dtypes['non_num']) == 'object'
 
 
 def test_predefined_dtypes():
