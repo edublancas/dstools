@@ -47,6 +47,7 @@ class ColumnGuard(BaseEstimator, TransformerMixin):
         return X
 
 
+# FIXME: remove columnguard logic from here
 class InputGuard(BaseEstimator, TransformerMixin):
     """
     Verify column names at predict time match the ones used when fitting. It

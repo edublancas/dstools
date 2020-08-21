@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 from sklearn.datasets import load_wine
 
-from dstools.guard import InputGuard
+from dstools.guard import InputGuard, ColumnGuard
 
 
 def to_df(data):
@@ -60,3 +60,22 @@ def test_simple_case(df):
 # TODO: test category with switched orders
 # what happens if we pass a single observation? as type categorical wont have all info to know all values
 # can to_categorical give different results? different order?
+
+
+def test_column_guard():
+    df = pd.DataFrame({'x': [1, 2, 3], 'y': [1, 2, 3]})
+
+    df_extra = df.copy()
+    df_extra['z'] = 1
+
+    ColumnGuard().fit_transform(df)
+
+    # passing extra cols but not strict
+    guard = ColumnGuard(strict=False)
+    res = guard.fit(df).transform(df_extra)
+    assert list(res) == ['x', 'y']
+
+    guard = ColumnGuard(strict=True)
+
+    with pytest.raises(ValueError):
+        guard.fit(df).transform(df_extra)
