@@ -1,3 +1,4 @@
+.nox/
 **/output/
 .vscode/
 project.sublime-project

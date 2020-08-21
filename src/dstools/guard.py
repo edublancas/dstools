@@ -15,6 +15,38 @@ class DtypeMismatch:
             m=self)
 
 
+class ColumnGuard(BaseEstimator, TransformerMixin):
+    def __init__(self, strict=True):
+        self.strict = strict
+
+    def fit(self, X, y=None):
+        self.expected_cols = list(X.columns)
+        return self
+
+    def transform(self, X):
+        columns_got = list(X.columns)
+
+        if self.strict:
+            if self.expected_cols != columns_got:
+                missing = set(self.expected_cols) - set(columns_got)
+                raise ValueError('Columns during fit were: {}, but got {} '
+                                 'for predict.'
+                                 ' Missing: {}'.format(self.expected_cols,
+                                                       columns_got, missing))
+        else:
+            missing = set(self.expected_cols) - set(columns_got)
+            extra = set(columns_got) - set(self.expected_cols)
+
+            if missing:
+                raise ValueError('Missing columns: {}'.format(missing))
+            elif extra:
+                extra = set(columns_got) - set(self.expected_cols)
+                warnings.warn('Got extra columns: {}, ignoring'.format(extra))
+                return X[self.expected_cols]
+
+        return X
+
+
 class InputGuard(BaseEstimator, TransformerMixin):
     """
     Verify column names at predict time match the ones used when fitting. It
