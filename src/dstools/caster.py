@@ -65,6 +65,8 @@ class CategoricalCaster(BaseEstimator, TransformerMixin):
 
     def _cast_to_float(self, X):
         for col in X:
-            if (col not in self.cols and X[col].dtype == 'int'
-                    and self.cast_int_to_float):
+            # NOTE: X[col].dtype == 'int' works on linux but not on windows
+            is_int = str(X[col].dtype).startswith('int')
+
+            if (col not in self.cols and is_int and self.cast_int_to_float):
                 X[col] = X[col].astype('float')
