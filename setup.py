@@ -13,19 +13,17 @@ from os.path import splitext
 from setuptools import find_packages
 from setuptools import setup
 
-
 _version_re = re.compile(r'__version__\s+=\s+(.*)')
 
 with open('src/dstools/__init__.py', 'rb') as f:
-    VERSION = str(ast.literal_eval(_version_re.search(
-        f.read().decode('utf-8')).group(1)))
+    VERSION = str(
+        ast.literal_eval(
+            _version_re.search(f.read().decode('utf-8')).group(1)))
 
 
 def read(*names, **kwargs):
-    return io.open(
-        join(dirname(__file__), *names),
-        encoding=kwargs.get('encoding', 'utf8')
-    ).read()
+    return io.open(join(dirname(__file__), *names),
+                   encoding=kwargs.get('encoding', 'utf8')).read()
 
 
 setup(
@@ -33,10 +31,10 @@ setup(
     version=VERSION,
     license='A license',
     description='Utility functions for Data Science projects.',
-    long_description='%s\n%s' % (
-        re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
-        re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
-    ),
+    long_description='%s\n%s' %
+    (re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub(
+        '', read('README.rst')),
+     re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))),
     author='Eduardo Blancas',
     author_email='github@blancas.io',
     url='https://github.com/edublancas/dstools',
@@ -71,33 +69,17 @@ setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
     install_requires=[
-        # FIXME: remove pyyaml
-        'pyyaml', 'networkx', 'click', 'jinja2', 'tabulate', 'pygraphviz',
-        'humanize', 'tqdm',
-        # used in SQLTemplate
-        'numpydoc', 'pyarrow',
-        # for pipeline.sql
-        'sqlalchemy',
-        # for pg tools - should make it optional
-        'psycopg2-binary',
-        # other deps that should be optional
-        'pandas',
-        # for code normalization
-        'sqlparse', 'autopep8', 'parso',
-        # for generating dag.to_markup(fmt='html')
-        'mistune',
+        'pyyaml',
+        'click',
+        'jinja2',
+        'tabulate',
         # python<3.7 backported library
         'importlib_resources',
-
     ],
     extras_require={
-        # eg:
-        #   'rst': ['docutils>=0.11'],
-        #   ':python_version=="2.6"': ['argparse'],
+        'dev': ['pytest', 'yapf', 'flake8', 'ipython'],
     },
-    entry_points={
-        'console_scripts': [
-            'dstools=dstools.cli:cli',
-        ]
-    },
+    entry_points={'console_scripts': [
+        'dstools=dstools.cli:cli',
+    ]},
 )
