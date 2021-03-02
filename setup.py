@@ -38,7 +38,7 @@ setup(
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
     ),
     author='Eduardo Blancas',
-    author_email='fkq8@blancas.io',
+    author_email='github@blancas.io',
     url='https://github.com/edublancas/dstools',
     packages=find_packages('src'),
     package_dir={'': 'src'},
@@ -78,8 +78,6 @@ setup(
         'numpydoc', 'pyarrow',
         # for pipeline.sql
         'sqlalchemy',
-        # for sshclient,
-        'paramiko',
         # for pg tools - should make it optional
         'psycopg2-binary',
         # other deps that should be optional
@@ -90,8 +88,6 @@ setup(
         'mistune',
         # python<3.7 backported library
         'importlib_resources',
-        # for NotebookRunner
-        'papermill', 'jupytext', 'jupyter',
 
     ],
     extras_require={
