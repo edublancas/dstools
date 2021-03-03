@@ -19,9 +19,9 @@ def conn():
 def test_simple(tmp_directory, conn):
     pd.DataFrame({'x': np.arange(100)}).to_sql('numbers', conn)
 
-    sql = profiling.simple(relation='numbers',
-                           mappings={'x': ['min', 'max']},
-                           alias={'x': 'new_x'})
+    sql = profiling._simple(relation='numbers',
+                            mappings={'x': ['min', 'max']},
+                            alias={'x': 'new_x'})
 
     df = pd.read_sql(sql, conn)
 
@@ -39,11 +39,11 @@ def test_agg(tmp_directory, conn):
     data.loc[:50, 'id'] = 1
     data.to_sql('numbers', conn)
 
-    sql = profiling.agg(relation='numbers',
-                        mappings={'x': ['count']},
-                        alias={'x': 'new_x'},
-                        group_by='id',
-                        agg=['min', 'max'])
+    sql = profiling._agg(relation='numbers',
+                         mappings={'x': ['count']},
+                         alias={'x': 'new_x'},
+                         group_by='id',
+                         agg=['min', 'max'])
 
     df = pd.read_sql(sql, conn)
 
@@ -62,12 +62,12 @@ def test_agg_return_all(tmp_directory, conn):
     data.loc[:50, 'id'] = 1
     data.to_sql('numbers', conn)
 
-    sql = profiling.agg(relation='numbers',
-                        mappings={'x': ['count']},
-                        alias={'x': 'new_x'},
-                        group_by='id',
-                        agg=['min', 'max'],
-                        return_all=True)
+    sql = profiling._agg(relation='numbers',
+                         mappings={'x': ['count']},
+                         alias={'x': 'new_x'},
+                         group_by='id',
+                         agg=['min', 'max'],
+                         return_all=True)
 
     df = pd.read_sql(sql, conn)
 

@@ -11,12 +11,12 @@ def profile(relation,
             agg=None,
             return_all=False):
     if group_by:
-        return simple(relation, mappings, alias)
+        return _simple(relation, mappings, alias)
     else:
-        return agg(relation, mappings, alias, group_by, agg, return_all)
+        return _agg(relation, mappings, alias, group_by, agg, return_all)
 
 
-def simple(relation, mappings, alias):
+def _simple(relation, mappings, alias):
     """
 
     >>> mappings = {'col': ['min', 'max']}
@@ -29,7 +29,7 @@ def simple(relation, mappings, alias):
                     group_by=None)
 
 
-def agg(relation, mappings, alias, group_by, agg, return_all=False):
+def _agg(relation, mappings, alias, group_by, agg, return_all=False):
     """
 
     >>> mappings = {'col': ['min', 'max']}
