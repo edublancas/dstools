@@ -4,6 +4,18 @@ _env = Environment(loader=PackageLoader('dstools', 'profiling'),
                    undefined=StrictUndefined)
 
 
+def profile(relation,
+            mappings,
+            alias,
+            group_by=None,
+            agg=None,
+            return_all=False):
+    if group_by:
+        return simple(relation, mappings, alias)
+    else:
+        return agg(relation, mappings, alias, group_by, agg, return_all)
+
+
 def simple(relation, mappings, alias):
     """
 
