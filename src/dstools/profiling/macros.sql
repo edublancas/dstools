@@ -1,4 +1,6 @@
-{% macro simple(relation, mappings, alias, group_by=none) -%}
+{% macro simple(relation, mappings, alias, group_by) -%}
+
+{% set suffix = '' if not group_by else '_by_'+group_by %}
 
 SELECT
     {% if group_by %} {{group_by}}, {% endif %}
@@ -7,13 +9,13 @@ SELECT
         {% for fn in functions %}
             {% set alias = col if col not in alias else alias[col] %}
             {% if fn == 'count-distinct' %}
-                COUNT(DISTINCT({{col}})) AS distinct_{{alias}},
+                COUNT(DISTINCT({{col}})) AS distinct_{{alias}}{{suffix}},
             {% else %}
-                {{fn}}({{col}}) AS {{fn}}_{{alias}},
+                {{fn}}({{col}}) AS {{fn}}_{{alias}}{{suffix}},
             {% endif %}
         {% endfor %}
     {% endfor %}
-                COUNT(*) AS n_rows
+                COUNT(*) AS count{{suffix}}
 
 FROM {{relation}}
 {% if group_by %} GROUP BY {{group_by}} {% endif %}
@@ -21,38 +23,43 @@ FROM {{relation}}
 
 
 
-{% macro agg_columns(mappings, alias, agg) -%}
+{% macro agg_columns(mappings, alias, agg, group_by) -%}
+
+{% set suffix = '' if not group_by else '_by_'+group_by %}
 
 {% for OUTER_AGG in agg %}
     {% for col, functions in mappings.items() %}
         {% for fn in functions %}
             {% set alias = col if col not in alias else alias[col] %}
             {% if fn == 'count-distinct' %}
-                {{OUTER_AGG}}(distinct_{{alias}}) AS {{OUTER_AGG}}_distinct_{{alias}},
+                {{OUTER_AGG}}(distinct_{{alias}}{{suffix}}) AS {{OUTER_AGG}}_distinct_{{alias}}{{suffix}},
             {% else %}
-                {{OUTER_AGG}}({{fn}}_{{alias}}) AS {{OUTER_AGG}}_{{fn}}_{{alias}},
+                {{OUTER_AGG}}({{fn}}_{{alias}}{{suffix}}) AS {{OUTER_AGG}}_{{fn}}_{{alias}}{{suffix}},
             {% endif %}
         {% endfor %}
     {% endfor %}
-            {{OUTER_AGG}}(n_rows) AS {{OUTER_AGG}}_n_rows {{'' if loop.last else ','}}
+            {{OUTER_AGG}}(count{{suffix}}) AS {{OUTER_AGG}}_count{{suffix}} {{'' if loop.last else ','}}
 {% endfor %}
+
 {%- endmacro %}
 
 
 
-{% macro list_columns(mappings, alias, agg) -%}
+{% macro list_columns(mappings, alias, agg, group_by) -%}
+
+{% set suffix = '' if not group_by else '_by_'+group_by %}
 
 {% for col, functions in mappings.items() %}
     {% for fn in functions %}
         {% set alias = col if col not in alias else alias[col] %}
         {% if fn == 'count-distinct' %}
-            distinct_{{alias}},
+            distinct_{{alias}}{{suffix}},
         {% else %}
-            {{fn}}_{{alias}},
+            {{fn}}_{{alias}}{{suffix}},
         {% endif %}
     {% endfor %}
 {% endfor %}
-            n_rows
+            count{{suffix}}
 
 {%- endmacro %}
 

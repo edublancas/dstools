@@ -25,10 +25,11 @@ def test_simple(tmp_directory, conn):
 
     df = pd.read_sql(sql, conn)
 
+    assert len(df) == 1
     assert df.iloc[0].to_dict() == {
         'min_new_x': 0,
         'max_new_x': 99,
-        'n_rows': 100
+        'count': 100
     }
 
 
@@ -46,11 +47,12 @@ def test_agg(tmp_directory, conn):
 
     df = pd.read_sql(sql, conn)
 
+    assert len(df) == 1
     assert df.iloc[0].to_dict() == {
-        'min_count_new_x': 49,
-        'min_n_rows': 49,
-        'max_count_new_x': 51,
-        'max_n_rows': 51
+        'min_count_new_x_by_id': 49,
+        'max_count_new_x_by_id': 51,
+        'max_count_by_id': 51,
+        'min_count_by_id': 49,
     }
 
 
@@ -69,11 +71,12 @@ def test_agg_return_all(tmp_directory, conn):
 
     df = pd.read_sql(sql, conn)
 
+    assert len(df) == 1
     assert df.iloc[0].to_dict() == {
-        'min_count_new_x': 49,
-        'min_n_rows': 49,
-        'max_count_new_x': 51,
-        'max_n_rows': 51,
-        'count_new_x': 49,
-        'n_rows': 49,
+        'min_count_new_x_by_id': 49,
+        'min_count_by_id': 49,
+        'max_count_new_x_by_id': 51,
+        'max_count_by_id': 51,
+        'count_new_x': 100,
+        'count': 100
     }
