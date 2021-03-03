@@ -38,3 +38,21 @@ FROM {{relation}}
 {% endfor %}
 {%- endmacro %}
 
+
+
+{% macro list_columns(mappings, alias, agg) -%}
+
+{% for col, functions in mappings.items() %}
+    {% for fn in functions %}
+        {% set alias = col if col not in alias else alias[col] %}
+        {% if fn == 'count-distinct' %}
+            distinct_{{alias}},
+        {% else %}
+            {{fn}}_{{alias}},
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+            n_rows
+
+{%- endmacro %}
+

@@ -17,7 +17,7 @@ def simple(relation, mappings, alias):
                     group_by=None)
 
 
-def agg(relation, mappings, alias, group_by, agg):
+def agg(relation, mappings, alias, group_by, agg, return_all=False):
     """
 
     >>> mappings = {'col': ['min', 'max']}
@@ -30,4 +30,5 @@ def agg(relation, mappings, alias, group_by, agg):
                     mappings=mappings,
                     alias=alias,
                     group_by=group_by,
-                    agg=agg)
+                    agg=agg,
+                    return_all=return_all)

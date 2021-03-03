@@ -52,3 +52,28 @@ def test_agg(tmp_directory, conn):
         'max_count_new_x': 51,
         'max_n_rows': 51
     }
+
+
+def test_agg_return_all(tmp_directory, conn):
+    data = pd.DataFrame({'x': np.arange(100)})
+    data['id'] = 0
+    data.loc[:50, 'id'] = 1
+    data.to_sql('numbers', conn)
+
+    sql = profiling.agg(relation='numbers',
+                        mappings={'x': ['count']},
+                        alias={'x': 'new_x'},
+                        group_by='id',
+                        agg=['min', 'max'],
+                        return_all=True)
+
+    df = pd.read_sql(sql, conn)
+
+    assert df.iloc[0].to_dict() == {
+        'min_count_new_x': 49,
+        'min_n_rows': 49,
+        'max_count_new_x': 51,
+        'max_n_rows': 51,
+        'count_new_x': 49,
+        'n_rows': 49,
+    }
