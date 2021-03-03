@@ -12,10 +12,10 @@ def profile(relation,
             return_all=False):
     if group_by:
         return _agg(relation, mappings, alias, group_by, agg, return_all)
-    else:
         if not agg:
             raise ValueError(
                 'agg contain at least one value if passing group_by')
+    else:
         return _simple(relation, mappings, alias)
 
 
