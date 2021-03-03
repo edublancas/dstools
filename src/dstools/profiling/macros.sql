@@ -9,13 +9,13 @@ SELECT
         {% for fn in functions %}
             {% set alias = col if col not in alias else alias[col] %}
             {% if fn == 'count-distinct' %}
-                COUNT(DISTINCT({{col}})) AS distinct_{{alias}}{{suffix}},
+                COUNT(DISTINCT({{col}})) distinct_{{alias}}{{suffix}},
             {% else %}
-                {{fn}}({{col}}) AS {{fn}}_{{alias}}{{suffix}},
+                {{fn}}({{col}}) {{fn}}_{{alias}}{{suffix}},
             {% endif %}
         {% endfor %}
     {% endfor %}
-                COUNT(*) AS count{{suffix}}
+                COUNT(*) count{{suffix}}
 
 FROM {{relation}}
 {% if group_by %} GROUP BY {{group_by}} {% endif %}
@@ -32,13 +32,13 @@ FROM {{relation}}
         {% for fn in functions %}
             {% set alias = col if col not in alias else alias[col] %}
             {% if fn == 'count-distinct' %}
-                {{OUTER_AGG}}(distinct_{{alias}}{{suffix}}) AS {{OUTER_AGG}}_distinct_{{alias}}{{suffix}},
+                {{OUTER_AGG}}(distinct_{{alias}}{{suffix}}) {{OUTER_AGG}}_distinct_{{alias}}{{suffix}},
             {% else %}
-                {{OUTER_AGG}}({{fn}}_{{alias}}{{suffix}}) AS {{OUTER_AGG}}_{{fn}}_{{alias}}{{suffix}},
+                {{OUTER_AGG}}({{fn}}_{{alias}}{{suffix}}) {{OUTER_AGG}}_{{fn}}_{{alias}}{{suffix}},
             {% endif %}
         {% endfor %}
     {% endfor %}
-            {{OUTER_AGG}}(count{{suffix}}) AS {{OUTER_AGG}}_count{{suffix}} {{'' if loop.last else ','}}
+            {{OUTER_AGG}}(count{{suffix}}) {{OUTER_AGG}}_count{{suffix}} {{'' if loop.last else ','}}
 {% endfor %}
 
 {%- endmacro %}
